@@ -116,9 +116,11 @@ public class EventStore<T> {
     public void run() {
       try {
         Event last = null;
-        while (!eventStream.hasEnded()) {
+        boolean hasRunatLeastOnce=false;
+        while (!eventStream.hasEnded() || !hasRunatLeastOnce) {
           Event next_last = this.eventStore.work(eventStream.takeAll());
           if (next_last != null) last = next_last;
+          hasRunatLeastOnce=true;
         }
         Event next_last = this.eventStore.work(eventStream.takeAll());
         if (next_last != null) last = next_last;

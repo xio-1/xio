@@ -130,12 +130,12 @@ public class AsyncStream<T,R> {
     this.isEnd = true;
     try {
       if (waitForEnd)
-        while (!this.hasEnded() && !this.eventEventStore.hasEnded()) {
+        while (!this.hasEnded() || !this.eventEventStore.hasEnded()) {
           Thread.currentThread().sleep(100);
         }
     } catch (InterruptedException e) {
     }
-    System.out.println("end");
+    return;
   }
 
   public void reset() {
