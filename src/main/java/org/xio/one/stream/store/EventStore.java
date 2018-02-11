@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
-/** The velostream.stream.event eventQueryStore where the putAll events are persisted in memory */
+/** The Xio.stream.event eventQueryStore where the putAll events are persisted in memory */
 public class EventStore<T> {
 
   protected volatile ConcurrentSkipListSet<Event<T>> eventStoreContents;
@@ -28,7 +28,7 @@ public class EventStore<T> {
 
   /**
    * New Event BaseWorker Execution using the given checked Comparator</Event> to order the results
-   * passing velostream.stream.event time to live > 0 when using the EventTimestampComparator
+   * passing Xio.stream.event time to live > 0 when using the EventTimestampComparator
    * specifies how long events in seconds will be retained before being automatically removed from
    * the baseWorker results
    *
@@ -101,7 +101,7 @@ public class EventStore<T> {
   }
 
   /**
-   * Gets all the input from the velostream.stream.event eventStream and persists it to the contents
+   * Gets all the input from the Xio.stream.event eventStream and persists it to the contents
    * store
    */
   private class WorkerInput implements Runnable {
