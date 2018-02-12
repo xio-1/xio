@@ -11,6 +11,7 @@ import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.BaseSubscriber;
 import org.xio.one.stream.reactive.SingleSubscriber;
+import org.xio.one.stream.reactive.StreamSubscriber;
 import org.xio.one.stream.reactive.Subscription;
 import org.xio.one.stream.selector.FilterEntry;
 import org.xio.one.stream.selector.Selector;
@@ -26,16 +27,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.stream.Stream;
 
 /**
  * A EventStream - a streamContents of information
  *
  * <p>A EventStream is implemented with a Command Query Responsibility Segregation External Events
- * can be put into the streamContents and a segregated (in memory) contents store is used to provide a
- * processed (i.e. filtered, aggregated, joined) view of the events for the EventStream that are
+ * can be put into the streamContents and a segregated (in memory) contents store is used to provide
+ * a processed (i.e. filtered, aggregated, joined) view of the events for the EventStream that are
  * pre-processed via the streamContents's contents store selector processor.
  */
-public class AsyncStream<T,R> {
+public class AsyncStream<T, R> {
 
   // streamContents variables
   private EventStore<T> eventEventStore;
@@ -50,7 +52,7 @@ public class AsyncStream<T,R> {
   private int eventTTL;
   private Selector worker;
   private Map<String, Object> workerParams;
-  private Map<String, Future<R>> subscriptions = new HashMap<>();
+  private Map<String, Future> subscriptions = new HashMap<>();
 
   // Queue control
   private Event[] eventqueue_out;
@@ -63,6 +65,7 @@ public class AsyncStream<T,R> {
   // locks
   private final Object lock = new Object();
   private long slowDownNanos = 0;
+  private boolean flushImmediately = false;
 
   /**
    * Construct a new timeseries ordered EventStream with the given selector
@@ -141,7 +144,7 @@ public class AsyncStream<T,R> {
   public void reset() {
     if (isEnd == true) {
       this.event_queue = new LinkedBlockingQueue<>(queue_max_size);
-      last_queue_size=0;
+      last_queue_size = 0;
       this.eventqueue_out = new Event[this.queue_max_size];
       this.eventEventStore = new EventStore(this, worker, eventTTL);
       this.eventIDSequence = new EventIDSequence();
@@ -174,11 +177,57 @@ public class AsyncStream<T,R> {
    * @return
    */
   public Future<T> single(T value, SingleSubscriber subscriber) {
-    long eventId = put(value, true);
+    long eventId = put(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
       return (new Subscription<T>(this, subscriber)).subscribe();
     } else return null;
+  }
+
+  public AsyncStream<T, R> withImmediateFlushing() {
+    this.flushImmediately = true;
+    return this;
+  }
+
+  /** Put a single value into the stream */
+  public long put(T value) {
+    if (value != null && !isEnd) {
+      Event<T> event = new Event<>(value, eventIDSequence.getNext());
+      addToStreamWithLock(event, flushImmediately);
+      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      return event.getEventId();
+    }
+    return -1;
+  }
+
+  /**
+   * Puts list of values into the stream
+   *
+   * @param value
+   * @return
+   */
+  public long[] put(T... value) {
+    long[] ids = new long[value.length];
+    if (value != null && !isEnd) {
+      for (int i = 0; i < value.length; i++) {
+        Event<T> event = new Event<>(value[i], eventIDSequence.getNext());
+        ids[i] = event.getEventId();
+        addToStreamWithLock(event, flushImmediately);
+        if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      }
+    }
+    return ids;
+  }
+
+  /** Put a json string value into the stream Throws IOException if json string is invalid */
+  public boolean putJSON(String jsonValue) throws IOException {
+    if (jsonValue != null && !isEnd) {
+      Event event = new JSONValue(jsonValue, eventIDSequence.getNext());
+      addToStreamWithLock(event, flushImmediately);
+      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -190,32 +239,17 @@ public class AsyncStream<T,R> {
   public Future<R> withSubscriber(BaseSubscriber<R> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<R> subscription = new Subscription<>(this, subscriber);
-      subscriptions.put(
-          subscriber.getId(),subscription.subscribe());
+      subscriptions.put(subscriber.getId(), subscription.subscribe());
     }
     return subscriptions.get(subscriber.getId());
   }
 
-  /** Put a single value into the stream */
-  public long put(T value, boolean flushImmediately) {
-    if (value != null && !isEnd) {
-      Event<T> event = new Event<>(value, eventIDSequence.getNext());
-      addToStreamWithLock(event, flushImmediately);
-      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
-      return event.getEventId();
+  public Future<Stream<R>> withSubscriber(StreamSubscriber<R> subscriber) {
+    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
+      Subscription<Stream<R>> subscription = new Subscription<>(this, subscriber);
+      subscriptions.put(subscriber.getId(), subscription.subscribe());
     }
-    return -1;
-  }
-
-  /** Put a json string value into the stream Throws IOException if json string is invalid */
-  public boolean putJSON(String jsonValue, boolean flushImmediately) throws IOException {
-    if (jsonValue != null && !isEnd) {
-      Event event = new JSONValue(jsonValue, eventIDSequence.getNext());
-      addToStreamWithLock(event, flushImmediately);
-      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
-      return true;
-    }
-    return false;
+    return subscriptions.get(subscriber.getId());
   }
 
   /**
@@ -363,4 +397,6 @@ public class AsyncStream<T,R> {
   public Object getLock() {
     return lock;
   }
+
+
 }

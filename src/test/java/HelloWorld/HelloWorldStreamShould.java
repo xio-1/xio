@@ -4,36 +4,60 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.AsyncStream;
 import org.xio.one.stream.reactive.SingleSubscriber;
+import org.xio.one.stream.reactive.StreamSubscriber;
 import org.xio.one.stream.reactive.Subscribers;
 
+import java.util.Arrays;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 
 public class HelloWorldStreamShould {
 
-  String HELLO_WORLD = "Hello World";
+  String HELLO_WORLD_STREAM = "helloWorldStream";
+  String INT_STREAM = "integerStream";
 
   @Test
   public void shouldReturnHelloWorldEventFromStreamContents() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD, 0);
-    asyncStream.put("Hello world", true);
+    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM, 0);
+    asyncStream.withImmediateFlushing().put("Hello world");
     asyncStream.end(true);
     Assert.assertThat(asyncStream.contents().getLast().getEventValue(), is("Hello world"));
   }
 
   @Test
   public void JSONStringReturnsHelloWorldEventFromStreamContents() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD, 0);
-    asyncStream.putJSON("{\"msg\":\"Hello world\"}", true);
+    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM, 0);
+    asyncStream.withImmediateFlushing().putJSON("{\"msg\":\"Hello world\"}");
     asyncStream.end(true);
     Assert.assertThat(
         asyncStream.contents().getLast().toJSONString(), is("{\"msg\":\"Hello world\"}"));
   }
 
   @Test
+  public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
+    AsyncStream<Integer, Integer> asyncStream = new AsyncStream<>(INT_STREAM, 0);
+
+    StreamSubscriber<Integer> subscriber =
+        new StreamSubscriber<Integer>() {
+          @Override
+          public Integer process(Integer eventValue) {
+            return eventValue * 10;
+          }
+        };
+    Future<Stream<Integer>> result = asyncStream.withImmediateFlushing().withSubscriber(subscriber);
+    asyncStream.put(1, 2, 3, 4);
+    asyncStream.end(true);
+    Integer[] intList = new Integer[] {10, 20, 30, 40};
+    Assert.assertTrue(
+        Arrays.equals(result.get().collect(Collectors.toList()).toArray(new Integer[0]), intList));
+  }
+
+  @Test
   public void shouldReturnHelloWorldForSingleAsyncSubscriber() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD, 0);
+    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM, 0);
     Future<String> result =
         asyncStream.single(
             "Hello",
@@ -52,7 +76,7 @@ public class HelloWorldStreamShould {
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
     Future<Long> count = asyncStream.withSubscriber(Subscribers.Counter());
     for (int i = 0; i < 10000; i++) {
-      asyncStream.put("Hello world" + i, false);
+      asyncStream.put("Hello world" + i);
     }
     asyncStream.end(true);
     Assert.assertThat(count.get(), is(10000L));
@@ -64,16 +88,17 @@ public class HelloWorldStreamShould {
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
     Future<Long> count = asyncStream.withSubscriber(Subscribers.Counter());
     for (int i = 0; i < 1000000; i++) {
-      asyncStream.put("Hello world" + i, false);
+      asyncStream.put("Hello world" + i);
     }
     asyncStream.end(true);
     Assert.assertThat(count.get(), is(1000000L));
-    System.out.println("Events per second : " + 1000000/((System.currentTimeMillis()-start)/1000));
+    System.out.println(
+        "Events per second : " + 1000000 / ((System.currentTimeMillis() - start) / 1000));
   }
 
   @Test
   public void stability() throws Exception {
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 10; i++) {
       shouldReturnHelloWorldCountSubscriber();
       shouldReturnHelloWorldEventFromStreamContents();
       shouldReturnHelloWorldForSingleAsyncSubscriber();

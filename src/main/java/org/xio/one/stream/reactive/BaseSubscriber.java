@@ -6,11 +6,11 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class BaseSubscriber<E> implements Subscriber<E> {
+public abstract class BaseSubscriber<R> implements Subscriber<R> {
 
   private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
-  volatile E result;
+  volatile R result;
   boolean done = false;
 
   public BaseSubscriber() {
@@ -42,35 +42,35 @@ public abstract class BaseSubscriber<E> implements Subscriber<E> {
     }
   }
 
-  protected abstract E process(Stream<Event> e);
+  protected abstract R process(Stream<Event> e);
 
   @Override
-  public E peek() {
-    E toreturn = result;
+  public R peek() {
+    R toreturn = result;
     return toreturn;
   }
 
   @Override
-  public E getNext() {
+  public R getNext() {
     return getNext(0, TimeUnit.MILLISECONDS);
   }
 
   @Override
-  public E getNext(long timeout, TimeUnit timeUnit) {
+  public R getNext(long timeout, TimeUnit timeUnit) {
     return getWithReset(timeout, timeUnit, false);
   }
 
   @Override
-  public E getNextAndReset() {
+  public R getNextAndReset() {
     return getNextAndReset(0, TimeUnit.MILLISECONDS);
   }
 
   @Override
-  public E getNextAndReset(long timeout, TimeUnit timeUnit) {
+  public R getNextAndReset(long timeout, TimeUnit timeUnit) {
     return getWithReset(timeout, timeUnit, true);
   }
 
-  private E getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {
+  private R getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {
     synchronized (lock) {
       while (result == null && !isDone())
         try {
@@ -78,7 +78,7 @@ public abstract class BaseSubscriber<E> implements Subscriber<E> {
           if (timeout > 0) break;
         } catch (InterruptedException e) {
         }
-      E toreturn = result;
+      R toreturn = result;
       result = null;
       if (reset) this.initialise();
       return toreturn;
@@ -86,7 +86,7 @@ public abstract class BaseSubscriber<E> implements Subscriber<E> {
   }
 
   @Override
-  public Subscriber<E> getSubscriber() {
+  public Subscriber<R> getSubscriber() {
     return this;
   }
 
