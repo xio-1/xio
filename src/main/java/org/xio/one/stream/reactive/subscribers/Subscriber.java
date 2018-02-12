@@ -1,4 +1,4 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 

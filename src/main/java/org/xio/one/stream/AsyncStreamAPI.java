@@ -6,8 +6,7 @@ import org.xio.one.stream.selector.Selector;
 import java.util.HashMap;
 
 /**
- * StreamAPI - API that allows streams to be created, queried, and removed @Author Rich
- * Durley @Copyright Rich Durley 2014
+ * StreamAPI - API that allows streams to be created, queried, and removed
  */
 public class AsyncStreamAPI {
 

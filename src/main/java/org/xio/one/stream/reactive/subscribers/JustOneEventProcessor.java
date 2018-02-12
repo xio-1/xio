@@ -1,11 +1,11 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public abstract class SingleEventSubscriber<E> extends BaseSubscriber<E> {
+public abstract class JustOneEventProcessor<E> extends BaseProcessor<E> {
 
   private long eventId;
 

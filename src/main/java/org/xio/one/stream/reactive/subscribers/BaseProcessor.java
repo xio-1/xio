@@ -1,23 +1,24 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
+import org.xio.one.stream.reactive.subscribers.Subscriber;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class BaseSubscriber<R> implements Subscriber<R> {
+public abstract class BaseProcessor<R> implements Subscriber<R> {
 
   private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
   volatile R result;
   boolean done = false;
 
-  public BaseSubscriber() {
+  public BaseProcessor() {
     initialise();
   }
 
-  public void initialise() {}
+  protected void initialise() {}
 
   @Override
   public boolean isDone() {

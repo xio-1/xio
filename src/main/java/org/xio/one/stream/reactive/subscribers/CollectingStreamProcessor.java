@@ -1,11 +1,11 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class ContinuousStreamSubscriber<R> extends BaseSubscriber<Stream<R>> {
+public abstract class CollectingStreamProcessor<R> extends BaseProcessor<Stream<R>> {
 
   private ArrayList<R> resultArrayList = new ArrayList<>();
 

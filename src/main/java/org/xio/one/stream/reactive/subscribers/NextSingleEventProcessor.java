@@ -1,11 +1,11 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class OnlyNextEventStreamSubscriber<E> extends BaseSubscriber<E> {
+public abstract class NextSingleEventProcessor<E> extends BaseProcessor<E> {
 
   private int currentIndex = -1;
   private ArrayList<Event> resultArrayList;;

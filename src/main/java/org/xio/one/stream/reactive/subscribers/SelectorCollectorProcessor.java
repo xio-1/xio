@@ -1,4 +1,4 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.selector.FilterEntry;
@@ -9,17 +9,17 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class SelectorCollectorSubscriber<E> extends BaseSubscriber<Event[]> {
+public class SelectorCollectorProcessor<E> extends BaseProcessor<Event[]> {
 
   private ArrayList<Event> resultArrayList;
   private Selector selector = new Selector();
   ;
 
-  public SelectorCollectorSubscriber() {
+  public SelectorCollectorProcessor() {
     super();
   }
 
-  public SelectorCollectorSubscriber(FilterEntry filterEntry) {
+  public SelectorCollectorProcessor(FilterEntry filterEntry) {
     this.addFilterEntry(filterEntry);
   }
 

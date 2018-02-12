@@ -1,10 +1,10 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 
 import java.util.stream.Stream;
 
-public class CounterStreamSubscriber extends BaseSubscriber<Long> {
+public class CountingStreamProcessor extends BaseProcessor<Long> {
 
   volatile Long count = 0L;
 

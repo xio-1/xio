@@ -10,6 +10,9 @@ import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.*;
+import org.xio.one.stream.reactive.subscribers.BaseProcessor;
+import org.xio.one.stream.reactive.subscribers.CollectingStreamProcessor;
+import org.xio.one.stream.reactive.subscribers.JustOneEventProcessor;
 import org.xio.one.stream.selector.FilterEntry;
 import org.xio.one.stream.selector.Selector;
 import org.xio.one.stream.store.EventStore;
@@ -24,12 +27,12 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Stream;
 
 /**
- * A EventStream - a streamContents of information
+ * An AsyncStream - a streamContents of information
  *
- * <p>A EventStream is implemented with a Command Query Responsibility Segregation External Events
- * can be put into the streamContents and a segregated (in memory) contents store is used to provide
- * a processed (i.e. filtered, aggregated, joined) view of the events for the EventStream that are
- * pre-processed via the streamContents's contents store selector processor.
+ * <p>AsyncStream is implemented with a Command Query Responsibility Segregation external objects,
+ * json, map can be PUT into the streamContents that are asynchronously loaded in memory to a
+ * contents store that is used to provide a sequenced view of the events to downstream subscribers
+ * using a separate thread
  */
 public class AsyncStream<T, R> {
 
@@ -60,7 +63,8 @@ public class AsyncStream<T, R> {
   private final Object lock = new Object();
   private long slowDownNanos = 0;
   private boolean flushImmediately = false;
-  private ExecutorService executorService = AsyncStreamExecutor.subscriberCachedThreadPoolInstance();
+  private ExecutorService executorService =
+      AsyncStreamExecutor.subscriberCachedThreadPoolInstance();
 
   /**
    * Construct a new timeseries ordered EventStream with the given selector
@@ -160,7 +164,7 @@ public class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<T> just(T value, SingleEventSubscriber subscriber) {
+  public Future<T> just(T value, JustOneEventProcessor subscriber) {
     long eventId = put(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
@@ -173,7 +177,7 @@ public class AsyncStream<T, R> {
     return this;
   }
 
-  public AsyncStream<T,R> withExecutorService(ExecutorService executorService) {
+  public AsyncStream<T, R> withExecutorService(ExecutorService executorService) {
     this.executorService = executorService;
     return this;
   }
@@ -184,7 +188,7 @@ public class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withSubscriber(BaseSubscriber<R> subscriber) {
+  public Future<R> withSubscriber(BaseProcessor<R> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<R> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());
@@ -192,7 +196,7 @@ public class AsyncStream<T, R> {
     return subscriptions.get(subscriber.getId());
   }
 
-  public Future<Stream<R>> withSubscriber(ContinuousStreamSubscriber<R> subscriber) {
+  public Future<Stream<R>> withSubscriber(CollectingStreamProcessor<R> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<Stream<R>> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());
@@ -240,8 +244,6 @@ public class AsyncStream<T, R> {
     }
     return false;
   }
-
-
 
   /**
    * Add a filter operation to a streamContents field
@@ -392,6 +394,4 @@ public class AsyncStream<T, R> {
   public Object getLock() {
     return lock;
   }
-
-
 }

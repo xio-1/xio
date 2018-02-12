@@ -2,6 +2,7 @@ package org.xio.one.stream.reactive;
 
 import org.xio.one.stream.AsyncStream;
 import org.xio.one.stream.event.Event;
+import org.xio.one.stream.reactive.subscribers.Subscriber;
 
 import java.util.ArrayList;
 import java.util.Collections;

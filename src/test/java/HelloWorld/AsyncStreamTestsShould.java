@@ -3,10 +3,10 @@ package HelloWorld;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.AsyncStream;
-import org.xio.one.stream.reactive.SingleEventSubscriber;
-import org.xio.one.stream.reactive.OnlyNextEventStreamSubscriber;
-import org.xio.one.stream.reactive.ContinuousStreamSubscriber;
-import org.xio.one.stream.reactive.Subscribers;
+import org.xio.one.stream.reactive.subscribers.CountingStreamProcessor;
+import org.xio.one.stream.reactive.subscribers.JustOneEventProcessor;
+import org.xio.one.stream.reactive.subscribers.NextSingleEventProcessor;
+import org.xio.one.stream.reactive.subscribers.CollectingStreamProcessor;
 
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -39,9 +39,8 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
     AsyncStream<Integer, Integer> asyncStream = new AsyncStream<>(INT_STREAM, 0);
-
-    ContinuousStreamSubscriber<Integer> subscriber =
-        new ContinuousStreamSubscriber<Integer>() {
+    CollectingStreamProcessor<Integer> subscriber =
+        new CollectingStreamProcessor<Integer>() {
           @Override
           public Integer process(Integer eventValue) {
             return eventValue * 10;
@@ -61,7 +60,7 @@ public class AsyncStreamTestsShould {
     Future<String> result =
         asyncStream.just(
             "Hello",
-            new SingleEventSubscriber<String>() {
+            new JustOneEventProcessor<String>() {
 
               @Override
               public String process(String eventValue) {
@@ -75,7 +74,7 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnHelloWorldCountSubscriber() throws Exception {
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
-    Future<Long> count = asyncStream.withSubscriber(Subscribers.Counter());
+    Future<Long> count = asyncStream.withSubscriber(new CountingStreamProcessor());
     for (int i = 0; i < 10000; i++) {
       asyncStream.put("Hello world" + i);
     }
@@ -88,8 +87,8 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream", 0);
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream", 0);
 
-    OnlyNextEventStreamSubscriber<String>
-        pingSubscriber = new OnlyNextEventStreamSubscriber<String>() {
+    NextSingleEventProcessor<String>
+        pingSubscriber = new NextSingleEventProcessor<String>() {
       @Override
       public String process(String eventValue) {
         if (eventValue.equals("ping")) {
@@ -102,8 +101,8 @@ public class AsyncStreamTestsShould {
 
     };
 
-    OnlyNextEventStreamSubscriber<String>
-        pongSubscriber = new OnlyNextEventStreamSubscriber<String>() {
+    NextSingleEventProcessor<String>
+        pongSubscriber = new NextSingleEventProcessor<String>() {
       @Override
       public String process(String eventValue) {
         if (eventValue.equals("pong")) {
@@ -126,7 +125,7 @@ public class AsyncStreamTestsShould {
   public void shouldPerformance() throws Exception {
     long start = System.currentTimeMillis();
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
-    Future<Long> count = asyncStream.withSubscriber(Subscribers.Counter());
+    Future<Long> count = asyncStream.withSubscriber(new CountingStreamProcessor());
     for (int i = 0; i < 1000000; i++) {
       asyncStream.put("Hello world" + i);
     }

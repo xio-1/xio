@@ -1,4 +1,4 @@
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.selector.FilterEntry;
@@ -8,17 +8,17 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-public class StreamHTTPForwarderSubscriber extends SelectorCollectorSubscriber<Event[]> {
+public class StreamHTTPForwarder extends SelectorCollectorProcessor<Event[]> {
 
   private URI remoteStreamBulkURI;
   private boolean stopForwarding;
 
-  public StreamHTTPForwarderSubscriber(URI remoteStreamBulkURI) {
+  public StreamHTTPForwarder(URI remoteStreamBulkURI) {
     super();
     this.remoteStreamBulkURI = remoteStreamBulkURI;
   }
 
-  public StreamHTTPForwarderSubscriber(URI remoteStreamBulkURI, FilterEntry filterEntry) {
+  public StreamHTTPForwarder(URI remoteStreamBulkURI, FilterEntry filterEntry) {
     super(filterEntry);
     this.remoteStreamBulkURI = remoteStreamBulkURI;
   }
