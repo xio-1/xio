@@ -4,7 +4,7 @@ import org.xio.one.stream.event.Event;
 
 import java.util.stream.Stream;
 
-public class CounterSubscriber extends BaseSubscriber<Long> {
+public class CounterStreamSubscriber extends BaseSubscriber<Long> {
 
   volatile Long count = 0L;
 

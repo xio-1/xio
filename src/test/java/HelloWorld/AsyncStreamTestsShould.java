@@ -3,18 +3,18 @@ package HelloWorld;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.AsyncStream;
-import org.xio.one.stream.reactive.SingleSubscriber;
-import org.xio.one.stream.reactive.StreamSubscriber;
+import org.xio.one.stream.reactive.SingleEventSubscriber;
+import org.xio.one.stream.reactive.OnlyNextEventStreamSubscriber;
+import org.xio.one.stream.reactive.ContinuousStreamSubscriber;
 import org.xio.one.stream.reactive.Subscribers;
 
 import java.util.Arrays;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class HelloWorldStreamShould {
+public class AsyncStreamTestsShould {
 
   String HELLO_WORLD_STREAM = "helloWorldStream";
   String INT_STREAM = "integerStream";
@@ -40,8 +40,8 @@ public class HelloWorldStreamShould {
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
     AsyncStream<Integer, Integer> asyncStream = new AsyncStream<>(INT_STREAM, 0);
 
-    StreamSubscriber<Integer> subscriber =
-        new StreamSubscriber<Integer>() {
+    ContinuousStreamSubscriber<Integer> subscriber =
+        new ContinuousStreamSubscriber<Integer>() {
           @Override
           public Integer process(Integer eventValue) {
             return eventValue * 10;
@@ -52,16 +52,16 @@ public class HelloWorldStreamShould {
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
     Assert.assertTrue(
-        Arrays.equals(result.get().collect(Collectors.toList()).toArray(new Integer[0]), intList));
+        Arrays.equals(result.get().toArray(Integer[]::new), intList));
   }
 
   @Test
   public void shouldReturnHelloWorldForSingleAsyncSubscriber() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM, 0);
     Future<String> result =
-        asyncStream.single(
+        asyncStream.just(
             "Hello",
-            new SingleSubscriber<String>() {
+            new SingleEventSubscriber<String>() {
               @Override
               public String process(String eventValue) {
                 return eventValue + " world";
@@ -80,6 +80,45 @@ public class HelloWorldStreamShould {
     }
     asyncStream.end(true);
     Assert.assertThat(count.get(), is(10000L));
+  }
+
+  @Test
+  public void shouldPingAndPong() throws Exception {
+    AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream", 0);
+    AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream", 0);
+
+    OnlyNextEventStreamSubscriber<String>
+        pingSubscriber = new OnlyNextEventStreamSubscriber<String>() {
+      @Override
+      public String process(String eventValue) {
+        if (eventValue.equals("ping")) {
+          System.out.println("got ping");
+          pong_stream.put("pong");
+          System.out.println("sent pong");
+        }
+        return "";
+      }
+
+    };
+
+    OnlyNextEventStreamSubscriber<String>
+        pongSubscriber = new OnlyNextEventStreamSubscriber<String>() {
+      @Override
+      public String process(String eventValue) {
+        if (eventValue.equals("pong")) {
+          System.out.println("got pong");
+          ping_stream.put("ping");
+          System.out.println("sent ping");
+        }
+        return "";
+      }
+
+    };
+    ping_stream.withSubscriber(pingSubscriber);
+    pong_stream.withSubscriber(pongSubscriber);
+    ping_stream.put("ping");
+    ping_stream.end(true);
+    pong_stream.end(true);
   }
 
   @Test
@@ -105,4 +144,6 @@ public class HelloWorldStreamShould {
       JSONStringReturnsHelloWorldEventFromStreamContents();
     }
   }
+
+
 }

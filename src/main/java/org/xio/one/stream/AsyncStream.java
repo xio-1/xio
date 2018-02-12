@@ -9,10 +9,7 @@ import org.xio.one.stream.event.EmptyEventArray;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
-import org.xio.one.stream.reactive.BaseSubscriber;
-import org.xio.one.stream.reactive.SingleSubscriber;
-import org.xio.one.stream.reactive.StreamSubscriber;
-import org.xio.one.stream.reactive.Subscription;
+import org.xio.one.stream.reactive.*;
 import org.xio.one.stream.selector.FilterEntry;
 import org.xio.one.stream.selector.Selector;
 import org.xio.one.stream.store.EventStore;
@@ -22,10 +19,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Stream;
 
@@ -66,6 +60,7 @@ public class AsyncStream<T, R> {
   private final Object lock = new Object();
   private long slowDownNanos = 0;
   private boolean flushImmediately = false;
+  private ExecutorService executorService = AsyncStreamExecutor.subscriberCachedThreadPoolInstance();
 
   /**
    * Construct a new timeseries ordered EventStream with the given selector
@@ -141,17 +136,6 @@ public class AsyncStream<T, R> {
     return;
   }
 
-  public void reset() {
-    if (isEnd == true) {
-      this.event_queue = new LinkedBlockingQueue<>(queue_max_size);
-      last_queue_size = 0;
-      this.eventqueue_out = new Event[this.queue_max_size];
-      this.eventEventStore = new EventStore(this, worker, eventTTL);
-      this.eventIDSequence = new EventIDSequence();
-      this.isEnd = false;
-    }
-  }
-
   /**
    * Returns if the streamContents has been ended A streamContents ends once any remaining inputs
    * events have been processed
@@ -176,7 +160,7 @@ public class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<T> single(T value, SingleSubscriber subscriber) {
+  public Future<T> just(T value, SingleEventSubscriber subscriber) {
     long eventId = put(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
@@ -189,7 +173,34 @@ public class AsyncStream<T, R> {
     return this;
   }
 
-  /** Put a single value into the stream */
+  public AsyncStream<T,R> withExecutorService(ExecutorService executorService) {
+    this.executorService = executorService;
+    return this;
+  }
+
+  /**
+   * Subscribe to the stream with the given subscriber
+   *
+   * @param subscriber
+   * @return
+   */
+  public Future<R> withSubscriber(BaseSubscriber<R> subscriber) {
+    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
+      Subscription<R> subscription = new Subscription<>(this, subscriber);
+      subscriptions.put(subscriber.getId(), subscription.subscribe());
+    }
+    return subscriptions.get(subscriber.getId());
+  }
+
+  public Future<Stream<R>> withSubscriber(ContinuousStreamSubscriber<R> subscriber) {
+    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
+      Subscription<Stream<R>> subscription = new Subscription<>(this, subscriber);
+      subscriptions.put(subscriber.getId(), subscription.subscribe());
+    }
+    return subscriptions.get(subscriber.getId());
+  }
+
+  /** Put a just value into the stream */
   public long put(T value) {
     if (value != null && !isEnd) {
       Event<T> event = new Event<>(value, eventIDSequence.getNext());
@@ -230,27 +241,7 @@ public class AsyncStream<T, R> {
     return false;
   }
 
-  /**
-   * Subscribe to the stream with the given subscriber
-   *
-   * @param subscriber
-   * @return
-   */
-  public Future<R> withSubscriber(BaseSubscriber<R> subscriber) {
-    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
-      Subscription<R> subscription = new Subscription<>(this, subscriber);
-      subscriptions.put(subscriber.getId(), subscription.subscribe());
-    }
-    return subscriptions.get(subscriber.getId());
-  }
 
-  public Future<Stream<R>> withSubscriber(StreamSubscriber<R> subscriber) {
-    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
-      Subscription<Stream<R>> subscription = new Subscription<>(this, subscriber);
-      subscriptions.put(subscriber.getId(), subscription.subscribe());
-    }
-    return subscriptions.get(subscriber.getId());
-  }
 
   /**
    * Add a filter operation to a streamContents field
@@ -365,6 +356,10 @@ public class AsyncStream<T, R> {
 
   public Map<String, Object> getWorkerParams() {
     return workerParams;
+  }
+
+  public ExecutorService getExecutorService() {
+    return executorService;
   }
 
   private int getNumberOfNewEvents(int mmsize, int lastsize) {

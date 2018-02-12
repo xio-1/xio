@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 public class AsyncStreamExecutor {
 
   private static ExecutorService cachedThreadPoolexec;
+  private static ExecutorService eventLoopThreadPoolexec;
   private static ExecutorService fixedThreadPoolexec;
 
   /**
@@ -24,12 +25,20 @@ public class AsyncStreamExecutor {
    *
    * @return
    */
-  public static synchronized ExecutorService cachedThreadPoolInstance() {
+  public static synchronized ExecutorService subscriberCachedThreadPoolInstance() {
     if (cachedThreadPoolexec == null)
       cachedThreadPoolexec = Executors.newCachedThreadPool();
     else if (cachedThreadPoolexec.isShutdown() || cachedThreadPoolexec.isTerminated())
       cachedThreadPoolexec = Executors.newCachedThreadPool();
     return cachedThreadPoolexec;
+  }
+
+  public static synchronized ExecutorService eventLoopThreadPoolInstance() {
+    if (eventLoopThreadPoolexec == null)
+      eventLoopThreadPoolexec = Executors.newCachedThreadPool();
+    else if (eventLoopThreadPoolexec.isShutdown() || eventLoopThreadPoolexec.isTerminated())
+      eventLoopThreadPoolexec = Executors.newCachedThreadPool();
+    return eventLoopThreadPoolexec;
   }
 
 

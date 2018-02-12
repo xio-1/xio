@@ -28,9 +28,9 @@ public class EventStore<T> {
 
   /**
    * New Event BaseWorker Execution using the given checked Comparator</Event> to order the results
-   * passing Xio.stream.event time to live > 0 when using the EventTimestampComparator
-   * specifies how long events in seconds will be retained before being automatically removed from
-   * the baseWorker results
+   * passing Xio.stream.event time to live > 0 when using the EventTimestampComparator specifies how
+   * long events in seconds will be retained before being automatically removed from the baseWorker
+   * results
    *
    * @param eventStream
    * @param eventTTLSeconds
@@ -47,8 +47,8 @@ public class EventStore<T> {
       eventStoreIndexFieldName = eventStream.getIndexFieldName();
     }
     if (eventTTLSeconds > 0)
-      AsyncStreamExecutor.fixedThreadPoolInstance().submit(new ExpiredEventsCollector());
-    AsyncStreamExecutor.fixedThreadPoolInstance().submit(new WorkerInput(this));
+      AsyncStreamExecutor.eventLoopThreadPoolInstance().submit(new ExpiredEventsCollector());
+    AsyncStreamExecutor.eventLoopThreadPoolInstance().submit(new WorkerInput(this));
   }
 
   /**
@@ -101,8 +101,7 @@ public class EventStore<T> {
   }
 
   /**
-   * Gets all the input from the Xio.stream.event eventStream and persists it to the contents
-   * store
+   * Gets all the input from the Xio.stream.event eventStream and persists it to the contents store
    */
   private class WorkerInput implements Runnable {
 
@@ -116,16 +115,17 @@ public class EventStore<T> {
     public void run() {
       try {
         Event last = null;
-        boolean hasRunatLeastOnce=false;
+        boolean hasRunatLeastOnce = false;
         while (!eventStream.hasEnded() || !hasRunatLeastOnce) {
           Event next_last = this.eventStore.work(eventStream.takeAll());
           if (next_last != null) last = next_last;
-          hasRunatLeastOnce=true;
+          hasRunatLeastOnce = true;
         }
         Event next_last = this.eventStore.work(eventStream.takeAll());
         if (next_last != null) last = next_last;
-        while (!last.equals(this.eventStore.eventStoreOperations.getLast()))
-          LockSupport.parkNanos(100000);
+        if (last != null)
+          while (!last.equals(this.eventStore.eventStoreOperations.getLast()))
+            LockSupport.parkNanos(100000);
         eventStore.isEnd = true;
       } catch (Exception e) {
         e.printStackTrace();

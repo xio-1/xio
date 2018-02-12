@@ -26,18 +26,15 @@ public class Subscription<E> {
   }
 
   public Future<E> subscribe() {
-    if (subscription == null) {
       CompletableFuture<E> completableFuture = new CompletableFuture<>();
-      this.subscription = AsyncStreamExecutor.cachedThreadPoolInstance().submit(() -> {
-        while (!eventStream.hasEnded() || !eventStream.contents().hasEnded()) {
+      this.subscription = eventStream.getExecutorService().submit(() -> {
+        while ((!eventStream.hasEnded() || !eventStream.contents().hasEnded()) &&!subscriber.isDone()) {
           processResults(subscriber);
         }
         processResults(subscriber);
         completableFuture.complete(subscriber.getNext());
       });
       return completableFuture;
-    } else
-      return null;
   }
 
   public void processResults() {
@@ -51,7 +48,7 @@ public class Subscription<E> {
   }
 
   public void unsubscribe() {
-    this.subscriber.stop(true);
+    this.subscriber.stop();
   }
 
   protected NavigableSet<Event> streamContents() {

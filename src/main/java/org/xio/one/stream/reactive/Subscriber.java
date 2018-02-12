@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 public interface Subscriber<E> extends SubscriberResult<E> {
   void emit(Stream<Event> e);
 
-  boolean stop(boolean mayInterruptIfRunning);
+  boolean stop();
 
   boolean isDone();
 }

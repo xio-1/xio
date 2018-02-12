@@ -26,7 +26,7 @@ public abstract class BaseSubscriber<R> implements Subscriber<R> {
   }
 
   @Override
-  public boolean stop(boolean mayInterruptIfRunning) {
+  public boolean stop() {
     synchronized (lock) {
       done = true;
       lock.notify();

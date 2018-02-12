@@ -5,7 +5,7 @@ import org.xio.one.stream.event.Event;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class StreamSubscriber<R> extends BaseSubscriber<Stream<R>> {
+public abstract class ContinuousStreamSubscriber<R> extends BaseSubscriber<Stream<R>> {
 
   private ArrayList<R> resultArrayList = new ArrayList<>();
 
