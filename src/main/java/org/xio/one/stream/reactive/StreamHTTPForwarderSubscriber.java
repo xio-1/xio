@@ -34,7 +34,7 @@ public class StreamHTTPForwarderSubscriber extends SelectorCollectorSubscriber<E
 
     Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
     while (stopForwarding == false) {
-      Event[] events = this.getNextAndReset();
+      Event[] events = this.getNext();
       if (events != null && events.length > 0) {
         Response response =
             invocationBuilder.put(Entity.entity(events, MediaType.APPLICATION_JSON));

@@ -17,8 +17,7 @@ public abstract class BaseSubscriber<R> implements Subscriber<R> {
     initialise();
   }
 
-  public void initialise() {
-  }
+  public void initialise() {}
 
   @Override
   public boolean isDone() {
@@ -52,22 +51,7 @@ public abstract class BaseSubscriber<R> implements Subscriber<R> {
 
   @Override
   public R getNext() {
-    return getNext(0, TimeUnit.MILLISECONDS);
-  }
-
-  @Override
-  public R getNext(long timeout, TimeUnit timeUnit) {
-    return getWithReset(timeout, timeUnit, false);
-  }
-
-  @Override
-  public R getNextAndReset() {
-    return getNextAndReset(0, TimeUnit.MILLISECONDS);
-  }
-
-  @Override
-  public R getNextAndReset(long timeout, TimeUnit timeUnit) {
-    return getWithReset(timeout, timeUnit, true);
+    return getWithReset(0, TimeUnit.MILLISECONDS, false);
   }
 
   private R getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {

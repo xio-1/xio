@@ -62,6 +62,7 @@ public class AsyncStreamTestsShould {
         asyncStream.just(
             "Hello",
             new SingleEventSubscriber<String>() {
+
               @Override
               public String process(String eventValue) {
                 return eventValue + " world";
