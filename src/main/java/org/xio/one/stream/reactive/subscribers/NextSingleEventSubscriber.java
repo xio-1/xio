@@ -5,7 +5,7 @@ import org.xio.one.stream.event.Event;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class NextSingleEventProcessor<E> extends BaseProcessor<E> {
+public abstract class NextSingleEventSubscriber<E> extends BaseSubscriber<E> {
 
   private int currentIndex = -1;
   private ArrayList<Event> resultArrayList;;

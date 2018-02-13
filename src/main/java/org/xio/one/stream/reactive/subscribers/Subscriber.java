@@ -17,4 +17,6 @@ public interface Subscriber<E> {
   E getNext();
 
   Subscriber<E> getSubscriber();
+
+  void initialise();
 }

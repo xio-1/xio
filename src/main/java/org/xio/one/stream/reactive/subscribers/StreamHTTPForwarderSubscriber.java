@@ -8,17 +8,17 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-public class StreamHTTPForwarder extends SelectorCollectorProcessor<Event[]> {
+public class StreamHTTPForwarderSubscriber extends SelectorCollectorSubscriber<Event[]> {
 
   private URI remoteStreamBulkURI;
   private boolean stopForwarding;
 
-  public StreamHTTPForwarder(URI remoteStreamBulkURI) {
+  public StreamHTTPForwarderSubscriber(URI remoteStreamBulkURI) {
     super();
     this.remoteStreamBulkURI = remoteStreamBulkURI;
   }
 
-  public StreamHTTPForwarder(URI remoteStreamBulkURI, FilterEntry filterEntry) {
+  public StreamHTTPForwarderSubscriber(URI remoteStreamBulkURI, FilterEntry filterEntry) {
     super(filterEntry);
     this.remoteStreamBulkURI = remoteStreamBulkURI;
   }

@@ -4,7 +4,7 @@ import org.xio.one.stream.event.Event;
 
 import java.util.stream.Stream;
 
-public class CountingStreamProcessor extends BaseProcessor<Long> {
+public class ContinuousCountingStreamSubscriber extends BaseSubscriber<Long> {
 
   volatile Long count = 0L;
 

@@ -2,18 +2,14 @@ package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 
-import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class MicroBatchEventProcessor<R> extends BaseProcessor<R> {
+public abstract class NextMicroBatchStreamSubscriber<R> extends BaseSubscriber<R> {
 
   @Override
   protected R process(Stream<Event> e) {
     if (e != null) {
-      this.stop();
-      processStream(e);
-      this.initialise();
-      return process(e);
+      return processStream(e);
     } else return null;
   }
 

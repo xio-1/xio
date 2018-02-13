@@ -5,7 +5,7 @@ import org.xio.one.stream.event.Event;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class CollectingStreamProcessor<R> extends BaseProcessor<Stream<R>> {
+public abstract class ContinuousCollectingStreamSubscriber<R> extends BaseSubscriber<Stream<R>> {
 
   private ArrayList<R> resultArrayList = new ArrayList<>();
 

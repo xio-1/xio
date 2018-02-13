@@ -7,18 +7,18 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class BaseProcessor<R> implements Subscriber<R> {
+public abstract class BaseSubscriber<R> implements Subscriber<R> {
 
   private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
   volatile R result;
   boolean done = false;
 
-  public BaseProcessor() {
+  public BaseSubscriber() {
     initialise();
   }
 
-  protected void initialise() {}
+  public abstract void initialise();
 
   @Override
   public boolean isDone() {

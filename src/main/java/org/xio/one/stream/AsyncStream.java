@@ -10,9 +10,9 @@ import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.*;
-import org.xio.one.stream.reactive.subscribers.BaseProcessor;
-import org.xio.one.stream.reactive.subscribers.CollectingStreamProcessor;
-import org.xio.one.stream.reactive.subscribers.JustOneEventProcessor;
+import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
+import org.xio.one.stream.reactive.subscribers.ContinuousCollectingStreamSubscriber;
+import org.xio.one.stream.reactive.subscribers.JustOneEventSubscriber;
 import org.xio.one.stream.selector.FilterEntry;
 import org.xio.one.stream.selector.Selector;
 import org.xio.one.stream.store.EventStore;
@@ -164,7 +164,7 @@ public class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<T> just(T value, JustOneEventProcessor subscriber) {
+  public Future<T> just(T value, JustOneEventSubscriber subscriber) {
     long eventId = put(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
@@ -188,7 +188,7 @@ public class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withSubscriber(BaseProcessor<R> subscriber) {
+  public Future<R> withSubscriber(BaseSubscriber<R> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<R> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());
@@ -196,7 +196,7 @@ public class AsyncStream<T, R> {
     return subscriptions.get(subscriber.getId());
   }
 
-  public Future<Stream<R>> withSubscriber(CollectingStreamProcessor<R> subscriber) {
+  public Future<Stream<R>> withSubscriber(ContinuousCollectingStreamSubscriber<R> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<Stream<R>> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());

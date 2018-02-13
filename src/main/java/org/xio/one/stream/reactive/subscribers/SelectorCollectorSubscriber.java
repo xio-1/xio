@@ -9,17 +9,17 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class SelectorCollectorProcessor<E> extends BaseProcessor<Event[]> {
+public class SelectorCollectorSubscriber<E> extends BaseSubscriber<Event[]> {
 
   private ArrayList<Event> resultArrayList;
   private Selector selector = new Selector();
   ;
 
-  public SelectorCollectorProcessor() {
+  public SelectorCollectorSubscriber() {
     super();
   }
 
-  public SelectorCollectorProcessor(FilterEntry filterEntry) {
+  public SelectorCollectorSubscriber(FilterEntry filterEntry) {
     this.addFilterEntry(filterEntry);
   }
 

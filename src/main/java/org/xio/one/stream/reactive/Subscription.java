@@ -27,6 +27,7 @@ public class Subscription<E> {
   }
 
   public Future<E> subscribe() {
+      subscriber.initialise();
       CompletableFuture<E> completableFuture = new CompletableFuture<>();
       this.subscription = eventStream.getExecutorService().submit(() -> {
         while ((!eventStream.hasEnded() || !eventStream.contents().hasEnded()) &&!subscriber.isDone()) {

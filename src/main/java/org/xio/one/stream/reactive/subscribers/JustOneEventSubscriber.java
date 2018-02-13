@@ -5,10 +5,14 @@ import org.xio.one.stream.event.Event;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public abstract class JustOneEventProcessor<E> extends BaseProcessor<E> {
+public abstract class JustOneEventSubscriber<E> extends BaseSubscriber<E> {
 
   private long eventId;
 
+  @Override
+  public void initialise() {
+
+  }
   public void initialise(long eventId) {
     this.eventId = eventId;
   }
