@@ -12,6 +12,7 @@ import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.*;
 import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
 import org.xio.one.stream.reactive.subscribers.ContinuousCollectingStreamSubscriber;
+import org.xio.one.stream.reactive.subscribers.ContinuousStreamSubscriber;
 import org.xio.one.stream.reactive.subscribers.JustOneEventSubscriber;
 import org.xio.one.stream.selector.FilterEntry;
 import org.xio.one.stream.selector.Selector;
@@ -164,11 +165,11 @@ public class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<T> just(T value, JustOneEventSubscriber subscriber) {
+  public Future<R> just(T value, JustOneEventSubscriber subscriber) {
     long eventId = put(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
-      return (new Subscription<T>(this, subscriber)).subscribe();
+      return (new Subscription<R,T>(this, subscriber)).subscribe();
     } else return null;
   }
 
@@ -188,17 +189,9 @@ public class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withSubscriber(BaseSubscriber<R> subscriber) {
+  public Future<R> withSubscriber(BaseSubscriber<R,T> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
-      Subscription<R> subscription = new Subscription<>(this, subscriber);
-      subscriptions.put(subscriber.getId(), subscription.subscribe());
-    }
-    return subscriptions.get(subscriber.getId());
-  }
-
-  public Future<Stream<R>> withSubscriber(ContinuousCollectingStreamSubscriber<R> subscriber) {
-    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
-      Subscription<Stream<R>> subscription = new Subscription<>(this, subscriber);
+      Subscription<R,T> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());
     }
     return subscriptions.get(subscriber.getId());

@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SubscriptionExecutor {
+public class SubscriptionExecutor<E> {
 
   private static SubscriptionExecutor instance;
   private static List<Subscription> subscriptionList =
@@ -28,7 +28,7 @@ public class SubscriptionExecutor {
     return instance;
   }
 
-  public void addSubscription(Subscription<?> subscription) {
+  public void addSubscription(Subscription<?,E> subscription) {
     subscriptionList.add(subscription);
   }
 

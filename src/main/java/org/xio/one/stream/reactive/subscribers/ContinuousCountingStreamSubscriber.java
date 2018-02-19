@@ -4,7 +4,7 @@ import org.xio.one.stream.event.Event;
 
 import java.util.stream.Stream;
 
-public class ContinuousCountingStreamSubscriber extends BaseSubscriber<Long> {
+public class ContinuousCountingStreamSubscriber<E> extends ContinuousStreamSubscriber<Long,E> {
 
   volatile Long count = 0L;
 
@@ -19,7 +19,7 @@ public class ContinuousCountingStreamSubscriber extends BaseSubscriber<Long> {
   }
 
   @Override
-  protected Long process(Stream<Event> e) {
+  protected Long process(Stream<Event<E>> e) {
     count += e.count();
     return count;
   }

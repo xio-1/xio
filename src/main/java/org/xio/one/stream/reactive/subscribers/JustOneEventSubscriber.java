@@ -5,7 +5,7 @@ import org.xio.one.stream.event.Event;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public abstract class JustOneEventSubscriber<E> extends BaseSubscriber<E> {
+public abstract class JustOneEventSubscriber<R,E> extends BaseSubscriber<R,E> {
 
   private long eventId;
 
@@ -18,14 +18,14 @@ public abstract class JustOneEventSubscriber<E> extends BaseSubscriber<E> {
   }
 
   @Override
-  protected E process(Stream<Event> e) {
-    Optional<Event> et = e.filter(event -> event.getEventId() == eventId).limit(1).findFirst();
+  protected R process(Stream<Event<E>> e) {
+    Optional<Event<E>> et = e.filter(event -> event.getEventId() == eventId).limit(1).findFirst();
     if (et.isPresent()) {
       this.stop();
-      return process((E) et.get().getEventValue());
+      return process(et.get().getEventValue());
     }
     else return null;
   }
 
-  public abstract E process(E eventValue);
+  public abstract R process(E eventValue);
 }

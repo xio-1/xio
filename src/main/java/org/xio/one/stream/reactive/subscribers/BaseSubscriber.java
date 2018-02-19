@@ -7,7 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class BaseSubscriber<R> implements Subscriber<R> {
+public abstract class BaseSubscriber<R,E> implements Subscriber<R,E> {
 
   private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
@@ -35,14 +35,14 @@ public abstract class BaseSubscriber<R> implements Subscriber<R> {
   }
 
   @Override
-  public void emit(Stream<Event> e) {
+  public void emit(Stream<Event<E>> e) {
     synchronized (lock) {
       result = process(e);
       lock.notify();
     }
   }
 
-  protected abstract R process(Stream<Event> e);
+  protected abstract R process(Stream<Event<E>> e);
 
   @Override
   public R peek() {
@@ -71,7 +71,7 @@ public abstract class BaseSubscriber<R> implements Subscriber<R> {
   }
 
   @Override
-  public Subscriber<R> getSubscriber() {
+  public Subscriber<R,E> getSubscriber() {
     return this;
   }
 

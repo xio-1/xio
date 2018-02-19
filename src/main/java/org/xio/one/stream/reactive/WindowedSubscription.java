@@ -7,7 +7,7 @@ import org.xio.one.stream.reactive.subscribers.Subscriber;
 import java.util.NavigableSet;
 import java.util.concurrent.TimeUnit;
 
-public class WindowedSubscription<E> extends Subscription<E> {
+public class WindowedSubscription<R,E> extends Subscription<R,E> {
 
   private static final long MAX_LATENCY = 1000;
   private static final long MIN_LATENCY = 500;
@@ -17,7 +17,7 @@ public class WindowedSubscription<E> extends Subscription<E> {
   private long toWindowTime;
   private long maxLatencyMS;
 
-  public WindowedSubscription(AsyncStream eventStream, long windowTime, TimeUnit timeUnit,Subscriber<E> subscriber) {
+  public WindowedSubscription(AsyncStream eventStream, long windowTime, TimeUnit timeUnit,Subscriber<R,E> subscriber) {
     super(eventStream,subscriber);
     this.windowTime = windowTime;
     this.timeUnit = timeUnit;
@@ -31,10 +31,10 @@ public class WindowedSubscription<E> extends Subscription<E> {
   }
 
   @Override
-  protected NavigableSet<Event> streamContents() {
+  protected NavigableSet<Event<E>> streamContents() {
     applyThrottle();
     if (isTimeToGetNextWindow()) {
-      NavigableSet<Event> e =
+      NavigableSet<Event<E>> e =
           getEventStream().contents().getTimeWindowSet(fromWindowTime, toWindowTime);
       calcFromWindowTime();
       calcToWindowTime();

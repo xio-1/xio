@@ -4,19 +4,19 @@ import org.xio.one.stream.event.Event;
 
 import java.util.stream.Stream;
 
-public interface Subscriber<E> {
+public interface Subscriber<R,E> {
 
-  void emit(Stream<Event> e);
+  void emit(Stream<Event<E>> e);
 
   boolean stop();
 
   boolean isDone();
 
-  E peek();
+  R peek();
 
-  E getNext();
+  R getNext();
 
-  Subscriber<E> getSubscriber();
+  Subscriber<R,E> getSubscriber();
 
   void initialise();
 }

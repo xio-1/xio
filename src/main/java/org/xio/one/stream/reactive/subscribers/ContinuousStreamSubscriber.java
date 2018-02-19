@@ -1,4 +1,3 @@
 package org.xio.one.stream.reactive.subscribers;
 
-public class ContinuousStreamSubscriber {
-}
+public abstract class ContinuousStreamSubscriber<R, E> extends BaseSubscriber<R, E> {}

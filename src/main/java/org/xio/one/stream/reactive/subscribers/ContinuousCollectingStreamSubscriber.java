@@ -3,23 +3,24 @@ package org.xio.one.stream.reactive.subscribers;
 import org.xio.one.stream.event.Event;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class ContinuousCollectingStreamSubscriber<R> extends BaseSubscriber<Stream<R>> {
+public abstract class ContinuousCollectingStreamSubscriber<R,E> extends ContinuousStreamSubscriber<List<R>,E> {
 
-  private ArrayList<R> resultArrayList = new ArrayList<>();
+  private ArrayList<R> eventHistoryList = new ArrayList<>();
 
   @Override
   public void initialise() {
-    resultArrayList = new ArrayList<>();
+    eventHistoryList = new ArrayList<>();
   }
 
   @Override
-  protected Stream<R> process(Stream<Event> e) {
-    e.forEach(event->resultArrayList.add(process((R) event.getEventValue())));
-    return resultArrayList.stream();
+  protected List<R> process(Stream<Event<E>> e) {
+    e.forEach(event-> eventHistoryList.add(process(event.getEventValue())));
+    return eventHistoryList;
   }
 
-  public abstract R process(R eventValue);
+  public abstract R process(E eventValue);
 
 }

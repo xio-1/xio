@@ -5,29 +5,29 @@ import org.xio.one.stream.event.Event;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-public abstract class NextSingleEventSubscriber<E> extends BaseSubscriber<E> {
+public abstract class NextSingleEventSubscriber<R, E> extends BaseSubscriber<R, E> {
 
   private int currentIndex = -1;
-  private ArrayList<Event> resultArrayList;;
+  private ArrayList<E> eventHistoryList;;
 
   @Override
   public void initialise() {
-    resultArrayList = new ArrayList<>();
+    eventHistoryList = new ArrayList<>();
   }
 
   @Override
-  protected E process(Stream<Event> e) {
+  protected R process(Stream<Event<E>> e) {
     if (e != null) {
-      e.forEach(event -> resultArrayList.add(event));
+      e.forEach(event -> eventHistoryList.add(event.getEventValue()));
       currentIndex++;
       this.stop();
-      return process((E) resultArrayList.get(currentIndex).getEventValue());
-    } else if (currentIndex < resultArrayList.size() - 1) {
+      return process(eventHistoryList.get(currentIndex));
+    } else if (currentIndex < eventHistoryList.size() - 1) {
       currentIndex++;
       this.stop();
-      return process((E) resultArrayList.get(currentIndex).getEventValue());
+      return process(eventHistoryList.get(currentIndex));
     } else return null;
   }
 
-  public abstract E process(E eventValue);
+  public abstract R process(E eventValue);
 }

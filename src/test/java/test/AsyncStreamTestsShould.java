@@ -40,19 +40,19 @@ public class AsyncStreamTestsShould {
 
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
-    AsyncStream<Integer, Integer> asyncStream = new AsyncStream<>(INT_STREAM, 0);
-    ContinuousCollectingStreamSubscriber<Integer> subscriber =
-        new ContinuousCollectingStreamSubscriber<Integer>() {
+    AsyncStream<Integer, List<Integer>> asyncStream = new AsyncStream<>(INT_STREAM, 0);
+    ContinuousCollectingStreamSubscriber<Integer, Integer> subscriber =
+        new ContinuousCollectingStreamSubscriber<Integer, Integer>() {
           @Override
           public Integer process(Integer eventValue) {
             return eventValue * 10;
           }
         };
-    Future<Stream<Integer>> result = asyncStream.withImmediateFlushing().withSubscriber(subscriber);
+    Future<List<Integer>> result = asyncStream.withImmediateFlushing().withSubscriber(subscriber);
     asyncStream.put(1, 2, 3, 4);
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
-    Assert.assertTrue(Arrays.equals(result.get().toArray(Integer[]::new), intList));
+    Assert.assertTrue(Arrays.equals(result.get().toArray(new Integer[4]), intList));
   }
 
   @Test
@@ -61,7 +61,7 @@ public class AsyncStreamTestsShould {
     Future<String> result =
         asyncStream.just(
             "Hello",
-            new JustOneEventSubscriber<String>() {
+            new JustOneEventSubscriber<String, String>() {
 
               @Override
               public String process(String eventValue) {
@@ -88,8 +88,8 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream", 0);
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream", 0);
 
-    NextSingleEventSubscriber<String> pingSubscriber =
-        new NextSingleEventSubscriber<String>() {
+    NextSingleEventSubscriber<String, String> pingSubscriber =
+        new NextSingleEventSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("ping")) {
@@ -101,8 +101,8 @@ public class AsyncStreamTestsShould {
           }
         };
 
-    NextSingleEventSubscriber<String> pongSubscriber =
-        new NextSingleEventSubscriber<String>() {
+    NextSingleEventSubscriber<String, String> pongSubscriber =
+        new NextSingleEventSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("pong")) {
@@ -125,8 +125,8 @@ public class AsyncStreamTestsShould {
 
     AsyncStream<String, List<String>> micro_stream = new AsyncStream<>("micro_stream", 0);
 
-    NextMicroBatchStreamSubscriber<List<String>> microBatchEventProcessor =
-        new NextMicroBatchStreamSubscriber<List<String>>() {
+    MicroBatchStreamSubscriber<List<String>, String> microBatchEventProcessor =
+        new MicroBatchStreamSubscriber<List<String>, String>() {
 
           List<String> microBatchOutput;
 
@@ -136,9 +136,8 @@ public class AsyncStreamTestsShould {
           }
 
           @Override
-          protected List<String> processStream(Stream<Event> e) {
-            e.forEach(
-                event -> microBatchOutput.add(event.getEventValue().toString().toUpperCase()));
+          protected List<String> processStream(Stream<Event<String>> e) {
+            e.forEach(event -> microBatchOutput.add(event.getEventValue().toUpperCase()));
             return microBatchOutput;
           }
         };
@@ -163,7 +162,7 @@ public class AsyncStreamTestsShould {
   public void shouldPerformance() throws Exception {
     long start = System.currentTimeMillis();
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
-    Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber());
+    Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber<>());
     for (int i = 0; i < 1000000; i++) {
       asyncStream.put("Hello world" + i);
     }
