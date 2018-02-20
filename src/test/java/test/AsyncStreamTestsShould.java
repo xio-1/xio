@@ -4,12 +4,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.AsyncStream;
 import org.xio.one.stream.event.Event;
-import org.xio.one.stream.reactive.AsyncStreamExecutor;
 import org.xio.one.stream.reactive.subscribers.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -75,7 +75,7 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnHelloWorldCountSubscriber() throws Exception {
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
-    Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber());
+    Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber<>());
     for (int i = 0; i < 10000; i++) {
       asyncStream.put("Hello world" + i);
     }
@@ -121,44 +121,6 @@ public class AsyncStreamTestsShould {
   }
 
   @Test
-  public void shouldProcessMicroBatch() throws Exception {
-
-    AsyncStream<String, List<String>> micro_stream = new AsyncStream<>("micro_stream", 0);
-
-    MicroBatchStreamSubscriber<List<String>, String> microBatchEventProcessor =
-        new MicroBatchStreamSubscriber<List<String>, String>() {
-
-          List<String> microBatchOutput;
-
-          @Override
-          public void initialise() {
-            microBatchOutput = new ArrayList<>();
-          }
-
-          @Override
-          protected List<String> processStream(Stream<Event<String>> e) {
-            e.forEach(event -> microBatchOutput.add(event.getEventValue().toUpperCase()));
-            return microBatchOutput;
-          }
-        };
-
-    AsyncStreamExecutor.subscriberCachedThreadPoolInstance()
-        .submit(
-            new Thread(
-                () -> {
-                  for (int i = 0; i < NUMBER_OF_EVENTS; i++) {
-                    micro_stream.put("Hello world: " + i);
-                  }
-                  micro_stream.end(true);
-                }));
-
-    int count = 0;
-    while (!micro_stream.hasEnded())
-      count = count + micro_stream.withSubscriber(microBatchEventProcessor).get().size();
-    Assert.assertThat(count, is(NUMBER_OF_EVENTS));
-  }
-
-  @Test
   public void shouldPerformance() throws Exception {
     long start = System.currentTimeMillis();
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count", 0);
@@ -180,5 +142,27 @@ public class AsyncStreamTestsShould {
       shouldReturnHelloWorldForSingleAsyncSubscriber();
       JSONStringReturnsHelloWorldEventFromStreamContents();
     }
+  }
+
+  @Test
+  public void justWithMicroBatching() throws Exception {
+    AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream", 0);
+    MicroBatchStreamSubscriber<String, String> microBatchStreamSubscriber =
+        new MicroBatchStreamSubscriber<String, String>() {
+          @Override
+          public Map<Long, String> processStream(Stream<Event<String>> e) {
+            Map<Long, String> results = new HashMap<>();
+            e.forEach(
+                stringEvent ->
+                    results.put(
+                        stringEvent.getEventId(), stringEvent.getEventValue().toUpperCase()));
+            return results;
+          }
+
+          @Override
+          public void initialise() {}
+        };
+    Future<String> result = micro_stream.justWithMicroBatch("hello", microBatchStreamSubscriber);
+    Assert.assertThat(result.get(), is("HELLO"));
   }
 }

@@ -9,11 +9,12 @@ import org.xio.one.stream.event.EmptyEventArray;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
-import org.xio.one.stream.reactive.*;
+import org.xio.one.stream.reactive.AsyncStreamExecutor;
+import org.xio.one.stream.reactive.Subscription;
 import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
-import org.xio.one.stream.reactive.subscribers.ContinuousCollectingStreamSubscriber;
-import org.xio.one.stream.reactive.subscribers.ContinuousStreamSubscriber;
 import org.xio.one.stream.reactive.subscribers.JustOneEventSubscriber;
+import org.xio.one.stream.reactive.subscribers.MicroBatchStreamSubscriber;
+import org.xio.one.stream.reactive.subscribers.Subscriber;
 import org.xio.one.stream.selector.FilterEntry;
 import org.xio.one.stream.selector.Selector;
 import org.xio.one.stream.store.EventStore;
@@ -25,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
-import java.util.stream.Stream;
 
 /**
  * An AsyncStream - a streamContents of information
@@ -160,19 +160,6 @@ public class AsyncStream<T, R> {
     return eventEventStore.query();
   }
 
-  /**
-   * Asychronously processes just this event value with the given subscriber
-   *
-   * @return
-   */
-  public Future<R> just(T value, JustOneEventSubscriber subscriber) {
-    long eventId = put(value);
-    if (eventId != -1) {
-      subscriber.initialise(eventId);
-      return (new Subscription<R,T>(this, subscriber)).subscribe();
-    } else return null;
-  }
-
   public AsyncStream<T, R> withImmediateFlushing() {
     this.flushImmediately = true;
     return this;
@@ -189,9 +176,9 @@ public class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withSubscriber(BaseSubscriber<R,T> subscriber) {
+  public Future<R> withSubscriber(BaseSubscriber<R, T> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
-      Subscription<R,T> subscription = new Subscription<>(this, subscriber);
+      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());
     }
     return subscriptions.get(subscriber.getId());
@@ -236,6 +223,33 @@ public class AsyncStream<T, R> {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Asychronously processes just this event value with the given subscriber
+   *
+   * @return
+   */
+  public Future<R> just(T value, JustOneEventSubscriber<R, T> subscriber) {
+    long eventId = put(value);
+    if (eventId != -1) {
+      subscriber.initialise(eventId);
+      return (new Subscription<R, T>(this, subscriber)).subscribe();
+    } else return null;
+  }
+
+  Map<String, Subscription<R, T>> subscriptionMap = new HashMap<>();
+
+  public Future<R> justWithMicroBatch(T value, MicroBatchStreamSubscriber<R, T> subscriber) {
+    if (subscriptionMap.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
+      subscriptionMap.put(subscriber.getId(), subscription);
+      subscription.subscribe();
+    }
+    long eventId = put(value);
+    if (eventId != -1) {
+      return subscriber.register(eventId);
+    } else return null;
   }
 
   /**

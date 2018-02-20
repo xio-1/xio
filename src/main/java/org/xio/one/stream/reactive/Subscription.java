@@ -17,7 +17,7 @@ public class Subscription<R,E> {
   private Subscriber<R,E> subscriber;
   private boolean alive = true;
 
-  public Subscription(AsyncStream eventStream, Subscriber<R,E> subscriber) {
+  public Subscription(AsyncStream<E,R> eventStream, Subscriber<R,E> subscriber) {
     this.eventStream = eventStream;
     this.subscriber = subscriber;
   }
