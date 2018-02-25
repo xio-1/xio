@@ -1,6 +1,5 @@
 package org.xio.one.stream.reactive;
 
-import org.xio.one.stream.AsyncStream;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
 
@@ -9,7 +8,7 @@ import java.util.NavigableSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public class Subscription<R,E> {
+class Subscription<R,E> {
 
   private Event lastSeenEvent = null;
   private AsyncStream eventStream;
@@ -29,7 +28,7 @@ public class Subscription<R,E> {
   public Future<R> subscribe() {
       subscriber.initialise();
       CompletableFuture<R> completableFuture = new CompletableFuture<>();
-      this.subscription = eventStream.getExecutorService().submit(() -> {
+      this.subscription = eventStream.executorService().submit(() -> {
         while ((!eventStream.hasEnded() || !eventStream.contents().hasEnded()) &&!subscriber.isDone()) {
           processResults(subscriber);
         }
@@ -55,7 +54,7 @@ public class Subscription<R,E> {
 
   protected NavigableSet<Event<E>> streamContents() {
     NavigableSet<Event<E>> streamContents =
-        Collections.unmodifiableNavigableSet(eventStream.contents().getAllAfter(lastSeenEvent));
+        Collections.unmodifiableNavigableSet(eventStream.contents().allAfter(lastSeenEvent));
     if (streamContents.size() > 0)
       lastSeenEvent = streamContents.last();
     return streamContents;

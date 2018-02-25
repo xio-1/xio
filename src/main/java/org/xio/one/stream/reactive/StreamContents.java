@@ -1,10 +1,7 @@
-package org.xio.one.stream.store;
+package org.xio.one.stream.reactive;
 
-import org.xio.one.stream.AsyncStream;
+import org.xio.one.stream.event.ComparitorEvent;
 import org.xio.one.stream.event.Event;
-import org.xio.one.stream.event.MaxTimestampEvent;
-import org.xio.one.stream.event.MinTimestampEvent;
-import org.xio.one.stream.reactive.InconsistentWindowException;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -14,51 +11,43 @@ import java.util.stream.Collectors;
 import static org.xio.one.stream.event.EmptyEvent.EMPTY_EVENT;
 
 /** EventStoreOperations @Author Xio @Copyright Xio */
-public class StreamContents<T> {
+public final class StreamContents<T> {
 
-  public final NavigableSet<Event> EMPTY_EVENT_SET = new ConcurrentSkipListSet<>();
-  private int eventTTLSeconds;
-  private EventStore eventStore;
+  public final NavigableSet<Event<T>> EMPTY_EVENT_SET = new ConcurrentSkipListSet<>();
+  private StreamRepository eventStore;
   private AsyncStream eventStream;
-  private NavigableSet<Event> eventStoreContents = null;
+  private NavigableSet<Event<T>> eventStoreContents = null;
 
-  public StreamContents(EventStore eventStore, AsyncStream eventStream) {
+  public StreamContents(StreamRepository eventStore, AsyncStream eventStream) {
     this.eventStore = eventStore;
-    this.eventTTLSeconds = eventStore.eventTTLSeconds;
     this.eventStream = eventStream;
-    this.eventStoreContents = eventStore.eventStoreContents;
+    this.eventStoreContents = (NavigableSet<Event<T>>) eventStore.eventRepositoryContents;
   }
 
-  public Event getEvent(long id) {
-    List<Event> events =
-        eventStoreContents
-            .parallelStream()
-            .filter(u -> u.getEventId() == id)
-            .collect(Collectors.toList());
-    if (events.size() == 1) return events.get(0);
-    else return null;
+  public Event<T> event(long id) {
+    return eventStoreContents.higher(new ComparitorEvent(id - 1));
   }
 
-  public long getCount() {
-    return eventStoreContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds)).count();
+  public Event event(Object index) {
+    return (Event) eventStore.getEventStoreIndexContents().get(index);
   }
 
-  public Event[] getAll() {
-    List<Event> events =
-        eventStoreContents
-            .parallelStream()
-            .filter(u -> u.isEventAlive(eventTTLSeconds))
-            .collect(Collectors.toList());
+  public long count() {
+    return eventStoreContents.size();
+  }
+
+  public Event[] all() {
+    List<Event> events = eventStoreContents.parallelStream().collect(Collectors.toList());
     return events.toArray(new Event[events.size()]);
   }
 
-  public NavigableSet<Event> getAllAfter(Event lastEvent) {
+  protected final NavigableSet<Event<T>> allAfter(Event lastEvent) {
     try {
-      NavigableSet<Event> querystorecontents =
+      NavigableSet<Event<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.eventStoreContents);
       if (lastEvent != null) {
         Event newLastEvent = querystorecontents.last();
-        NavigableSet<Event> events =
+        NavigableSet<Event<T>> events =
             Collections.unmodifiableNavigableSet(
                 querystorecontents.subSet(lastEvent, false, newLastEvent, true));
         if (events.size() > 0) {
@@ -82,8 +71,8 @@ public class StreamContents<T> {
     return EMPTY_EVENT_SET;
   }
 
-  private NavigableSet<Event> extractItemsThatAreInSequence(
-      Event lastEvent, NavigableSet<Event> events, Event newFirstEvent) {
+  private NavigableSet<Event<T>> extractItemsThatAreInSequence(
+      Event lastEvent, NavigableSet<Event<T>> events, Event newFirstEvent) {
     Event[] events1 = events.toArray(new Event[events.size()]);
     int index = 0;
     Event last = lastEvent;
@@ -96,8 +85,8 @@ public class StreamContents<T> {
     return events.subSet(newFirstEvent, true, last, true);
   }
 
-  public Event getLast() {
-    NavigableSet<Event> querystorecontents =
+  public Event<T> last() {
+    NavigableSet<Event<T>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.eventStoreContents);
     if (querystorecontents.isEmpty()) return EMPTY_EVENT;
     else {
@@ -113,7 +102,7 @@ public class StreamContents<T> {
     Event toReturn = eventStore.eventStoreIndexContents.get(new EventKey(fieldname, value));
     if (toReturn == null) {
       List<Event> events =
-          eventStoreContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds))
+          eventRepositoryContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds))
               .filter(i -> i.getFieldValue(fieldname).toString().equals(value))
               .collect(Collectors.toList());
       if (events.size() > 0)
@@ -123,25 +112,17 @@ public class StreamContents<T> {
     return EMPTY_EVENT;
   }*/
 
-  public Event getFirst() {
-    return this.eventStoreContents
-        .parallelStream()
-        .findFirst()
-        .filter(u -> u.isEventAlive(eventTTLSeconds))
-        .get();
+  public Event first() {
+    return this.eventStoreContents.first();
   }
 
-  public Optional<Event> getFirstAfter(long eventid) {
-    return this.eventStoreContents
-        .parallelStream()
-        .filter(u -> u.isEventAlive(eventTTLSeconds))
-        .filter(u -> u.getEventId() > eventid)
-        .findFirst();
+  public Optional<Event> nextFollowing(long eventid) {
+    return Optional.ofNullable(this.eventStoreContents.higher(new ComparitorEvent(eventid)));
   }
 
   /*public Event getFirstBy(String fieldname, Object value) {
     List<Event> events =
-        eventStoreContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds))
+        eventRepositoryContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds))
             .filter(i -> i.getFieldValue(fieldname).equals(value)).collect(Collectors.toList());
     if (events.size() > 0)
       return events.get(0);
@@ -151,7 +132,7 @@ public class StreamContents<T> {
 
   /*public double getAverage(String fieldname) {
     try {
-      return this.eventStoreContents.parallelStream()
+      return this.eventRepositoryContents.parallelStream()
           .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .mapToDouble(e -> (double) e.getFieldValue(fieldname)).average().getAsDouble();
     } catch (NoSuchElementException e) {
@@ -163,7 +144,7 @@ public class StreamContents<T> {
     try {
 
       Event event;
-      event = eventStoreContents.parallelStream()
+      event = eventRepositoryContents.parallelStream()
           .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .max(Comparator.comparing(i -> (double) i.getFieldValue(fieldname))).get();
       return event;
@@ -175,7 +156,7 @@ public class StreamContents<T> {
   public Event getMin(String fieldname) {
     try {
       Event event;
-      event = eventStoreContents.parallelStream()
+      event = eventRepositoryContents.parallelStream()
           .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .min(Comparator.comparing(i -> (double) i.getFieldValue(fieldname))).get();
       return event;
@@ -186,7 +167,7 @@ public class StreamContents<T> {
 
   public double getSum(String fieldname) {
     try {
-      return this.eventStoreContents.parallelStream()
+      return this.eventRepositoryContents.parallelStream()
           .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .mapToDouble(e -> (double) e.getFieldValue(fieldname)).sum();
     } catch (NoSuchElementException e) {
@@ -196,7 +177,7 @@ public class StreamContents<T> {
 
   public Set<Map.Entry<Object, Optional<Event>>> getLastSeenEventGroupedByFieldnameValue(
       String fieldname) {
-    return eventStoreContents.parallelStream()
+    return eventRepositoryContents.parallelStream()
         .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname)).collect(
             Collectors.groupingBy(foo -> foo.getFieldValue(fieldname),
                 Collectors.maxBy(new EventTimestampComparator()))).entrySet();
@@ -204,7 +185,7 @@ public class StreamContents<T> {
   }
 
     public Event[] getAllBy(String fieldName, Object value) {
-    List<Event> events = eventStoreContents.parallelStream().filter(
+    List<Event> events = eventRepositoryContents.parallelStream().filter(
         u -> u.isEventAlive(eventTTLSeconds) && u.getFieldValue(fieldName).toString().equals(value))
         .collect(Collectors.toList());
     return events.toArray(new Event[events.size()]);
@@ -212,34 +193,10 @@ public class StreamContents<T> {
 
   */
 
-  public NavigableSet<Event> getTimeWindowSet(long from, long to)
-      throws InconsistentWindowException {
+  public NavigableSet<Event<T>> getTimeWindowSet(long from, long to)
+      throws StreamException {
     // Get first and last events in the window
-    MaxTimestampEvent event_from = new MaxTimestampEvent(from - 1);
-    MinTimestampEvent event_to = new MinTimestampEvent(to + 1);
-    NavigableSet<Event> querystorecontents =
-        Collections.unmodifiableNavigableSet(this.eventStoreContents);
-    Event firstEvent = querystorecontents.higher(event_from);
-    Event lastEvent = querystorecontents.lower(event_to);
-
-    // if no events event are higher or lower than the window
-    // bounds then there is nothing to process in that window
-    if (firstEvent == null || lastEvent == null) return EMPTY_EVENT_SET;
-
-    // check that the actual events found are in the window bounds
-    if (checkWindowBounds(event_from, event_to, firstEvent, lastEvent)) {
-      return querystorecontents.subSet(firstEvent, true, lastEvent, true);
-    }
-
     // otherwise return empty set as nothing found in the window
     return EMPTY_EVENT_SET;
-  }
-
-  private boolean checkWindowBounds(
-      MaxTimestampEvent event_from, MinTimestampEvent event_to, Event firstEvent, Event lastEvent) {
-    return firstEvent.getEventTimestamp() < event_to.getEventTimestamp()
-        && firstEvent.getEventTimestamp() > event_from.getEventTimestamp()
-        && lastEvent.getEventTimestamp() < event_to.getEventTimestamp()
-        && lastEvent.getEventTimestamp() > event_from.getEventTimestamp();
   }
 }

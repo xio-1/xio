@@ -1,4 +1,4 @@
-package org.xio.one.stream.selector;
+package org.xio.one.stream.reactive.selector;
 
 import org.xio.one.stream.event.EmptyEvent;
 import org.xio.one.stream.event.Event;

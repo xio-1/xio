@@ -18,7 +18,7 @@ public abstract class NextSingleEventSubscriber<R, E> extends BaseSubscriber<R, 
   @Override
   protected R process(Stream<Event<E>> e) {
     if (e != null) {
-      e.forEach(event -> eventHistoryList.add(event.getEventValue()));
+      e.forEach(event -> eventHistoryList.add(event.value()));
       currentIndex++;
       this.stop();
       return process(eventHistoryList.get(currentIndex));

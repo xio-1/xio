@@ -1,6 +1,5 @@
 package org.xio.one.stream.reactive;
 
-import org.xio.one.stream.AsyncStream;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
 
@@ -9,7 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SubscriptionExecutor<E> {
+class SubscriptionExecutor<E> {
 
   private static SubscriptionExecutor instance;
   private static List<Subscription> subscriptionList =

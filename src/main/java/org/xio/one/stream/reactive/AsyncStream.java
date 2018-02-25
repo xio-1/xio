@@ -3,22 +3,18 @@
  * Created on 14 October 2006, 10:20
  * Copyright Xio
  */
-package org.xio.one.stream;
+package org.xio.one.stream.reactive;
 
 import org.xio.one.stream.event.EmptyEventArray;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
-import org.xio.one.stream.reactive.AsyncStreamExecutor;
-import org.xio.one.stream.reactive.Subscription;
+import org.xio.one.stream.reactive.selector.Selector;
 import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
 import org.xio.one.stream.reactive.subscribers.JustOneEventSubscriber;
 import org.xio.one.stream.reactive.subscribers.MicroBatchStreamSubscriber;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
-import org.xio.one.stream.selector.FilterEntry;
-import org.xio.one.stream.selector.Selector;
-import org.xio.one.stream.store.EventStore;
-import org.xio.one.stream.store.StreamContents;
+import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,10 +31,10 @@ import java.util.concurrent.locks.LockSupport;
  * contents store that is used to provide a sequenced view of the events to downstream subscribers
  * using a separate thread
  */
-public class AsyncStream<T, R> {
+public final class AsyncStream<T, R> {
 
   // streamContents variables
-  private EventStore<T> eventEventStore;
+  private StreamRepository<T> eventEventStore;
 
   // constants
   private final long tickstowait = 10;
@@ -47,10 +43,10 @@ public class AsyncStream<T, R> {
   // input parameters
   private String streamName;
   private String indexFieldName;
-  private int eventTTL;
   private Selector worker;
   private Map<String, Object> workerParams;
   private Map<String, Future> subscriptions = new HashMap<>();
+  Map<String, Subscription<R, T>> subscriptionMap = new HashMap<>();
 
   // Queue control
   private Event[] eventqueue_out;
@@ -68,54 +64,44 @@ public class AsyncStream<T, R> {
       AsyncStreamExecutor.subscriberCachedThreadPoolInstance();
 
   /**
-   * Construct a new timeseries ordered EventStream with the given selector
-   *
-   * <p>
-   *
-   * <p>Event time to live is to be used with the timestamp comparator for auto removal of events
-   * that have lived in the results set for longer than eventTTLSeconds seconds a value <=0 will
-   * never remove results
+   * Construct a new ordered EventStream with the given selector
    *
    * @param streamName
-   * @param eventTTL
    */
   public AsyncStream(
-      String streamName,
-      String indexFieldName,
-      Selector worker,
-      Map<String, Object> workerParams,
-      int eventTTL) {
+      String streamName, String indexFieldName, Selector worker, Map<String, Object> workerParams) {
     this.event_queue = new LinkedBlockingQueue<>(queue_max_size);
     this.eventqueue_out = new Event[this.queue_max_size];
     this.streamName = streamName;
     this.indexFieldName = indexFieldName;
-    this.eventTTL = eventTTL;
     this.worker = worker;
-    this.eventEventStore = new EventStore(this, worker, eventTTL);
+    this.eventEventStore = new StreamRepository(this, worker);
     this.workerParams = workerParams;
     this.eventIDSequence = new EventIDSequence();
   }
 
   /**
-   * Construct a new timeseries ordered EventStream with the default selector
-   *
-   * <p>
-   *
-   * <p>Event time to live is to be used with the timestamp comparator for auto removal of events
-   * that have lived in the results set for longer than eventTTLSeconds seconds a value <=0 will
-   * never remove results
+   * Construct a new ordered EventStream
    *
    * @param streamName
-   * @param eventTTL
    */
-  public AsyncStream(String streamName, int eventTTL) {
+  public AsyncStream(String streamName) {
     this.event_queue = new LinkedBlockingQueue<>(queue_max_size);
     this.eventqueue_out = new Event[this.queue_max_size];
     this.streamName = streamName;
     this.indexFieldName = null;
-    this.eventTTL = eventTTL;
     this.worker = new Selector();
-    this.eventEventStore = new EventStore(this, worker, eventTTL);
+    this.eventEventStore = new StreamRepository(this, worker);
+    this.eventIDSequence = new EventIDSequence();
+  }
+
+  public AsyncStream(String streamName, String indexFieldName) {
+    this.event_queue = new LinkedBlockingQueue<>(queue_max_size);
+    this.eventqueue_out = new Event[this.queue_max_size];
+    this.streamName = streamName;
+    this.indexFieldName = indexFieldName;
+    this.worker = new Selector();
+    this.eventEventStore = new StreamRepository(this, worker);
     this.eventIDSequence = new EventIDSequence();
   }
 
@@ -124,8 +110,116 @@ public class AsyncStream<T, R> {
    *
    * @return
    */
-  public String getStreamName() {
+  public String name() {
     return streamName;
+  }
+
+  /** Put a just value into the contents */
+  public long put(T value) {
+    return putWithTTL(value, Long.MAX_VALUE);
+  }
+
+  /**
+   * Puts list of values into the contents
+   *
+   * @param values
+   * @return
+   */
+  public long[] put(T... values) {
+    return putWithTTL(Long.MAX_VALUE, values);
+  }
+
+  /**
+   * Asychronously processes just this event value with the given microbatch subscriber
+   *
+   * @return
+   */
+  public Future<R> put(T value, MicroBatchStreamSubscriber<R, T> subscriber) {
+    if (subscriptionMap.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
+      subscriptionMap.put(subscriber.getId(), subscription);
+      subscription.subscribe();
+    }
+    long eventId = put(value);
+    if (eventId != -1) {
+      return subscriber.register(eventId);
+    } else return null;
+  }
+
+  /** Put a json string value into the contents Throws IOException if json string is invalid */
+  public boolean putJSON(String jsonValue) throws IOException {
+    if (jsonValue != null && !isEnd) {
+      Event event = new JSONValue(jsonValue, eventIDSequence.getNext());
+      addToStreamWithLock(event, flushImmediately);
+      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Put a json string value into the contents with ttlSeconds Throws IOException if json string is
+   * invalid
+   */
+  public boolean putJSON(String jsonValue, long ttlSeconds) throws IOException {
+    if (jsonValue != null && !isEnd) {
+      Event event = new JSONValue(jsonValue, eventIDSequence.getNext(), ttlSeconds);
+      addToStreamWithLock(event, flushImmediately);
+      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      return true;
+    }
+    return false;
+  }
+  /** Put value to contents with ttlSeconds */
+  public long putWithTTL(T value, long ttlSeconds) {
+    if (value != null && !isEnd) {
+      Event<T> event = new Event<>(value, eventIDSequence.getNext(), ttlSeconds);
+      addToStreamWithLock(event, flushImmediately);
+      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      return event.getEventId();
+    }
+    return -1;
+  }
+
+  /**
+   * Puts list of values into the contents with ttlSeconds
+   *
+   * @param values
+   * @return
+   */
+  public long[] putWithTTL(long ttlSeconds, T... values) {
+    long[] ids = new long[values.length];
+    if (values != null && !isEnd) {
+      for (int i = 0; i < values.length; i++) {
+        Event<T> event = new Event<>(values[i], eventIDSequence.getNext(), ttlSeconds);
+        ids[i] = event.getEventId();
+        addToStreamWithLock(event, flushImmediately);
+        if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
+      }
+    }
+    return ids;
+  }
+
+  /**
+   * Asychronously processes just this event value with the given subscriber
+   *
+   * @return
+   */
+  public Future<R> just(T value, JustOneEventSubscriber<R, T> subscriber) {
+    long eventId = put(value);
+    if (eventId != -1) {
+      subscriber.initialise(eventId);
+      return (new Subscription<R, T>(this, subscriber)).subscribe();
+    } else return null;
+  }
+
+  /**
+   * Return the contents operations for the contents store
+   *
+   * @return
+   */
+  public StreamContents contents() {
+    return eventEventStore.query();
   }
 
   /** End the life of this streamContents :( */
@@ -151,15 +245,6 @@ public class AsyncStream<T, R> {
     return isEnd && size() == 0;
   }
 
-  /**
-   * Return the contents operations for the contents store
-   *
-   * @return
-   */
-  public StreamContents contents() {
-    return eventEventStore.query();
-  }
-
   public AsyncStream<T, R> withImmediateFlushing() {
     this.flushImmediately = true;
     return this;
@@ -171,7 +256,7 @@ public class AsyncStream<T, R> {
   }
 
   /**
-   * Subscribe to the stream with the given subscriber
+   * Subscribe to the contents with the given subscriber
    *
    * @param subscriber
    * @return
@@ -184,90 +269,45 @@ public class AsyncStream<T, R> {
     return subscriptions.get(subscriber.getId());
   }
 
-  /** Put a just value into the stream */
-  public long put(T value) {
-    if (value != null && !isEnd) {
-      Event<T> event = new Event<>(value, eventIDSequence.getNext());
-      addToStreamWithLock(event, flushImmediately);
-      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
-      return event.getEventId();
+  public ExecutorService executorService() {
+    return executorService;
+  }
+
+  public String indexFieldName() {
+    return indexFieldName;
+  }
+
+  protected void slowdown() {
+    slowDownNanos = slowDownNanos + 100000;
+  }
+
+  protected void speedup() {
+    if (slowDownNanos > 0) slowDownNanos = 0;
+  }
+
+  protected long getSlowDownNanos() {
+    return slowDownNanos;
+  }
+
+  protected Object lock() {
+    return lock;
+  }
+
+  protected Event[] takeAll() {
+    Event[] result;
+    waitForInput();
+    int mmsize = this.event_queue.size();
+    if ((getNumberOfNewEvents(mmsize, last_queue_size)) > 0) {
+      result =
+          Arrays.copyOfRange(
+              this.event_queue.toArray(this.eventqueue_out), this.last_queue_size, mmsize);
+      this.last_queue_size = mmsize;
+      clearStreamWhenFull();
+    } else { // no events
+      result = EmptyEventArray.EMPTY_EVENT_ARRAY;
     }
-    return -1;
-  }
 
-  /**
-   * Puts list of values into the stream
-   *
-   * @param value
-   * @return
-   */
-  public long[] put(T... value) {
-    long[] ids = new long[value.length];
-    if (value != null && !isEnd) {
-      for (int i = 0; i < value.length; i++) {
-        Event<T> event = new Event<>(value[i], eventIDSequence.getNext());
-        ids[i] = event.getEventId();
-        addToStreamWithLock(event, flushImmediately);
-        if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
-      }
-    }
-    return ids;
-  }
-
-  /** Put a json string value into the stream Throws IOException if json string is invalid */
-  public boolean putJSON(String jsonValue) throws IOException {
-    if (jsonValue != null && !isEnd) {
-      Event event = new JSONValue(jsonValue, eventIDSequence.getNext());
-      addToStreamWithLock(event, flushImmediately);
-      if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Asychronously processes just this event value with the given subscriber
-   *
-   * @return
-   */
-  public Future<R> just(T value, JustOneEventSubscriber<R, T> subscriber) {
-    long eventId = put(value);
-    if (eventId != -1) {
-      subscriber.initialise(eventId);
-      return (new Subscription<R, T>(this, subscriber)).subscribe();
-    } else return null;
-  }
-
-  Map<String, Subscription<R, T>> subscriptionMap = new HashMap<>();
-
-  public Future<R> justWithMicroBatch(T value, MicroBatchStreamSubscriber<R, T> subscriber) {
-    if (subscriptionMap.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
-      subscriptionMap.put(subscriber.getId(), subscription);
-      subscription.subscribe();
-    }
-    long eventId = put(value);
-    if (eventId != -1) {
-      return subscriber.register(eventId);
-    } else return null;
-  }
-
-  /**
-   * Add a filter operation to a streamContents field
-   *
-   * @param filterEntry
-   */
-  public void addFilterEntry(FilterEntry filterEntry) {
-    this.worker.addFilterEntry(filterEntry);
-  }
-
-  /**
-   * Return the contents store against which contents operations can be made
-   *
-   * @return
-   */
-  protected EventStore getEventEventStore() {
-    return eventEventStore;
+    return result;
   }
 
   private boolean addToStreamWithNoLock(Event event, boolean immediately) {
@@ -346,31 +386,6 @@ public class AsyncStream<T, R> {
     flush = false;
   }
 
-  public Event[] takeAll() {
-    Event[] result;
-    waitForInput();
-    int mmsize = this.event_queue.size();
-    if ((getNumberOfNewEvents(mmsize, last_queue_size)) > 0) {
-      result =
-          Arrays.copyOfRange(
-              this.event_queue.toArray(this.eventqueue_out), this.last_queue_size, mmsize);
-      this.last_queue_size = mmsize;
-      clearStreamWhenFull();
-    } else { // no events
-      result = EmptyEventArray.EMPTY_EVENT_ARRAY;
-    }
-
-    return result;
-  }
-
-  public Map<String, Object> getWorkerParams() {
-    return workerParams;
-  }
-
-  public ExecutorService getExecutorService() {
-    return executorService;
-  }
-
   private int getNumberOfNewEvents(int mmsize, int lastsize) {
     return mmsize - lastsize;
   }
@@ -380,25 +395,5 @@ public class AsyncStream<T, R> {
       this.last_queue_size = 0;
       this.event_queue.clear();
     }
-  }
-
-  public void slowdown() {
-    slowDownNanos = slowDownNanos + 100000;
-  }
-
-  public void speedup() {
-    if (slowDownNanos > 0) slowDownNanos = 0;
-  }
-
-  public long getSlowDownNanos() {
-    return slowDownNanos;
-  }
-
-  public String getIndexFieldName() {
-    return indexFieldName;
-  }
-
-  public Object getLock() {
-    return lock;
   }
 }

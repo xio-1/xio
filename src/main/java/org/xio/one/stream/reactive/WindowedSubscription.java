@@ -1,7 +1,6 @@
 package org.xio.one.stream.reactive;
 
 import org.xio.one.stream.event.Event;
-import org.xio.one.stream.AsyncStream;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
 
 import java.util.NavigableSet;
@@ -53,7 +52,7 @@ public class WindowedSubscription<R,E> extends Subscription<R,E> {
 
   private boolean isTimeToGetNextWindow() {
     return System.currentTimeMillis() > toWindowTime + maxLatencyMS || (
-        getEventStream().contents().getLast().getEventTimestamp() > toWindowTime + MIN_LATENCY);
+        getEventStream().contents().last().getEventTimestamp() > toWindowTime + MIN_LATENCY);
   }
 
 

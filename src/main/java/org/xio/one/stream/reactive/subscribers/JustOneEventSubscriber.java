@@ -22,7 +22,7 @@ public abstract class JustOneEventSubscriber<R,E> extends BaseSubscriber<R,E> {
     Optional<Event<E>> et = e.filter(event -> event.getEventId() == eventId).limit(1).findFirst();
     if (et.isPresent()) {
       this.stop();
-      return process(et.get().getEventValue());
+      return process(et.get().value());
     }
     else return null;
   }

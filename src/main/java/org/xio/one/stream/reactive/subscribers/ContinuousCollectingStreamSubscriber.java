@@ -17,7 +17,7 @@ public abstract class ContinuousCollectingStreamSubscriber<R,E> extends Continuo
 
   @Override
   protected List<R> process(Stream<Event<E>> e) {
-    e.forEach(event-> eventHistoryList.add(process(event.getEventValue())));
+    e.forEach(event-> eventHistoryList.add(process(event.value())));
     return eventHistoryList;
   }
 

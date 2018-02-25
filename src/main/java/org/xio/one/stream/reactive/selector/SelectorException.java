@@ -1,4 +1,4 @@
-package org.xio.one.stream.selector;
+package org.xio.one.stream.reactive.selector;
 
 public class SelectorException extends RuntimeException {
 

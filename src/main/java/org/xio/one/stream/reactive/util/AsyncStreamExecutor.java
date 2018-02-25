@@ -4,7 +4,7 @@
  * Author Xio
  */
 
-package org.xio.one.stream.reactive;
+package org.xio.one.stream.reactive.util;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

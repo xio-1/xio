@@ -9,8 +9,12 @@ public final class EmptyEvent extends Event {
   }
 
   @Override
-  public boolean isEventAlive(int ttlSeconds) {
+  public boolean isEventAlive() {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return "{\"event\":\"EmptyEvent\"}";
+  }
 }

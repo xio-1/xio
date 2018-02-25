@@ -1,4 +1,4 @@
-package org.xio.one.stream.util;
+package org.xio.one.stream.reactive.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

@@ -3,15 +3,13 @@ package org.xio.one.stream.event;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.xio.one.stream.util.JSONUtil;
+import org.xio.one.stream.reactive.util.JSONUtil;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.xio.one.stream.util.JSONUtil.fromJSONString;
+import static org.xio.one.stream.reactive.util.JSONUtil.fromJSONString;
 
 public class JSONValue extends Event<Map<String, Object>> {
 
@@ -23,11 +21,19 @@ public class JSONValue extends Event<Map<String, Object>> {
   }
 
   public JSONValue(String jsonValue, long eventId) throws IOException {
-    super(fromJSONString(jsonValue, EMPTY_FIELD_VALUES.getClass()),eventId);
+    super(fromJSONString(jsonValue, EMPTY_FIELD_VALUES.getClass()), eventId);
+  }
+
+  public JSONValue(String jsonValue, long eventId, long ttlSeconds) throws IOException {
+    super(fromJSONString(jsonValue, EMPTY_FIELD_VALUES.getClass()), eventId, ttlSeconds);
   }
 
   public JSONValue(Map<String, Object> values, long eventId) {
-    super(values,eventId);
+    super(values, eventId);
+  }
+
+  public JSONValue(Map<String, Object> values, long eventId, long ttlSeconds) {
+    super(values, eventId, ttlSeconds);
   }
 
   @JsonAnySetter
@@ -41,57 +47,22 @@ public class JSONValue extends Event<Map<String, Object>> {
   }
 
   @JsonIgnore
+  @Override
   public Object getFieldValue(String name) {
-    Object toReturn;
-    if (this.eventValue != null) {
-      toReturn = eventValue.get(name);
-    } else {
-      toReturn = getFieldValueViaGetter(name);
-    }
-    if (toReturn != null)
-      return toReturn;
-    else
-      return null;
-  }
-
-  @JsonIgnore
-  private Object getFieldValueViaGetter(String fieldname) {
-    Method f = null;
-    Object toreturn = null;
-    try {
-      f = this.getClass().getMethod("get" + fieldname, null);
-      toreturn = f.invoke(this, null);
-    } catch (NoSuchMethodException e2) {
-    } catch (IllegalAccessException e3) {
-    } catch (InvocationTargetException e4) {
-    }
-
-    return toreturn;
+    return eventValue.get(name);
   }
 
   @JsonIgnore
   @Override
   public EventKey getIndexKeyValue() {
     if (this.eventValue != null && this.eventValue.size() > 0)
-      return new EventKey(this.eventValue.keySet().iterator().next(),
-          this.eventValue.entrySet().iterator().next());
-    else
-      return null;
-  }
-
-  @JsonIgnore
-  public boolean hasFieldValue(String fieldname) {
-    if (this.eventValue != null && this.eventValue.containsKey(fieldname))
-      return true;
-    else if (this.getFieldValueViaGetter(fieldname) != null)
-      return true;
-    else
-      return false;
+      return new EventKey(
+          this.eventValue.keySet().iterator().next(), this.eventValue.entrySet().iterator().next());
+    else return null;
   }
 
   @Override
   public String toString() {
     return JSONUtil.toJSONString(readEventValues());
   }
-
 }
