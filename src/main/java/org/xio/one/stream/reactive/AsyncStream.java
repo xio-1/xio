@@ -11,7 +11,7 @@ import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.selector.Selector;
 import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
-import org.xio.one.stream.reactive.subscribers.JustOneEventSubscriber;
+import org.xio.one.stream.reactive.subscribers.SingleEventSubscriber;
 import org.xio.one.stream.reactive.subscribers.MicroBatchStreamSubscriber;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
@@ -114,9 +114,9 @@ public final class AsyncStream<T, R> {
     return streamName;
   }
 
-  /** Put a just value into the contents */
-  public long put(T value) {
-    return putWithTTL(value, Long.MAX_VALUE);
+  /** Put a putValueForSingleSubscriber value into the contents */
+  public long putValue(T value) {
+    return putValueWithTTL(Long.MAX_VALUE,value);
   }
 
   /**
@@ -125,29 +125,12 @@ public final class AsyncStream<T, R> {
    * @param values
    * @return
    */
-  public long[] put(T... values) {
-    return putWithTTL(Long.MAX_VALUE, values);
-  }
-
-  /**
-   * Asychronously processes just this event value with the given microbatch subscriber
-   *
-   * @return
-   */
-  public Future<R> put(T value, MicroBatchStreamSubscriber<R, T> subscriber) {
-    if (subscriptionMap.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
-      subscriptionMap.put(subscriber.getId(), subscription);
-      subscription.subscribe();
-    }
-    long eventId = put(value);
-    if (eventId != -1) {
-      return subscriber.register(eventId);
-    } else return null;
+  public long[] putValue(T... values) {
+    return putValueWithTTL(Long.MAX_VALUE, values);
   }
 
   /** Put a json string value into the contents Throws IOException if json string is invalid */
-  public boolean putJSON(String jsonValue) throws IOException {
+  public boolean putJSONValue(String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
       Event event = new JSONValue(jsonValue, eventIDSequence.getNext());
       addToStreamWithLock(event, flushImmediately);
@@ -161,7 +144,7 @@ public final class AsyncStream<T, R> {
    * Put a json string value into the contents with ttlSeconds Throws IOException if json string is
    * invalid
    */
-  public boolean putJSON(String jsonValue, long ttlSeconds) throws IOException {
+  public boolean putJSONValueWithTTL(long ttlSeconds,String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
       Event event = new JSONValue(jsonValue, eventIDSequence.getNext(), ttlSeconds);
       addToStreamWithLock(event, flushImmediately);
@@ -171,7 +154,7 @@ public final class AsyncStream<T, R> {
     return false;
   }
   /** Put value to contents with ttlSeconds */
-  public long putWithTTL(T value, long ttlSeconds) {
+  public long putValueWithTTL(long ttlSeconds,T value) {
     if (value != null && !isEnd) {
       Event<T> event = new Event<>(value, eventIDSequence.getNext(), ttlSeconds);
       addToStreamWithLock(event, flushImmediately);
@@ -187,7 +170,7 @@ public final class AsyncStream<T, R> {
    * @param values
    * @return
    */
-  public long[] putWithTTL(long ttlSeconds, T... values) {
+  public long[] putValueWithTTL(long ttlSeconds, T... values) {
     long[] ids = new long[values.length];
     if (values != null && !isEnd) {
       for (int i = 0; i < values.length; i++) {
@@ -201,15 +184,32 @@ public final class AsyncStream<T, R> {
   }
 
   /**
-   * Asychronously processes just this event value with the given subscriber
+   * Asychronously processes putValueForSingleSubscriber this event value with the given subscriber
    *
    * @return
    */
-  public Future<R> just(T value, JustOneEventSubscriber<R, T> subscriber) {
-    long eventId = put(value);
+  public Future<R> putValueForSingleSubscriber(T value, SingleEventSubscriber<R, T> subscriber) {
+    long eventId = putValue(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
       return (new Subscription<R, T>(this, subscriber)).subscribe();
+    } else return null;
+  }
+
+  /**
+   * Asychronously processes putValueForSingleSubscriber this event value with the given microbatch subscriber
+   *
+   * @return
+   */
+  public Future<R> putValueForMicroBatchSubscriber(T value, MicroBatchStreamSubscriber<R, T> subscriber) {
+    if (subscriptionMap.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
+      subscriptionMap.put(subscriber.getId(), subscription);
+      subscription.subscribe();
+    }
+    long eventId = putValue(value);
+    if (eventId != -1) {
+      return subscriber.register(eventId);
     } else return null;
   }
 

@@ -37,7 +37,7 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnHelloWorldEventFromStreamContents() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
-    asyncStream.withImmediateFlushing().put("Hello world");
+    asyncStream.withImmediateFlushing().putValue("Hello world");
     asyncStream.end(true);
     assertThat(asyncStream.contents().last().value(), is("Hello world"));
   }
@@ -45,7 +45,7 @@ public class AsyncStreamTestsShould {
   @Test
   public void JSONStringReturnsHelloWorldEventFromStreamContents() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
-    asyncStream.withImmediateFlushing().putJSON("{\"msg\":\"Hello world\"}");
+    asyncStream.withImmediateFlushing().putJSONValue("{\"msg\":\"Hello world\"}");
     asyncStream.end(true);
     assertThat(asyncStream.contents().last().jsonValue(), is("{\"msg\":\"Hello world\"}"));
   }
@@ -61,7 +61,7 @@ public class AsyncStreamTestsShould {
           }
         };
     Future<List<Integer>> result = asyncStream.withImmediateFlushing().withSubscriber(subscriber);
-    asyncStream.put(1, 2, 3, 4);
+    asyncStream.putValue(1, 2, 3, 4);
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
     Assert.assertTrue(Arrays.equals(result.get().toArray(new Integer[4]), intList));
@@ -71,9 +71,9 @@ public class AsyncStreamTestsShould {
   public void shouldReturnHelloWorldForSingleAsyncSubscriber() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
     Future<String> result =
-        asyncStream.just(
+        asyncStream.putValueForSingleSubscriber(
             "Hello",
-            new JustOneEventSubscriber<String, String>() {
+            new SingleEventSubscriber<String, String>() {
 
               @Override
               public String process(String eventValue) {
@@ -89,7 +89,7 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
     Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber<>());
     for (int i = 0; i < 10000; i++) {
-      asyncStream.put("Hello world" + i);
+      asyncStream.putValue("Hello world" + i);
     }
     asyncStream.end(true);
     assertThat(count.get(), is(10000L));
@@ -106,7 +106,7 @@ public class AsyncStreamTestsShould {
           public String process(String eventValue) {
             if (eventValue.equals("ping")) {
               System.out.println("got ping");
-              pong_stream.put("pong");
+              pong_stream.putValue("pong");
               System.out.println("sent pong");
             }
             return "";
@@ -119,7 +119,7 @@ public class AsyncStreamTestsShould {
           public String process(String eventValue) {
             if (eventValue.equals("pong")) {
               System.out.println("got pong");
-              ping_stream.put("ping");
+              ping_stream.putValue("ping");
               System.out.println("sent ping");
             }
             return "";
@@ -127,7 +127,7 @@ public class AsyncStreamTestsShould {
         };
     ping_stream.withSubscriber(pingSubscriber);
     pong_stream.withSubscriber(pongSubscriber);
-    ping_stream.put("ping");
+    ping_stream.putValue("ping");
     ping_stream.end(true);
     pong_stream.end(true);
   }
@@ -138,7 +138,7 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
     Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber<>());
     for (int i = 0; i < 1000000; i++) {
-      asyncStream.put("Hello world" + i);
+      asyncStream.putValue("Hello world" + i);
     }
     asyncStream.end(true);
     assertThat(count.get(), is(1000000L));
@@ -173,17 +173,17 @@ public class AsyncStreamTestsShould {
           @Override
           public void initialise() {}
         };
-    Future<String> result = micro_stream.put("hello", microBatchStreamSubscriber);
+    Future<String> result = micro_stream.putValueForMicroBatchSubscriber("hello", microBatchStreamSubscriber);
     assertThat(result.get(), is("HELLO"));
   }
 
   @Test
   public void shouldRemoveExpiredEventsAfter1Second() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>("test_ttl");
-    asyncStream.putWithTTL("test10", 10);
-    asyncStream.putWithTTL("test1", 1);
-    asyncStream.putWithTTL("test2", 1);
-    asyncStream.putWithTTL("test3", 1);
+    asyncStream.putValueWithTTL(10,"test10");
+    asyncStream.putValueWithTTL(1, "test1");
+    asyncStream.putValueWithTTL(1,"test2");
+    asyncStream.putValueWithTTL(1,"test3");
     asyncStream.end(true);
     Thread.currentThread().sleep(1000);
     assertThat(asyncStream.contents().count(), is(1L));
@@ -196,7 +196,7 @@ public class AsyncStreamTestsShould {
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
-    asyncStream.put(testObject1, testObject2, testObject3);
+    asyncStream.putValue(testObject1, testObject2, testObject3);
     asyncStream.end(true);
     Assert.assertThat(asyncStream.contents().event("hello1").value(), is(testObject1));
     asyncStream.indexFieldName();
@@ -205,9 +205,9 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnEventUsingJSONIndexField() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>("test_index_json", "msg");
-    asyncStream.putJSON("{\"msg\":\"hello1\"}");
-    asyncStream.putJSON("{\"msg\":\"hello2\"}");
-    asyncStream.putJSON("{\"msg\":\"hello3\"}");
+    asyncStream.putJSONValue("{\"msg\":\"hello1\"}");
+    asyncStream.putJSONValue("{\"msg\":\"hello2\"}");
+    asyncStream.putJSONValue("{\"msg\":\"hello3\"}");
     asyncStream.end(true);
     Assert.assertThat(
         asyncStream.contents().event("hello2").jsonValue(), is(("{\"msg\":\"hello2\"}")));
@@ -219,7 +219,7 @@ public class AsyncStreamTestsShould {
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
-    long[] eventIds = asyncStream.put(testObject1, testObject2, testObject3);
+    long[] eventIds = asyncStream.putValue(testObject1, testObject2, testObject3);
     asyncStream.end(true);
     Assert.assertThat(asyncStream.contents().event(eventIds[1]).value(), is(testObject2));
   }

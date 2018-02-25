@@ -5,7 +5,7 @@ import org.xio.one.stream.event.Event;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public abstract class JustOneEventSubscriber<R,E> extends BaseSubscriber<R,E> {
+public abstract class SingleEventSubscriber<R,E> extends BaseSubscriber<R,E> {
 
   private long eventId;
 
