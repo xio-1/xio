@@ -9,7 +9,7 @@ public final class EmptyEvent extends Event {
   }
 
   @Override
-  public boolean isEventAlive() {
+  public boolean isAlive() {
     return false;
   }
 

@@ -8,9 +8,7 @@
  */
 package org.xio.one.stream.event;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.xio.one.stream.reactive.util.JSONUtil;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -59,19 +57,19 @@ public class Event<E> {
     this.eventTTLSeconds = eventTTLSeconds;
   }
 
-  public long getEventTimestamp() {
+  public long eventTimestamp() {
     return this.eventTimestamp;
   }
 
-  public boolean isEventAlive() {
-      return this.getEventTimestamp() + (eventTTLSeconds * 1000) > System.currentTimeMillis();
+  public boolean isAlive() {
+      return this.eventTimestamp() + (eventTTLSeconds * 1000) > System.currentTimeMillis();
     }
 
-  public long getEventId() {
+  public long eventId() {
     return this.eventId;
   }
 
-  public long getEventNodeId() {
+  public long eventNodeId() {
     return eventNodeId;
   }
 
@@ -79,7 +77,7 @@ public class Event<E> {
     return eventValue;
   }
 
-  public Object getIndexKeyValue() {
+  public Object indexKeyValue() {
     return indexKeyValue;
   }
 
@@ -87,7 +85,6 @@ public class Event<E> {
     return JSONUtil.toJSONString(eventValue);
   }
 
-  @JsonIgnore
   public Object getFieldValue(String fieldname) {
     Method f = null;
     Object toreturn = null;
@@ -107,7 +104,7 @@ public class Event<E> {
     if (this == event)
       return true;
     else
-      return this.getEventId() == (((Event) event).getEventId());
+      return this.eventId() == (((Event) event).eventId());
   }
 
   @Override

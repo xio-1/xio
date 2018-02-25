@@ -133,7 +133,7 @@ final class StreamRepository<T> {
         while (!eventStream.hasEnded()) {
           Thread.currentThread().sleep(1000);
           if (!eventRepositoryContents.isEmpty())
-            eventRepositoryContents.removeIf(event -> !event.isEventAlive());
+            eventRepositoryContents.removeIf(event -> !event.isAlive());
         }
       } catch (Exception e) {
 

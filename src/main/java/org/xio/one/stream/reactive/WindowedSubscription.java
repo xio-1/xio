@@ -52,7 +52,7 @@ public class WindowedSubscription<R,E> extends Subscription<R,E> {
 
   private boolean isTimeToGetNextWindow() {
     return System.currentTimeMillis() > toWindowTime + maxLatencyMS || (
-        getEventStream().contents().last().getEventTimestamp() > toWindowTime + MIN_LATENCY);
+        getEventStream().contents().last().eventTimestamp() > toWindowTime + MIN_LATENCY);
   }
 
 

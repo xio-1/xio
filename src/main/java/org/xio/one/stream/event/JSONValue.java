@@ -54,7 +54,7 @@ public class JSONValue extends Event<Map<String, Object>> {
 
   @JsonIgnore
   @Override
-  public EventKey getIndexKeyValue() {
+  public EventKey indexKeyValue() {
     if (this.eventValue != null && this.eventValue.size() > 0)
       return new EventKey(
           this.eventValue.keySet().iterator().next(), this.eventValue.entrySet().iterator().next());

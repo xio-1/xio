@@ -19,7 +19,7 @@ public abstract class SingleEventSubscriber<R,E> extends BaseSubscriber<R,E> {
 
   @Override
   protected R process(Stream<Event<E>> e) {
-    Optional<Event<E>> et = e.filter(event -> event.getEventId() == eventId).limit(1).findFirst();
+    Optional<Event<E>> et = e.filter(event -> event.eventId() == eventId).limit(1).findFirst();
     if (et.isPresent()) {
       this.stop();
       return process(et.get().value());

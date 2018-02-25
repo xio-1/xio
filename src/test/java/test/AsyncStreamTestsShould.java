@@ -166,7 +166,7 @@ public class AsyncStreamTestsShould {
             Map<Long, String> results = new HashMap<>();
             e.forEach(
                 stringEvent ->
-                    results.put(stringEvent.getEventId(), stringEvent.value().toUpperCase()));
+                    results.put(stringEvent.eventId(), stringEvent.value().toUpperCase()));
             return results;
           }
 

@@ -159,7 +159,7 @@ public final class AsyncStream<T, R> {
       Event<T> event = new Event<>(value, eventIDSequence.getNext(), ttlSeconds);
       addToStreamWithLock(event, flushImmediately);
       if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
-      return event.getEventId();
+      return event.eventId();
     }
     return -1;
   }
@@ -175,7 +175,7 @@ public final class AsyncStream<T, R> {
     if (values != null && !isEnd) {
       for (int i = 0; i < values.length; i++) {
         Event<T> event = new Event<>(values[i], eventIDSequence.getNext(), ttlSeconds);
-        ids[i] = event.getEventId();
+        ids[i] = event.eventId();
         addToStreamWithLock(event, flushImmediately);
         if (slowDownNanos > 0) LockSupport.parkNanos(slowDownNanos);
       }

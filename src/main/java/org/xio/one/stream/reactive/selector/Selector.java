@@ -51,7 +51,7 @@ public class Selector {
   }
 
   private Event doContains(Event event, String field, Object value) {
-    if (event.getIndexKeyValue() != null && event.getIndexKeyValue().toString()
+    if (event.indexKeyValue() != null && event.indexKeyValue().toString()
         .contains(value.toString()))
       return event;
     else
@@ -59,7 +59,7 @@ public class Selector {
   }
 
   private Event doEquals(Event event, String field, Object value) {
-    if (event.getIndexKeyValue() != null && event.getIndexKeyValue().toString()
+    if (event.indexKeyValue() != null && event.indexKeyValue().toString()
         .equals(value.toString()))
       return event;
     else

@@ -52,11 +52,11 @@ public final class StreamContents<T> {
                 querystorecontents.subSet(lastEvent, false, newLastEvent, true));
         if (events.size() > 0) {
           Event newFirstEvent = events.first();
-          if (newFirstEvent.getEventId() == (lastEvent.getEventId() + 1)) {
+          if (newFirstEvent.eventId() == (lastEvent.eventId() + 1)) {
             // if last event is in correct sequence then
-            if (newLastEvent.getEventId() == newFirstEvent.getEventId() + events.size() - 1)
+            if (newLastEvent.eventId() == newFirstEvent.eventId() + events.size() - 1)
               // if the size of the events to return is correct i.e. all in sequence
-              if (events.size() == (newLastEvent.getEventId() + 1 - newFirstEvent.getEventId())) {
+              if (events.size() == (newLastEvent.eventId() + 1 - newFirstEvent.eventId())) {
                 return events;
               }
             return extractItemsThatAreInSequence(lastEvent, events, newFirstEvent);
@@ -77,7 +77,7 @@ public final class StreamContents<T> {
     int index = 0;
     Event last = lastEvent;
     Event current = events1[0];
-    while (current.getEventId() == last.getEventId() + 1 && index <= events1.length) {
+    while (current.eventId() == last.eventId() + 1 && index <= events1.length) {
       last = current;
       index++;
       if (index < events1.length) current = events1[index];
@@ -102,7 +102,7 @@ public final class StreamContents<T> {
     Event toReturn = eventStore.eventStoreIndexContents.get(new EventKey(fieldname, value));
     if (toReturn == null) {
       List<Event> events =
-          eventRepositoryContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds))
+          eventRepositoryContents.parallelStream().filter(u -> u.isAlive(eventTTLSeconds))
               .filter(i -> i.getFieldValue(fieldname).toString().equals(value))
               .collect(Collectors.toList());
       if (events.size() > 0)
@@ -122,7 +122,7 @@ public final class StreamContents<T> {
 
   /*public Event getFirstBy(String fieldname, Object value) {
     List<Event> events =
-        eventRepositoryContents.parallelStream().filter(u -> u.isEventAlive(eventTTLSeconds))
+        eventRepositoryContents.parallelStream().filter(u -> u.isAlive(eventTTLSeconds))
             .filter(i -> i.getFieldValue(fieldname).equals(value)).collect(Collectors.toList());
     if (events.size() > 0)
       return events.get(0);
@@ -133,7 +133,7 @@ public final class StreamContents<T> {
   /*public double getAverage(String fieldname) {
     try {
       return this.eventRepositoryContents.parallelStream()
-          .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
+          .filter(u -> u.isAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .mapToDouble(e -> (double) e.getFieldValue(fieldname)).average().getAsDouble();
     } catch (NoSuchElementException e) {
       return 0.0d;
@@ -145,7 +145,7 @@ public final class StreamContents<T> {
 
       Event event;
       event = eventRepositoryContents.parallelStream()
-          .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
+          .filter(u -> u.isAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .max(Comparator.comparing(i -> (double) i.getFieldValue(fieldname))).get();
       return event;
     } catch (NoSuchElementException e) {
@@ -157,7 +157,7 @@ public final class StreamContents<T> {
     try {
       Event event;
       event = eventRepositoryContents.parallelStream()
-          .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
+          .filter(u -> u.isAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .min(Comparator.comparing(i -> (double) i.getFieldValue(fieldname))).get();
       return event;
     } catch (NoSuchElementException e) {
@@ -168,7 +168,7 @@ public final class StreamContents<T> {
   public double getSum(String fieldname) {
     try {
       return this.eventRepositoryContents.parallelStream()
-          .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
+          .filter(u -> u.isAlive(eventTTLSeconds) && u.hasFieldValue(fieldname))
           .mapToDouble(e -> (double) e.getFieldValue(fieldname)).sum();
     } catch (NoSuchElementException e) {
       return 0.0d;
@@ -178,7 +178,7 @@ public final class StreamContents<T> {
   public Set<Map.Entry<Object, Optional<Event>>> getLastSeenEventGroupedByFieldnameValue(
       String fieldname) {
     return eventRepositoryContents.parallelStream()
-        .filter(u -> u.isEventAlive(eventTTLSeconds) && u.hasFieldValue(fieldname)).collect(
+        .filter(u -> u.isAlive(eventTTLSeconds) && u.hasFieldValue(fieldname)).collect(
             Collectors.groupingBy(foo -> foo.getFieldValue(fieldname),
                 Collectors.maxBy(new EventTimestampComparator()))).entrySet();
 
@@ -186,7 +186,7 @@ public final class StreamContents<T> {
 
     public Event[] getAllBy(String fieldName, Object value) {
     List<Event> events = eventRepositoryContents.parallelStream().filter(
-        u -> u.isEventAlive(eventTTLSeconds) && u.getFieldValue(fieldName).toString().equals(value))
+        u -> u.isAlive(eventTTLSeconds) && u.getFieldValue(fieldName).toString().equals(value))
         .collect(Collectors.toList());
     return events.toArray(new Event[events.size()]);
   }
