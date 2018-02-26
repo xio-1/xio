@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class CollectingSubscriber<R,E> extends BaseSubscriber<List<R>,E> {
+public abstract class FutureStreamCollectingSubscriber<R,E> extends BaseSubscriber<List<R>,E> {
 
   private ArrayList<R> eventHistoryList = new ArrayList<>();
 

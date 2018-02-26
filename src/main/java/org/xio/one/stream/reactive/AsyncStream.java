@@ -111,7 +111,7 @@ public final class AsyncStream<T, R> {
     return streamName;
   }
 
-  /** Put a putValueForSingleSubscriber value into the contents */
+  /** Put a putValueToSingleSubscriber value into the contents */
   public long putValue(T value) {
     return putValueWithTTL(Long.MAX_VALUE,value);
   }
@@ -181,11 +181,11 @@ public final class AsyncStream<T, R> {
   }
 
   /**
-   * Asychronously processes putValueForSingleSubscriber this event value with the given subscriber
+   * Asychronously processes putValueToSingleSubscriber this event value with the given subscriber
    *
    * @return
    */
-  public Future<R> putValueForSingleSubscriber(T value, FutureSingleSubscriber<R, T> subscriber) {
+  public Future<R> putValueToSingleSubscriber(T value, FutureEventSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);
@@ -198,11 +198,11 @@ public final class AsyncStream<T, R> {
   }
 
   /**
-   * Asychronously processes putValueForSingleSubscriber this event value with the given microbatch subscriber
+   * Asychronously processes putValueToSingleSubscriber this event value with the given microbatch subscriber
    *
    * @return
    */
-  public Future<R> putValueForMicroBatchSubscriber(T value, FutureMicroBatchSubscriber<R, T> subscriber) {
+  public Future<R> putValueToMicroBatchSubscriber(T value, FutureEventMicroBatchingSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);
@@ -263,7 +263,7 @@ public final class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withSubscriber(BaseSubscriber<R, T> subscriber) {
+  public Future<R> withStreamSubscriber(BaseSubscriber<R, T> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class StreamSubscriber<R,E> extends BaseSubscriber<R,E> {
+public abstract class FutureStreamSubscriber<R,E> extends BaseSubscriber<R,E> {
 
   @Override
   protected void process(Stream<Event<E>> e) {

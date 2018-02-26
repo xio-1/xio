@@ -4,10 +4,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.CollectingSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureMicroBatchSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureSingleSubscriber;
-import org.xio.one.stream.reactive.subscribers.StreamSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureStreamCollectingSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureEventMicroBatchingSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureEventSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureStreamSubscriber;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,14 +56,14 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
     AsyncStream<Integer, List<Integer>> asyncStream = new AsyncStream<>(INT_STREAM);
-    CollectingSubscriber<Integer, Integer> subscriber =
-        new CollectingSubscriber<Integer, Integer>() {
+    FutureStreamCollectingSubscriber<Integer, Integer> subscriber =
+        new FutureStreamCollectingSubscriber<Integer, Integer>() {
           @Override
           public Integer process(Integer eventValue) {
             return eventValue * 10;
           }
         };
-    Future<List<Integer>> result = asyncStream.withImmediateFlushing().withSubscriber(subscriber);
+    Future<List<Integer>> result = asyncStream.withImmediateFlushing().withStreamSubscriber(subscriber);
     asyncStream.putValue(1, 2, 3, 4);
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
@@ -74,9 +74,9 @@ public class AsyncStreamTestsShould {
   public void shouldReturnHelloWorldForSingleAsyncSubscriber() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
     Future<String> result =
-        asyncStream.putValueForSingleSubscriber(
+        asyncStream.putValueToSingleSubscriber(
             "Hello",
-            new FutureSingleSubscriber<String, String>() {
+            new FutureEventSubscriber<String, String>() {
 
               @Override
               public String process(String eventValue) {
@@ -92,8 +92,8 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream");
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream");
 
-    FutureSingleSubscriber<String, String> pingSubscriber =
-        new FutureSingleSubscriber<String, String>() {
+    FutureEventSubscriber<String, String> pingSubscriber =
+        new FutureEventSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("ping")) {
@@ -105,8 +105,8 @@ public class AsyncStreamTestsShould {
           }
         };
 
-    FutureSingleSubscriber<String, String> pongSubscriber =
-        new FutureSingleSubscriber<String, String>() {
+    FutureEventSubscriber<String, String> pongSubscriber =
+        new FutureEventSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("pong")) {
@@ -117,8 +117,8 @@ public class AsyncStreamTestsShould {
             return "";
           }
         };
-    ping_stream.withSubscriber(pingSubscriber);
-    pong_stream.withSubscriber(pongSubscriber);
+    ping_stream.withStreamSubscriber(pingSubscriber);
+    pong_stream.withStreamSubscriber(pongSubscriber);
     ping_stream.putValue("ping");
     ping_stream.end(true);
     pong_stream.end(true);
@@ -129,8 +129,8 @@ public class AsyncStreamTestsShould {
     long start = System.currentTimeMillis();
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
     Future<Long> count =
-        asyncStream.withSubscriber(
-            new StreamSubscriber<Long, String>() {
+        asyncStream.withStreamSubscriber(
+            new FutureStreamSubscriber<Long, String>() {
               long count;
 
               @Override
@@ -170,8 +170,8 @@ public class AsyncStreamTestsShould {
   @Test
   public void putForMicroBatching() throws Exception {
     AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream");
-    FutureMicroBatchSubscriber<String, String> microBatchStreamSubscriber =
-        new FutureMicroBatchSubscriber<String, String>() {
+    FutureEventMicroBatchingSubscriber<String, String> microBatchStreamSubscriber =
+        new FutureEventMicroBatchingSubscriber<String, String>() {
           @Override
           public Map<Long, String> processStream(Stream<Event<String>> e) {
             Map<Long, String> results = new HashMap<>();
@@ -185,7 +185,7 @@ public class AsyncStreamTestsShould {
           public void initialise() {}
         };
     Future<String> result =
-        micro_stream.putValueForMicroBatchSubscriber("hello", microBatchStreamSubscriber);
+        micro_stream.putValueToMicroBatchSubscriber("hello", microBatchStreamSubscriber);
     assertThat(result.get(), is("HELLO"));
   }
 
