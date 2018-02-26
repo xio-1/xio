@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class ContinuousCollectingStreamSubscriber<R,E> extends ContinuousStreamSubscriber<List<R>,E> {
+public abstract class CollectingSubscriber<R,E> extends BaseSubscriber<List<R>,E> {
 
   private ArrayList<R> eventHistoryList = new ArrayList<>();
 
@@ -16,11 +16,14 @@ public abstract class ContinuousCollectingStreamSubscriber<R,E> extends Continuo
   }
 
   @Override
-  protected List<R> process(Stream<Event<E>> e) {
+  protected void process(Stream<Event<E>> e) {
     e.forEach(event-> eventHistoryList.add(process(event.value())));
-    return eventHistoryList;
   }
 
   public abstract R process(E eventValue);
 
+  @Override
+  public void finalise() {
+    setResult(eventHistoryList);
+  }
 }

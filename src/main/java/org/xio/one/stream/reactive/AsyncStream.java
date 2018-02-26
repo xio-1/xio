@@ -10,10 +10,7 @@ import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.selector.Selector;
-import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureSingleEventSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureMicroBatchEventSubscriber;
-import org.xio.one.stream.reactive.subscribers.Subscriber;
+import org.xio.one.stream.reactive.subscribers.*;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
 import java.io.IOException;
@@ -188,11 +185,15 @@ public final class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<R> putValueForSingleSubscriber(T value, FutureSingleEventSubscriber<R, T> subscriber) {
+  public Future<R> putValueForSingleSubscriber(T value, FutureSingleSubscriber<R, T> subscriber) {
+    if (subscriptionMap.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
+      subscriptionMap.put(subscriber.getId(), subscription);
+      subscription.subscribe();
+    }
     long eventId = putValue(value);
     if (eventId != -1) {
-      subscriber.initialise(eventId);
-      return (new Subscription<R, T>(this, subscriber)).subscribe();
+      return subscriber.register(eventId);
     } else return null;
   }
 
@@ -201,7 +202,7 @@ public final class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<R> putValueForMicroBatchSubscriber(T value, FutureMicroBatchEventSubscriber<R, T> subscriber) {
+  public Future<R> putValueForMicroBatchSubscriber(T value, FutureMicroBatchSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);
@@ -230,6 +231,7 @@ public final class AsyncStream<T, R> {
         while (!this.hasEnded() || !this.eventEventStore.hasEnded()) {
           Thread.currentThread().sleep(100);
         }
+
     } catch (InterruptedException e) {
     }
     return;

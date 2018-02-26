@@ -4,7 +4,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.*;
+import org.xio.one.stream.reactive.subscribers.CollectingSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureMicroBatchSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureSingleSubscriber;
+import org.xio.one.stream.reactive.subscribers.StreamSubscriber;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,8 +56,8 @@ public class AsyncStreamTestsShould {
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
     AsyncStream<Integer, List<Integer>> asyncStream = new AsyncStream<>(INT_STREAM);
-    ContinuousCollectingStreamSubscriber<Integer, Integer> subscriber =
-        new ContinuousCollectingStreamSubscriber<Integer, Integer>() {
+    CollectingSubscriber<Integer, Integer> subscriber =
+        new CollectingSubscriber<Integer, Integer>() {
           @Override
           public Integer process(Integer eventValue) {
             return eventValue * 10;
@@ -73,7 +76,7 @@ public class AsyncStreamTestsShould {
     Future<String> result =
         asyncStream.putValueForSingleSubscriber(
             "Hello",
-            new FutureSingleEventSubscriber<String, String>() {
+            new FutureSingleSubscriber<String, String>() {
 
               @Override
               public String process(String eventValue) {
@@ -85,23 +88,12 @@ public class AsyncStreamTestsShould {
   }
 
   @Test
-  public void shouldReturnHelloWorldCountSubscriber() throws Exception {
-    AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
-    Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber<>());
-    for (int i = 0; i < 10000; i++) {
-      asyncStream.putValue("Hello world" + i);
-    }
-    asyncStream.end(true);
-    assertThat(count.get(), is(10000L));
-  }
-
-  @Test
   public void shouldPingAndPong() throws Exception {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream");
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream");
 
-    FutureSingleEventSubscriber<String, String> pingSubscriber =
-        new FutureSingleEventSubscriber<String, String>() {
+    FutureSingleSubscriber<String, String> pingSubscriber =
+        new FutureSingleSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("ping")) {
@@ -113,8 +105,8 @@ public class AsyncStreamTestsShould {
           }
         };
 
-    FutureSingleEventSubscriber<String, String> pongSubscriber =
-        new FutureSingleEventSubscriber<String, String>() {
+    FutureSingleSubscriber<String, String> pongSubscriber =
+        new FutureSingleSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("pong")) {
@@ -136,7 +128,27 @@ public class AsyncStreamTestsShould {
   public void shouldPerformance() throws Exception {
     long start = System.currentTimeMillis();
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
-    Future<Long> count = asyncStream.withSubscriber(new ContinuousCountingStreamSubscriber<>());
+    Future<Long> count =
+        asyncStream.withSubscriber(
+            new StreamSubscriber<Long, String>() {
+              long count;
+
+              @Override
+              public void initialise() {
+                this.count = 0;
+              }
+
+              @Override
+              public Long process(String eventValue) {
+                this.count++;
+                return this.count;
+              }
+
+              @Override
+              public void finalise() {
+                this.setResult(this.count);
+              }
+            });
     for (int i = 0; i < 1000000; i++) {
       asyncStream.putValue("Hello world" + i);
     }
@@ -149,7 +161,6 @@ public class AsyncStreamTestsShould {
   @Test
   public void stability() throws Exception {
     for (int i = 0; i < 10; i++) {
-      shouldReturnHelloWorldCountSubscriber();
       shouldReturnHelloWorldEventFromStreamContents();
       shouldReturnHelloWorldForSingleAsyncSubscriber();
       JSONStringReturnsHelloWorldEventFromStreamContents();
@@ -159,8 +170,8 @@ public class AsyncStreamTestsShould {
   @Test
   public void putForMicroBatching() throws Exception {
     AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream");
-    FutureMicroBatchEventSubscriber<String, String> microBatchStreamSubscriber =
-        new FutureMicroBatchEventSubscriber<String, String>() {
+    FutureMicroBatchSubscriber<String, String> microBatchStreamSubscriber =
+        new FutureMicroBatchSubscriber<String, String>() {
           @Override
           public Map<Long, String> processStream(Stream<Event<String>> e) {
             Map<Long, String> results = new HashMap<>();
@@ -173,17 +184,18 @@ public class AsyncStreamTestsShould {
           @Override
           public void initialise() {}
         };
-    Future<String> result = micro_stream.putValueForMicroBatchSubscriber("hello", microBatchStreamSubscriber);
+    Future<String> result =
+        micro_stream.putValueForMicroBatchSubscriber("hello", microBatchStreamSubscriber);
     assertThat(result.get(), is("HELLO"));
   }
 
   @Test
   public void shouldRemoveExpiredEventsAfter1Second() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>("test_ttl");
-    asyncStream.putValueWithTTL(10,"test10");
+    asyncStream.putValueWithTTL(10, "test10");
     asyncStream.putValueWithTTL(1, "test1");
-    asyncStream.putValueWithTTL(1,"test2");
-    asyncStream.putValueWithTTL(1,"test3");
+    asyncStream.putValueWithTTL(1, "test2");
+    asyncStream.putValueWithTTL(1, "test3");
     asyncStream.end(true);
     Thread.currentThread().sleep(1000);
     assertThat(asyncStream.contents().count(), is(1L));

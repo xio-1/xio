@@ -2,7 +2,7 @@ package test;
 
 import org.junit.Test;
 import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.ContinuousSingleEventSubscriber;
+import org.xio.one.stream.reactive.subscribers.StreamSubscriber;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -19,7 +19,7 @@ public class EventLoopExample {
     }
 
     public void open() {
-      transaction_stream.withSubscriber(new ContinuousSingleEventSubscriber<Boolean, Transaction>() {
+      transaction_stream.withSubscriber(new StreamSubscriber<Boolean, Transaction>() {
         @Override
         public Boolean process(Transaction transaction) {
           if (transaction.transactionType==TransactionType.CREDIT)

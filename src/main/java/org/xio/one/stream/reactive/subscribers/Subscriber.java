@@ -19,4 +19,8 @@ public interface Subscriber<R,E> {
   Subscriber<R,E> getSubscriber();
 
   void initialise();
+
+  void setResult(R result);
+
+  void finalise();
 }

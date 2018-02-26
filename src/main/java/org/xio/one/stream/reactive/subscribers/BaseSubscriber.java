@@ -1,24 +1,34 @@
 package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
-import org.xio.one.stream.reactive.subscribers.Subscriber;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class BaseSubscriber<R,E> implements Subscriber<R,E> {
+public abstract class BaseSubscriber<R, E> implements Subscriber<R, E> {
 
   private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
-  volatile R result;
-  boolean done = false;
+  private volatile R result = null;
+  private boolean done = false;
+  private List<Callback<R>> callbacks = new ArrayList<>();
 
   public BaseSubscriber() {
     initialise();
   }
 
   public abstract void initialise();
+
+  public void addCallback(Callback<R> callback) {
+    callbacks.add(callback);
+  }
+
+  public void callCallbacks(R result) {
+    callbacks.parallelStream().forEach(callback -> callback.processResult(result));
+  }
 
   @Override
   public boolean isDone() {
@@ -37,12 +47,12 @@ public abstract class BaseSubscriber<R,E> implements Subscriber<R,E> {
   @Override
   public void emit(Stream<Event<E>> e) {
     synchronized (lock) {
-      result = process(e);
+      process(e);
       lock.notify();
     }
   }
 
-  protected abstract R process(Stream<Event<E>> e);
+  protected abstract void process(Stream<Event<E>> e);
 
   @Override
   public R peek() {
@@ -63,6 +73,7 @@ public abstract class BaseSubscriber<R,E> implements Subscriber<R,E> {
           if (timeout > 0) break;
         } catch (InterruptedException e) {
         }
+      this.finalise();
       R toreturn = result;
       result = null;
       if (reset) this.initialise();
@@ -71,11 +82,17 @@ public abstract class BaseSubscriber<R,E> implements Subscriber<R,E> {
   }
 
   @Override
-  public Subscriber<R,E> getSubscriber() {
+  public Subscriber<R, E> getSubscriber() {
     return this;
   }
 
   public String getId() {
     return id;
   }
+
+  @Override
+  public final void setResult(R result) {
+    this.result = result;
+  }
+
 }

@@ -6,14 +6,12 @@ import org.xio.one.stream.event.Event;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
-public abstract class FutureMicroBatchEventSubscriber<R, E>
-    extends ContinuousStreamSubscriber<Map<Long, R>, E> {
+public abstract class FutureMicroBatchSubscriber<R, E>
+    extends BaseSubscriber<Map<Long, R>, E> {
 
   BlockingMap<Long, R> results = new BlockingHashMap<>();
   Map<Long, Future<R>> futures = new HashMap<>();
@@ -45,13 +43,12 @@ public abstract class FutureMicroBatchEventSubscriber<R, E>
     }
 
     @Override
-    public R get() throws InterruptedException, ExecutionException {
+    public R get() throws InterruptedException {
       return results.take(eventId);
     }
 
     @Override
-    public R get(long timeout, TimeUnit unit)
-        throws InterruptedException, ExecutionException, TimeoutException {
+    public R get(long timeout, TimeUnit unit) throws InterruptedException {
       return results.take(eventId, timeout, unit);
     }
   }
@@ -63,17 +60,26 @@ public abstract class FutureMicroBatchEventSubscriber<R, E>
   }
 
   @Override
-  protected Map<Long, R> process(Stream<Event<E>> e) {
+  protected void process(Stream<Event<E>> e) {
     if (e != null) {
       Map<Long, R> streamResults = processStream(e);
-      ;
       streamResults
           .keySet()
           .stream()
           .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
-      return streamResults;
-    } else return null;
+      callCallbacks(streamResults);
+    }
   }
 
   public abstract Map<Long, R> processStream(Stream<Event<E>> e);
+
+  @Override
+  public void initialise() {
+
+  }
+
+  @Override
+  public void finalise() {
+
+  }
 }
