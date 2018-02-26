@@ -11,8 +11,8 @@ import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
 import org.xio.one.stream.reactive.selector.Selector;
 import org.xio.one.stream.reactive.subscribers.BaseSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleEventSubscriber;
-import org.xio.one.stream.reactive.subscribers.MicroBatchStreamSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureSingleEventSubscriber;
+import org.xio.one.stream.reactive.subscribers.FutureMicroBatchEventSubscriber;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
@@ -188,7 +188,7 @@ public final class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<R> putValueForSingleSubscriber(T value, SingleEventSubscriber<R, T> subscriber) {
+  public Future<R> putValueForSingleSubscriber(T value, FutureSingleEventSubscriber<R, T> subscriber) {
     long eventId = putValue(value);
     if (eventId != -1) {
       subscriber.initialise(eventId);
@@ -201,7 +201,7 @@ public final class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<R> putValueForMicroBatchSubscriber(T value, MicroBatchStreamSubscriber<R, T> subscriber) {
+  public Future<R> putValueForMicroBatchSubscriber(T value, FutureMicroBatchEventSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);

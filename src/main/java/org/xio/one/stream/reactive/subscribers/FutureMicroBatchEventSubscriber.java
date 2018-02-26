@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
-public abstract class MicroBatchStreamSubscriber<R, E>
+public abstract class FutureMicroBatchEventSubscriber<R, E>
     extends ContinuousStreamSubscriber<Map<Long, R>, E> {
 
   BlockingMap<Long, R> results = new BlockingHashMap<>();

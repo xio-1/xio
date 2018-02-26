@@ -73,7 +73,7 @@ public class AsyncStreamTestsShould {
     Future<String> result =
         asyncStream.putValueForSingleSubscriber(
             "Hello",
-            new SingleEventSubscriber<String, String>() {
+            new FutureSingleEventSubscriber<String, String>() {
 
               @Override
               public String process(String eventValue) {
@@ -100,8 +100,8 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream");
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream");
 
-    NextSingleEventSubscriber<String, String> pingSubscriber =
-        new NextSingleEventSubscriber<String, String>() {
+    FutureSingleEventSubscriber<String, String> pingSubscriber =
+        new FutureSingleEventSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("ping")) {
@@ -113,8 +113,8 @@ public class AsyncStreamTestsShould {
           }
         };
 
-    NextSingleEventSubscriber<String, String> pongSubscriber =
-        new NextSingleEventSubscriber<String, String>() {
+    FutureSingleEventSubscriber<String, String> pongSubscriber =
+        new FutureSingleEventSubscriber<String, String>() {
           @Override
           public String process(String eventValue) {
             if (eventValue.equals("pong")) {
@@ -159,8 +159,8 @@ public class AsyncStreamTestsShould {
   @Test
   public void putForMicroBatching() throws Exception {
     AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream");
-    MicroBatchStreamSubscriber<String, String> microBatchStreamSubscriber =
-        new MicroBatchStreamSubscriber<String, String>() {
+    FutureMicroBatchEventSubscriber<String, String> microBatchStreamSubscriber =
+        new FutureMicroBatchEventSubscriber<String, String>() {
           @Override
           public Map<Long, String> processStream(Stream<Event<String>> e) {
             Map<Long, String> results = new HashMap<>();
