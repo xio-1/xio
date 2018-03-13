@@ -8,7 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class BaseSubscriber<R, E> implements Subscriber<R, E> {
+public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
 
   private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
@@ -16,8 +16,13 @@ public abstract class BaseSubscriber<R, E> implements Subscriber<R, E> {
   private boolean done = false;
   private List<Callback<R>> callbacks = new ArrayList<>();
 
-  public BaseSubscriber() {
+  public AbstractSubscriber() {
     initialise();
+  }
+
+  public AbstractSubscriber(Callback<R> callback) {
+    initialise();
+    addCallback(callback);
   }
 
   public abstract void initialise();
@@ -27,7 +32,11 @@ public abstract class BaseSubscriber<R, E> implements Subscriber<R, E> {
   }
 
   public void callCallbacks(R result) {
-    callbacks.parallelStream().forEach(callback -> callback.processResult(result));
+    callbacks.parallelStream().forEach(callback -> callback.handleResult(result));
+  }
+
+  public void callCallbacks(Throwable e, Object source) {
+    callbacks.parallelStream().forEach(callback -> callback.handleResult(result));
   }
 
   @Override
@@ -54,6 +63,7 @@ public abstract class BaseSubscriber<R, E> implements Subscriber<R, E> {
 
   protected abstract void process(Stream<Event<E>> e);
 
+
   @Override
   public R peek() {
     R toreturn = result;
@@ -70,13 +80,15 @@ public abstract class BaseSubscriber<R, E> implements Subscriber<R, E> {
       while (result == null && !isDone())
         try {
           lock.wait(timeout);
-          if (timeout > 0) break;
+          if (timeout > 0)
+            break;
         } catch (InterruptedException e) {
         }
       this.finalise();
       R toreturn = result;
       result = null;
-      if (reset) this.initialise();
+      if (reset)
+        this.initialise();
       return toreturn;
     }
   }

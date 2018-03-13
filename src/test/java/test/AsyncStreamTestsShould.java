@@ -4,15 +4,11 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.FutureStreamCollectingSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureEventMicroBatchingSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureEventSubscriber;
-import org.xio.one.stream.reactive.subscribers.FutureStreamSubscriber;
+import org.xio.one.stream.reactive.subscribers.OnEventsSubscriber;
+import org.xio.one.stream.reactive.subscribers.OnNextSubscriber;
+import org.xio.one.stream.reactive.subscribers.OnSingleSubscriber;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -24,6 +20,7 @@ public class AsyncStreamTestsShould {
   public static final int NUMBER_OF_EVENTS = 1000000;
   String HELLO_WORLD_STREAM = "helloWorldStream";
   String INT_STREAM = "integerStream";
+
 
   public class TestObject {
     String testField;
@@ -55,34 +52,47 @@ public class AsyncStreamTestsShould {
 
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
-    AsyncStream<Integer, List<Integer>> asyncStream = new AsyncStream<>(INT_STREAM);
-    FutureStreamCollectingSubscriber<Integer, Integer> subscriber =
-        new FutureStreamCollectingSubscriber<Integer, Integer>() {
-          @Override
-          public Integer process(Integer eventValue) {
-            return eventValue * 10;
-          }
-        };
-    Future<List<Integer>> result = asyncStream.withImmediateFlushing().withStreamSubscriber(subscriber);
+    AsyncStream<Integer, Object> asyncStream = new AsyncStream<>(INT_STREAM);
+
+    OnNextSubscriber<Object, Integer> subscriber = new OnNextSubscriber<Object, Integer>() {
+
+      List<Integer> output = new ArrayList<>();
+
+      @Override
+      public Boolean onNext(Integer eventValue) {
+        output.add(eventValue * 10);
+        return true;
+      }
+
+      @Override
+      public Object onError(Throwable error, Integer eventValue) {
+        return false;
+      }
+
+      @Override
+      public void finalise() {
+        this.setResult(output);
+      }
+    };
+    Future<Object> result = asyncStream.withImmediateFlushing().withStreamSubscriber(subscriber);
     asyncStream.putValue(1, 2, 3, 4);
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
-    Assert.assertTrue(Arrays.equals(result.get().toArray(new Integer[4]), intList));
+    Assert
+        .assertEquals(true, Arrays.equals(((ArrayList<Integer>) result.get()).toArray(), intList));
   }
 
   @Test
   public void shouldReturnHelloWorldForSingleAsyncSubscriber() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
     Future<String> result =
-        asyncStream.putValueToSingleSubscriber(
-            "Hello",
-            new FutureEventSubscriber<String, String>() {
+        asyncStream.putValueToSingleSubscriber("Hello", new OnSingleSubscriber<String, String>() {
 
-              @Override
-              public String process(String eventValue) {
-                return eventValue + " world";
-              }
-            });
+          @Override
+          public String onSingle(String eventValue) {
+            return eventValue + " world";
+          }
+        });
     asyncStream.end(true);
     assertThat(result.get(), is("Hello world"));
   }
@@ -92,31 +102,29 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream");
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream");
 
-    FutureEventSubscriber<String, String> pingSubscriber =
-        new FutureEventSubscriber<String, String>() {
-          @Override
-          public String process(String eventValue) {
-            if (eventValue.equals("ping")) {
-              System.out.println("got ping");
-              pong_stream.putValue("pong");
-              System.out.println("sent pong");
-            }
-            return "";
-          }
-        };
+    OnSingleSubscriber<String, String> pingSubscriber = new OnSingleSubscriber<String, String>() {
+      @Override
+      public String onSingle(String eventValue) {
+        if (eventValue.equals("ping")) {
+          System.out.println("got ping");
+          pong_stream.putValue("pong");
+          System.out.println("sent pong");
+        }
+        return "";
+      }
+    };
 
-    FutureEventSubscriber<String, String> pongSubscriber =
-        new FutureEventSubscriber<String, String>() {
-          @Override
-          public String process(String eventValue) {
-            if (eventValue.equals("pong")) {
-              System.out.println("got pong");
-              ping_stream.putValue("ping");
-              System.out.println("sent ping");
-            }
-            return "";
-          }
-        };
+    OnSingleSubscriber<String, String> pongSubscriber = new OnSingleSubscriber<String, String>() {
+      @Override
+      public String onSingle(String eventValue) {
+        if (eventValue.equals("pong")) {
+          System.out.println("got pong");
+          ping_stream.putValue("ping");
+          System.out.println("sent ping");
+        }
+        return "";
+      }
+    };
     ping_stream.withStreamSubscriber(pingSubscriber);
     pong_stream.withStreamSubscriber(pongSubscriber);
     ping_stream.putValue("ping");
@@ -128,34 +136,37 @@ public class AsyncStreamTestsShould {
   public void shouldPerformance() throws Exception {
     long start = System.currentTimeMillis();
     AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
-    Future<Long> count =
-        asyncStream.withStreamSubscriber(
-            new FutureStreamSubscriber<Long, String>() {
-              long count;
+    Future<Long> count = asyncStream.withStreamSubscriber(new OnNextSubscriber<Long, String>() {
+      long count;
 
-              @Override
-              public void initialise() {
-                this.count = 0;
-              }
+      @Override
+      public void initialise() {
+        this.count = 0;
+      }
 
-              @Override
-              public Long process(String eventValue) {
-                this.count++;
-                return this.count;
-              }
+      @Override
+      public Long onNext(String eventValue) {
+        this.count++;
+        return count;
+      }
 
-              @Override
-              public void finalise() {
-                this.setResult(this.count);
-              }
-            });
+      @Override
+      public Object onError(Throwable error, String eventValue) {
+        return null;
+      }
+
+      @Override
+      public void finalise() {
+        this.setResult(this.count);
+      }
+    });
     for (int i = 0; i < 1000000; i++) {
       asyncStream.putValue("Hello world" + i);
     }
     asyncStream.end(true);
     assertThat(count.get(), is(1000000L));
-    System.out.println(
-        "Events per second : " + 1000000 / ((System.currentTimeMillis() - start) / 1000));
+    System.out
+        .println("Events per second : " + 1000000 / ((System.currentTimeMillis() - start) / 1000));
   }
 
   @Test
@@ -170,19 +181,19 @@ public class AsyncStreamTestsShould {
   @Test
   public void putForMicroBatching() throws Exception {
     AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream");
-    FutureEventMicroBatchingSubscriber<String, String> microBatchStreamSubscriber =
-        new FutureEventMicroBatchingSubscriber<String, String>() {
+    OnEventsSubscriber<String, String> microBatchStreamSubscriber =
+        new OnEventsSubscriber<String, String>() {
           @Override
-          public Map<Long, String> processStream(Stream<Event<String>> e) {
+          public Map<Long, String> onEvents(Stream<Event<String>> e) {
             Map<Long, String> results = new HashMap<>();
-            e.forEach(
-                stringEvent ->
-                    results.put(stringEvent.eventId(), stringEvent.value().toUpperCase()));
+            e.forEach(stringEvent -> results
+                .put(stringEvent.eventId(), stringEvent.value().toUpperCase()));
             return results;
           }
 
           @Override
-          public void initialise() {}
+          public void initialise() {
+          }
         };
     Future<String> result =
         micro_stream.putValueToMicroBatchSubscriber("hello", microBatchStreamSubscriber);
@@ -221,8 +232,8 @@ public class AsyncStreamTestsShould {
     asyncStream.putJSONValue("{\"msg\":\"hello2\"}");
     asyncStream.putJSONValue("{\"msg\":\"hello3\"}");
     asyncStream.end(true);
-    Assert.assertThat(
-        asyncStream.contents().event("hello2").jsonValue(), is(("{\"msg\":\"hello2\"}")));
+    Assert.assertThat(asyncStream.contents().event("hello2").jsonValue(),
+        is(("{\"msg\":\"hello2\"}")));
   }
 
   @Test

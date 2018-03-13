@@ -9,7 +9,6 @@ import org.xio.one.stream.event.EmptyEventArray;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
-import org.xio.one.stream.reactive.selector.Selector;
 import org.xio.one.stream.reactive.subscribers.*;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
@@ -40,8 +39,6 @@ public final class AsyncStream<T, R> {
   // input parameters
   private String streamName;
   private String indexFieldName;
-  private Selector worker;
-  private Map<String, Object> workerParams;
   private Map<String, Future> subscriptions = new HashMap<>();
   Map<String, Subscription<R, T>> subscriptionMap = new HashMap<>();
 
@@ -60,22 +57,6 @@ public final class AsyncStream<T, R> {
   private ExecutorService executorService =
       AsyncStreamExecutor.subscriberCachedThreadPoolInstance();
 
-  /**
-   * Construct a new ordered EventStream with the given selector
-   *
-   * @param streamName
-   */
-  public AsyncStream(
-      String streamName, String indexFieldName, Selector worker, Map<String, Object> workerParams) {
-    this.event_queue = new LinkedBlockingQueue<>(queue_max_size);
-    this.eventqueue_out = new Event[this.queue_max_size];
-    this.streamName = streamName;
-    this.indexFieldName = indexFieldName;
-    this.worker = worker;
-    this.eventEventStore = new StreamRepository(this, worker);
-    this.workerParams = workerParams;
-    this.eventIDSequence = new EventIDSequence();
-  }
 
   /**
    * Construct a new ordered EventStream
@@ -87,8 +68,7 @@ public final class AsyncStream<T, R> {
     this.eventqueue_out = new Event[this.queue_max_size];
     this.streamName = streamName;
     this.indexFieldName = null;
-    this.worker = new Selector();
-    this.eventEventStore = new StreamRepository(this, worker);
+    this.eventEventStore = new StreamRepository(this);
     this.eventIDSequence = new EventIDSequence();
   }
 
@@ -97,8 +77,7 @@ public final class AsyncStream<T, R> {
     this.eventqueue_out = new Event[this.queue_max_size];
     this.streamName = streamName;
     this.indexFieldName = indexFieldName;
-    this.worker = new Selector();
-    this.eventEventStore = new StreamRepository(this, worker);
+    this.eventEventStore = new StreamRepository(this);
     this.eventIDSequence = new EventIDSequence();
   }
 
@@ -185,7 +164,7 @@ public final class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<R> putValueToSingleSubscriber(T value, FutureEventSubscriber<R, T> subscriber) {
+  public Future<R> putValueToSingleSubscriber(T value, OnSingleSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);
@@ -202,7 +181,7 @@ public final class AsyncStream<T, R> {
    *
    * @return
    */
-  public Future<R> putValueToMicroBatchSubscriber(T value, FutureEventMicroBatchingSubscriber<R, T> subscriber) {
+  public Future<R> putValueToMicroBatchSubscriber(T value, OnEventsSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);
@@ -263,7 +242,7 @@ public final class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withStreamSubscriber(BaseSubscriber<R, T> subscriber) {
+  public Future<R> withStreamSubscriber(AbstractSubscriber<R, T> subscriber) {
     if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriptions.put(subscriber.getId(), subscription.subscribe());

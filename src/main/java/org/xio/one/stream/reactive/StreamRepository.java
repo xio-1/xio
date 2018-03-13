@@ -2,11 +2,9 @@ package org.xio.one.stream.reactive;
 
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventSequenceComparator;
-import org.xio.one.stream.reactive.selector.Selector;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
@@ -18,7 +16,6 @@ final class StreamRepository<T> {
   protected volatile ConcurrentHashMap<Object, Event<T>> eventStoreIndexContents;
   private AsyncStream eventStream = null;
   private boolean isEnd = false;
-  private Selector selector;
   private StreamContents eventStoreOperations = null;
   private String eventStoreIndexFieldName;
 
@@ -27,10 +24,8 @@ final class StreamRepository<T> {
    * events TTL seconds will be retained before being automatically removed from the store
    *
    */
-  public StreamRepository(AsyncStream eventStream, Selector selector) {
+  public StreamRepository(AsyncStream eventStream) {
     this.eventStream = eventStream;
-    if (selector != null) this.selector = selector;
-    else this.selector = new Selector();
     eventRepositoryContents = new ConcurrentSkipListSet<>(new EventSequenceComparator<>());
     eventStoreOperations = new StreamContents<Event<T>>(this, eventStream);
     eventStoreIndexContents = new ConcurrentHashMap<>();
@@ -71,16 +66,6 @@ final class StreamRepository<T> {
     return this.isEnd;
   }
 
-  /**
-   * Call the baseWorker
-   *
-   * @param event
-   * @return
-   */
-  private Event callWorker(Event event, Map<String, Object> workerParams) {
-    Event toReturn = this.selector.work(event, workerParams);
-    return toReturn;
-  }
 
   public String getEventStoreIndexFieldName() {
     return eventStoreIndexFieldName;

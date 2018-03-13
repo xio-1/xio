@@ -10,19 +10,24 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class FutureEventMicroBatchingSubscriber<R, E>
-    extends BaseSubscriber<Map<Long, R>, E> {
+public abstract class OnSingleSubscriber<R, E> extends AbstractSubscriber<R, E> {
 
-  BlockingMap<Long, R> results = new BlockingHashMap<>();
-  Map<Long, Future<R>> futures = new HashMap<>();
+  BlockingMap<Long, R> results ;
+  Map<Long, Future<R>> futures ;
 
-  public class BatchFuture<R> implements Future<R> {
+  @Override
+  public void initialise() {
+    results = new BlockingHashMap<>();
+    futures = new HashMap<>();
+  }
+
+  public class SingleFuture<R> implements Future<R> {
 
     long eventId;
     BlockingMap<Long, R> results;
     boolean done = false;
 
-    public BatchFuture(long eventId, BlockingMap<Long, R> results) {
+    public SingleFuture(long eventId, BlockingMap<Long, R> results) {
       this.eventId = eventId;
       this.results = results;
     }
@@ -54,29 +59,32 @@ public abstract class FutureEventMicroBatchingSubscriber<R, E>
   }
 
   public Future<R> register(long eventId) {
-    Future<R> futureResult = new BatchFuture<>(eventId, results);
-    futures.put(eventId, new BatchFuture<>(eventId, results));
+    Future<R> futureResult = new SingleFuture<>(eventId, results);
+    futures.put(eventId, new SingleFuture<>(eventId, results));
     return futureResult;
   }
 
   @Override
   protected void process(Stream<Event<E>> e) {
     if (e != null) {
-      Map<Long, R> streamResults = processStream(e);
-      streamResults
-          .keySet()
-          .stream()
-          .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
-      callCallbacks(streamResults);
+      Map<Long, R> streamResults = new HashMap<>();
+      e.parallel()
+          .forEach(
+              eEvent -> {
+                R result = onSingle(eEvent.value());
+                streamResults.put(eEvent.eventId(), result);
+                callCallbacks(result);
+              });
+      if (!streamResults.isEmpty())
+        streamResults
+            .keySet()
+            .stream()
+            .parallel()
+            .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
     }
   }
 
-  public abstract Map<Long, R> processStream(Stream<Event<E>> e);
-
-  @Override
-  public void initialise() {
-
-  }
+  public abstract R onSingle(E e);
 
   @Override
   public void finalise() {
