@@ -5,8 +5,8 @@ import org.junit.Test;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.AsyncStream;
 import org.xio.one.stream.reactive.subscribers.MultiplexFutureSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
 import org.xio.one.stream.reactive.subscribers.SingleFutureSubscriber;
+import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
 
 import java.util.*;
 import java.util.concurrent.Future;
@@ -106,8 +106,7 @@ public class AsyncStreamTestsShould {
     AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream");
     AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream");
 
-    SingleSubscriber<String, String>
-        pingSubscriber = new SingleSubscriber<String, String>() {
+    SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
       @Override
       public String onNext(String eventValue) {
         if (eventValue.equals("ping")) {
@@ -124,8 +123,7 @@ public class AsyncStreamTestsShould {
       }
     };
 
-    SingleSubscriber<String, String>
-        pongSubscriber = new SingleSubscriber<String, String>() {
+    SingleSubscriber<String, String> pongSubscriber = new SingleSubscriber<String, String>() {
       @Override
       public String onNext(String eventValue) {
         if (eventValue.equals("pong")) {
@@ -195,7 +193,7 @@ public class AsyncStreamTestsShould {
   }
 
   @Test
-  public void putForMicroBatching() throws Exception {
+  public void putForMultiplexingFutures() throws Exception {
     AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream");
     MultiplexFutureSubscriber<String, String> microBatchStreamSubscriber =
         new MultiplexFutureSubscriber<String, String>() {
@@ -206,14 +204,13 @@ public class AsyncStreamTestsShould {
                 .put(stringEvent.eventId(), stringEvent.value().toUpperCase()));
             return results;
           }
-
-          @Override
-          public void initialise() {
-          }
         };
-    Future<String> result =
-        micro_stream.putValue("hello", microBatchStreamSubscriber);
-    assertThat(result.get(), is("HELLO"));
+    Future<String> result1 = micro_stream.putValue("hello1", microBatchStreamSubscriber);
+    Future<String> result2 = micro_stream.putValue("hello2", microBatchStreamSubscriber);
+    Future<String> result3 = micro_stream.putValue("hello3", microBatchStreamSubscriber);
+    assertThat(result1.get(), is("HELLO1"));
+    assertThat(result2.get(), is("HELLO2"));
+    assertThat(result3.get(), is("HELLO3"));
   }
 
   @Test

@@ -1,4 +1,4 @@
-package test.bank.domain;
+package examples.bank.domain;
 
 public class TransactionRequest {
 
@@ -41,5 +41,18 @@ public class TransactionRequest {
 
   public TransactionType getTransactionType() {
     return transactionType;
+  }
+
+  @Override
+  public String toString() {
+    final StringBuffer sb = new StringBuffer("TransactionRequest{");
+    sb.append("timestamp=").append(timestamp);
+    sb.append(", reference='").append(reference).append('\'');
+    sb.append(", fromAccount='").append(fromAccount).append('\'');
+    sb.append(", toAccount='").append(toAccount).append('\'');
+    sb.append(", transactionType=").append(transactionType);
+    sb.append(", amount=").append(amount);
+    sb.append('}');
+    return sb.toString();
   }
 }

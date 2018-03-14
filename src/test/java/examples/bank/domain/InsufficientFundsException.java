@@ -1,4 +1,4 @@
-package test.bank.domain;
+package examples.bank.domain;
 
 public class InsufficientFundsException extends Throwable {
   public InsufficientFundsException(String message) {

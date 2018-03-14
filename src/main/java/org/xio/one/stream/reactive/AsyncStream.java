@@ -92,7 +92,7 @@ public final class AsyncStream<T, R> {
 
   /** Put a putValue value into the contents */
   public long putValue(T value) {
-    return putValueWithTTL(Long.MAX_VALUE,value);
+    return putValueWithTTL(0,value);
   }
 
   /**

@@ -9,6 +9,7 @@
 package org.xio.one.stream.event;
 
 import org.xio.one.stream.reactive.util.JSONUtil;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -29,14 +30,14 @@ public class Event<E> {
     this.eventNodeId = EventNodeID.getNodeID();
     this.eventTimestamp = System.currentTimeMillis();
     this.eventId = 0;
-    this.eventTTLSeconds = Long.MAX_VALUE;
+    this.eventTTLSeconds = 0;
   }
 
   public Event(long eventId) {
     this.eventNodeId = EventNodeID.getNodeID();
     this.eventTimestamp = Long.MAX_VALUE;
     this.eventId = eventId;
-    this.eventTTLSeconds = Long.MAX_VALUE;
+    this.eventTTLSeconds = 0;
   }
 
   public Event(E value, long eventId) {
@@ -45,7 +46,7 @@ public class Event<E> {
     this.eventValue = value;
     this.eventNodeId = EventNodeID.getNodeID();
     this.eventId = eventId;
-    this.eventTTLSeconds = Long.MAX_VALUE;
+    this.eventTTLSeconds = 0;
   }
 
   public Event(E value, long eventId, long eventTTLSeconds) {
@@ -62,8 +63,14 @@ public class Event<E> {
   }
 
   public boolean isAlive() {
-      return this.eventTimestamp() + (eventTTLSeconds * 1000) > System.currentTimeMillis();
-    }
+    if (eventTTLSeconds > 0) {
+      if (this.eventTimestamp() + (eventTTLSeconds * 1000) >= System.currentTimeMillis())
+        return true;
+      else
+        return false;
+    } else
+      return true;
+  }
 
   public long eventId() {
     return this.eventId;
@@ -89,7 +96,9 @@ public class Event<E> {
     Method f = null;
     Object toreturn = null;
     try {
-      f = this.eventValue.getClass().getMethod("get" + fieldname.substring(0,1).toUpperCase()+fieldname.substring(1), null);
+      f = this.eventValue.getClass()
+          .getMethod("get" + fieldname.substring(0, 1).toUpperCase() + fieldname.substring(1),
+              null);
       toreturn = f.invoke(this.eventValue, null);
     } catch (NoSuchMethodException e2) {
     } catch (IllegalAccessException e3) {

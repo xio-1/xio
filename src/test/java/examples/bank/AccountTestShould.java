@@ -1,9 +1,9 @@
-package test.bank;
+package examples.bank;
 
+import examples.bank.domain.InsufficientFundsException;
 import org.junit.Assert;
 import org.junit.Test;
-import test.bank.domain.Account;
-import test.bank.domain.InsufficientFundsException;
+import examples.bank.domain.Account;
 
 import static org.hamcrest.CoreMatchers.is;
 
