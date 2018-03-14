@@ -1,6 +1,6 @@
 package test.bank.domain;
 
-public class Transaction {
+public class TransactionRequest {
 
   final Long timestamp;
   final String reference;
@@ -9,7 +9,7 @@ public class Transaction {
   final TransactionType transactionType;
   final double amount;
 
-  public Transaction(String fromReference, String fromAccount, String accountTo, double amount,
+  public TransactionRequest(String fromReference, String fromAccount, String accountTo, double amount,
       TransactionType transactionType) {
     this.amount = amount;
     this.reference = fromReference;

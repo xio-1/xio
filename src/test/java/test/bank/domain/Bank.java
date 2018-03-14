@@ -1,7 +1,7 @@
 package test.bank.domain;
 
 import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.OnNextSubscriber;
+import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,54 +11,57 @@ import java.util.UUID;
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
-  AsyncStream<Transaction, Boolean> transaction_stream;
-  List<Transaction> bankTransactionLedger = new ArrayList<>();
+  AsyncStream<TransactionRequest, Boolean> eventLoop;
+  List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
 
   public Bank() {
-    transaction_stream = new AsyncStream<>("transaction_stream");
+    eventLoop = new AsyncStream<>("eventLoop");
   }
 
   public void open() {
-    transaction_stream.withStreamSubscriber(new OnNextSubscriber<Boolean, Transaction>() {
+    eventLoop.withSingleSubscriber(new SingleSubscriber<Boolean, TransactionRequest>() {
+
       @Override
-      public Boolean onNext(Transaction transaction) throws InsufficientFundsException {
-        Bank.this.processTransaction(transaction);
+      public Boolean onNext(TransactionRequest transaction) throws InsufficientFundsException {
+        this.processTransaction(transaction);
         return true;
       }
 
       @Override
-      public Object onError(Throwable error, Transaction eventValue) {
+      public Object onError(Throwable error, TransactionRequest eventValue) {
         error.printStackTrace();
         return error;
       }
+
+      private void processTransaction(TransactionRequest transaction)
+          throws InsufficientFundsException {
+        if (transaction.transactionType == TransactionType.CREDIT)
+          creditAccount(transaction.toAccount, transaction);
+        else if (transaction.transactionType == TransactionType.DEBIT)
+          debitAccount(transaction.toAccount, transaction);
+        else if (transaction.transactionType == TransactionType.TRANSFER) {
+          debitAccount(transaction.fromAccount, transaction);
+          creditAccount(transaction.toAccount, transaction);
+        }
+        bankTransactionLedger.add(transaction);
+      }
+
+      private void creditAccount(String accountNumber, TransactionRequest transaction) {
+        Account account = accounts.get(accountNumber);
+        account.creditBalance(transaction.amount);
+      }
+
+      private void debitAccount(String accountNumber, TransactionRequest transaction)
+          throws InsufficientFundsException {
+        Account account = accounts.get(accountNumber);
+        account.debitBalance(transaction.amount);
+      }
+
     });
   }
 
-  private void processTransaction(Transaction transaction) throws InsufficientFundsException {
-    if (transaction.transactionType == TransactionType.CREDIT)
-      creditAccount(transaction.toAccount, transaction);
-    else if (transaction.transactionType == TransactionType.DEBIT)
-      debitAccount(transaction.toAccount, transaction);
-    else if (transaction.transactionType == TransactionType.TRANSFER) {
-      debitAccount(transaction.fromAccount, transaction);
-      creditAccount(transaction.toAccount, transaction);
-    }
-    bankTransactionLedger.add(transaction);
-  }
-
-  public void submitTransaction(Transaction transaction) {
-    transaction_stream.putValue(transaction);
-  }
-
-  private void creditAccount(String accountNumber, Transaction transaction) {
-    Account account = accounts.get(accountNumber);
-    account.creditBalance(transaction.amount);
-  }
-
-  private void debitAccount(String accountNumber, Transaction transaction)
-      throws InsufficientFundsException {
-    Account account = accounts.get(accountNumber);
-    account.debitBalance(transaction.amount);
+  public void submitTransactionRequest(TransactionRequest transaction) {
+    eventLoop.putValue(transaction);
   }
 
   public Account newAccount(String name) {
@@ -72,16 +75,16 @@ public class Bank {
   }
 
   public void close() {
-    this.transaction_stream.end(true);
+    this.eventLoop.end(true);
   }
 
   public Double getLiquidity() {
     Double creditTotal = this.bankTransactionLedger.stream()
         .filter(t -> t.transactionType.equals(TransactionType.CREDIT))
-        .mapToDouble(Transaction::getAmount).sum();
+        .mapToDouble(TransactionRequest::getAmount).sum();
     Double debitTotal = this.bankTransactionLedger.stream()
         .filter(t -> t.transactionType.equals(TransactionType.DEBIT))
-        .mapToDouble(Transaction::getAmount).sum();
+        .mapToDouble(TransactionRequest::getAmount).sum();
     return creditTotal - debitTotal;
   }
 }

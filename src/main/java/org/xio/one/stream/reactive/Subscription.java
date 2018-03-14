@@ -14,7 +14,6 @@ class Subscription<R, E> {
   private AsyncStream eventStream;
   private Future subscription;
   private Subscriber<R, E> subscriber;
-  private boolean alive = true;
 
   public Subscription(AsyncStream<E, R> eventStream, Subscriber<R, E> subscriber) {
     this.eventStream = eventStream;
@@ -70,5 +69,9 @@ class Subscription<R, E> {
 
   public Subscriber<R, E> getSubscriber() {
     return subscriber;
+  }
+
+  public Event getLastSeenEvent() {
+    return lastSeenEvent;
   }
 }

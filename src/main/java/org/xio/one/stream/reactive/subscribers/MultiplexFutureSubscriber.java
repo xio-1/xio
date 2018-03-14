@@ -10,19 +10,45 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class OnEventsSubscriber<R, E>
-    extends AbstractSubscriber<Map<Long, R>, E> {
+public abstract class MultiplexFutureSubscriber<R, E>
+    extends AbstractFutureSubscriber<Map<Long, R>, E> {
 
   BlockingMap<Long, R> results = new BlockingHashMap<>();
   Map<Long, Future<R>> futures = new HashMap<>();
 
-  public class BatchFuture<R> implements Future<R> {
+  @Override
+  public void initialise() {
+  }
+
+  @Override
+  public void finalise() {
+  }
+
+  public final Future<R> register(long eventId) {
+    Future<R> futureResult = new MultiplexFuture<>(eventId, results);
+    futures.put(eventId, new MultiplexFuture<>(eventId, results));
+    return futureResult;
+  }
+
+  @Override
+  public final void process(Stream<Event<E>> e) {
+    if (e != null) {
+      Map<Long, R> streamResults = onNext(e);
+      streamResults.keySet().stream()
+          .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
+      callCallbacks(streamResults);
+    }
+  }
+
+  public abstract Map<Long, R> onNext(Stream<Event<E>> e);
+
+  class MultiplexFuture<R> implements Future<R> {
 
     long eventId;
     BlockingMap<Long, R> results;
     boolean done = false;
 
-    public BatchFuture(long eventId, BlockingMap<Long, R> results) {
+    public MultiplexFuture(long eventId, BlockingMap<Long, R> results) {
       this.eventId = eventId;
       this.results = results;
     }
@@ -53,33 +79,5 @@ public abstract class OnEventsSubscriber<R, E>
     }
   }
 
-  public Future<R> register(long eventId) {
-    Future<R> futureResult = new BatchFuture<>(eventId, results);
-    futures.put(eventId, new BatchFuture<>(eventId, results));
-    return futureResult;
-  }
 
-  @Override
-  protected void process(Stream<Event<E>> e) {
-    if (e != null) {
-      Map<Long, R> streamResults = onEvents(e);
-      streamResults
-          .keySet()
-          .stream()
-          .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
-      callCallbacks(streamResults);
-    }
-  }
-
-  public abstract Map<Long, R> onEvents(Stream<Event<E>> e);
-
-  @Override
-  public void initialise() {
-
-  }
-
-  @Override
-  public void finalise() {
-
-  }
 }

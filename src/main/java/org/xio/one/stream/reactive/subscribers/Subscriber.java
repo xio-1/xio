@@ -23,4 +23,6 @@ public interface Subscriber<R,E> {
   void setResult(R result);
 
   void finalise();
+
+  void process(Stream<Event<E>> e);
 }

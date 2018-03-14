@@ -90,7 +90,7 @@ public final class AsyncStream<T, R> {
     return streamName;
   }
 
-  /** Put a putValueToSingleSubscriber value into the contents */
+  /** Put a putValue value into the contents */
   public long putValue(T value) {
     return putValueWithTTL(Long.MAX_VALUE,value);
   }
@@ -160,11 +160,30 @@ public final class AsyncStream<T, R> {
   }
 
   /**
-   * Asychronously processes putValueToSingleSubscriber this event value with the given subscriber
+   * Each putValue is processed as a Future<R> using the given single future subscriber
+   * A future result will be made available immediately the event is processed by the subscriber
    *
    * @return
    */
-  public Future<R> putValueToSingleSubscriber(T value, OnSingleSubscriber<R, T> subscriber) {
+  public Future<R> putValue(T value, SingleFutureSubscriber<R, T> subscriber) {
+    if (subscriptionMap.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+      subscriptionMap.put(subscriber.getId(), subscription);
+      subscription.subscribe();
+    }
+    long eventId = putValue(value);
+    if (eventId != -1) {
+      return subscriber.register(eventId);
+    } else return null;
+  }
+
+  /**
+   * Each putValue is processed as a Future<R> using the given multiplex future subscriber
+   * A future result will be made available immediately the event is processed by the subscriber
+   *
+   * @return
+   */
+  public Future<R> putValue(T value, MultiplexFutureSubscriber<R, T> subscriber) {
     if (subscriptionMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
       subscriptionMap.put(subscriber.getId(), subscription);
@@ -177,20 +196,33 @@ public final class AsyncStream<T, R> {
   }
 
   /**
-   * Asychronously processes putValueToSingleSubscriber this event value with the given microbatch subscriber
+   * Subscribe to every event in the stream with the given single event subscriber
+   * A final (future) result can be made available when the stream has ended
    *
+   * @param subscriber
    * @return
    */
-  public Future<R> putValueToMicroBatchSubscriber(T value, OnEventsSubscriber<R, T> subscriber) {
-    if (subscriptionMap.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
-      subscriptionMap.put(subscriber.getId(), subscription);
-      subscription.subscribe();
+  public Future<R> withSingleSubscriber(SingleSubscriber<R, T> subscriber) {
+    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+      subscriptions.put(subscriber.getId(), subscription.subscribe());
     }
-    long eventId = putValue(value);
-    if (eventId != -1) {
-      return subscriber.register(eventId);
-    } else return null;
+    return subscriptions.get(subscriber.getId());
+  }
+
+  /**
+   * Subscribe to every event in the stream with the given multiplex event subscriber
+   * A final (future) result can be made available when the stream has ended
+   *
+   * @param subscriber
+   * @return
+   */
+  public Future<R> withMultiplexSubscriber(MultiplexFutureSubscriber<R, T> subscriber) {
+    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
+      Subscription<R, T> subscription = new Subscription<R, T>(this, (Subscriber<R, T>) subscriber);
+      subscriptions.put(subscriber.getId(), subscription.subscribe());
+    }
+    return subscriptions.get(subscriber.getId());
   }
 
   /**
@@ -236,19 +268,7 @@ public final class AsyncStream<T, R> {
     return this;
   }
 
-  /**
-   * Subscribe to the contents with the given subscriber
-   *
-   * @param subscriber
-   * @return
-   */
-  public Future<R> withStreamSubscriber(AbstractSubscriber<R, T> subscriber) {
-    if (subscriber != null && subscriptions.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-      subscriptions.put(subscriber.getId(), subscription.subscribe());
-    }
-    return subscriptions.get(subscriber.getId());
-  }
+
 
   public ExecutorService executorService() {
     return executorService;

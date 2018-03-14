@@ -4,10 +4,10 @@ import org.xio.one.stream.event.Event;
 
 import java.util.stream.Stream;
 
-public abstract class OnNextSubscriber<R, E> extends AbstractSubscriber<R, E> {
+public abstract class SingleSubscriber<R, E> extends AbstractSubscriber<R, E> {
 
   @Override
-  protected void process(Stream<Event<E>> e) {
+  public final void process(Stream<Event<E>> e) {
     e.forEach(this::accept);
   }
 

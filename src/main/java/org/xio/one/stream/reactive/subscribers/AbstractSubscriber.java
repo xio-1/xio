@@ -27,25 +27,25 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
 
   public abstract void initialise();
 
-  public void addCallback(Callback<R> callback) {
+  void addCallback(Callback<R> callback) {
     callbacks.add(callback);
   }
 
-  public void callCallbacks(R result) {
+  void callCallbacks(R result) {
     callbacks.parallelStream().forEach(callback -> callback.handleResult(result));
   }
 
-  public void callCallbacks(Throwable e, Object source) {
+  void callCallbacks(Throwable e, Object source) {
     callbacks.parallelStream().forEach(callback -> callback.handleResult(result));
   }
 
   @Override
-  public boolean isDone() {
+  public final boolean isDone() {
     return this.done;
   }
 
   @Override
-  public boolean stop() {
+  public final boolean stop() {
     synchronized (lock) {
       done = true;
       lock.notify();
@@ -54,24 +54,23 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
   }
 
   @Override
-  public void emit(Stream<Event<E>> e) {
+  public final void emit(Stream<Event<E>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  protected abstract void process(Stream<Event<E>> e);
-
+  public abstract void process(Stream<Event<E>> e);
 
   @Override
-  public R peek() {
+  public final R peek() {
     R toreturn = result;
     return toreturn;
   }
 
   @Override
-  public R getNext() {
+  public final R getNext() {
     return getWithReset(0, TimeUnit.MILLISECONDS, false);
   }
 
@@ -94,11 +93,11 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
   }
 
   @Override
-  public Subscriber<R, E> getSubscriber() {
+  public final Subscriber<R, E> getSubscriber() {
     return this;
   }
 
-  public String getId() {
+  public final String getId() {
     return id;
   }
 

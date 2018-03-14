@@ -7,7 +7,7 @@ public class Account {
   private String name;
   private String accountNumber;
   private double balance;
-  private List<Transaction> transactions;
+  private List<TransactionRequest> transactions;
 
   public Account(String name, String accountNumber) {
     this.name = name;

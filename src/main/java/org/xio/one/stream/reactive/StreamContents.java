@@ -65,8 +65,7 @@ public final class StreamContents<T> {
       } else
         return extractItemsThatAreInSequence(
             EMPTY_EVENT, querystorecontents, querystorecontents.first());
-    } catch (NoSuchElementException e) {
-    } catch (IllegalArgumentException e2) {
+    } catch (NoSuchElementException | IllegalArgumentException e) {
     }
     return EMPTY_EVENT_SET;
   }
