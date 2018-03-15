@@ -10,19 +10,14 @@ import java.util.stream.Stream;
 
 public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
 
-  private final Object lock = new Object();
   private final String id = UUID.randomUUID().toString();
+  private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
   private List<Callback<R>> callbacks = new ArrayList<>();
 
   public AbstractSubscriber() {
     initialise();
-  }
-
-  public AbstractSubscriber(Callback<R> callback) {
-    initialise();
-    addCallback(callback);
   }
 
   public abstract void initialise();

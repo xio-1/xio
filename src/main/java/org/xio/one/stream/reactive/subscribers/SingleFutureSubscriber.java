@@ -29,23 +29,18 @@ public abstract class SingleFutureSubscriber<R, E> extends AbstractFutureSubscri
   public final void process(Stream<Event<E>> e) {
     if (e != null) {
       Map<Long, R> streamResults = new HashMap<>();
-      e.parallel()
-          .forEach(
-              event -> {
-                try {
-                  R result = onNext(event.value());
-                  streamResults.put(event.eventId(), result);
-                  callCallbacks(result);
-                } catch (Throwable ex) {
-                  callCallbacks(ex, onError(ex, event.value()));
-                }
+      e.parallel().forEach(event -> {
+        try {
+          R result = onNext(event.value());
+          streamResults.put(event.eventId(), result);
+          callCallbacks(result);
+        } catch (Throwable ex) {
+          callCallbacks(ex, onError(ex, event.value()));
+        }
 
-              });
+      });
       if (!streamResults.isEmpty())
-        streamResults
-            .keySet()
-            .stream()
-            .parallel()
+        streamResults.keySet().stream().parallel()
             .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
     }
   }

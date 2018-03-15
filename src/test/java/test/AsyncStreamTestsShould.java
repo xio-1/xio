@@ -52,29 +52,31 @@ public class AsyncStreamTestsShould {
 
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
-    AsyncStream<Integer, Object> asyncStream = new AsyncStream<>(INT_STREAM);
+    AsyncStream<Integer, List<Integer>> asyncStream = new AsyncStream<>(INT_STREAM);
 
-    SingleSubscriber<Object, Integer> subscriber = new SingleSubscriber<Object, Integer>() {
+    SingleSubscriber<List<Integer>, Integer> subscriber =
+        new SingleSubscriber<List<Integer>, Integer>() {
 
-      List<Integer> output = new ArrayList<>();
+          List<Integer> output = new ArrayList<>();
 
-      @Override
-      public Boolean onNext(Integer eventValue) {
-        output.add(eventValue * 10);
-        return true;
-      }
+          @Override
+          public Optional<List<Integer>> onNext(Integer eventValue) {
+            output.add(eventValue * 10);
+            return Optional.empty();
+          }
 
-      @Override
-      public Object onError(Throwable error, Integer eventValue) {
-        return false;
-      }
+          @Override
+          public Optional<Object> onError(Throwable error, Integer eventValue) {
+            return Optional.empty();
+          }
 
-      @Override
-      public void finalise() {
-        this.setResult(output);
-      }
-    };
-    Future<Object> result = asyncStream.withImmediateFlushing().withSingleSubscriber(subscriber);
+          @Override
+          public void finalise() {
+            this.setResult(output);
+          }
+        };
+    Future<List<Integer>> result =
+        asyncStream.withImmediateFlushing().withSingleSubscriber(subscriber);
     asyncStream.putValue(1, 2, 3, 4);
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
@@ -108,35 +110,35 @@ public class AsyncStreamTestsShould {
 
     SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
       @Override
-      public String onNext(String eventValue) {
+      public Optional<String> onNext(String eventValue) {
         if (eventValue.equals("ping")) {
           System.out.println("got ping");
           pong_stream.putValue("pong");
           System.out.println("sent pong");
         }
-        return "";
+        return Optional.empty();
       }
 
       @Override
-      public Object onError(Throwable error, String eventValue) {
-        return null;
+      public Optional<Object> onError(Throwable error, String eventValue) {
+        return Optional.empty();
       }
     };
 
     SingleSubscriber<String, String> pongSubscriber = new SingleSubscriber<String, String>() {
       @Override
-      public String onNext(String eventValue) {
+      public Optional<String> onNext(String eventValue) {
         if (eventValue.equals("pong")) {
           System.out.println("got pong");
           ping_stream.putValue("ping");
           System.out.println("sent ping");
         }
-        return "";
+        return Optional.empty();
       }
 
       @Override
-      public Object onError(Throwable error, String eventValue) {
-        return null;
+      public Optional<Object> onError(Throwable error, String eventValue) {
+        return Optional.empty();
       }
     };
     ping_stream.withSingleSubscriber(pingSubscriber);
@@ -147,9 +149,9 @@ public class AsyncStreamTestsShould {
   }
 
   @Test
-  public void shouldPerformance() throws Exception {
+  public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    AsyncStream<String, Long> asyncStream = new AsyncStream<>("count");
+    AsyncStream<String, Long> asyncStream = new AsyncStream<>("sustainedPerformanceTest");
     Future<Long> count = asyncStream.withSingleSubscriber(new SingleSubscriber<Long, String>() {
       long count;
 
@@ -159,14 +161,14 @@ public class AsyncStreamTestsShould {
       }
 
       @Override
-      public Long onNext(String eventValue) {
+      public Optional<Long> onNext(String eventValue) {
         this.count++;
-        return count;
+        return Optional.empty();
       }
 
       @Override
-      public Object onError(Throwable error, String eventValue) {
-        return null;
+      public Optional<Object> onError(Throwable error, String eventValue) {
+        return Optional.empty();
       }
 
       @Override
@@ -174,13 +176,13 @@ public class AsyncStreamTestsShould {
         this.setResult(this.count);
       }
     });
-    for (int i = 0; i < 1000000; i++) {
-      asyncStream.putValue("Hello world" + i);
+    for (int i = 0; i < 10000000; i++) {
+      asyncStream.putValueWithTTL(1, "Hello world" + i);
     }
     asyncStream.end(true);
-    assertThat(count.get(), is(1000000L));
+    assertThat(count.get(), is(10000000L));
     System.out
-        .println("Events per second : " + 1000000 / ((System.currentTimeMillis() - start) / 1000));
+        .println("Events per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
   }
 
   @Test

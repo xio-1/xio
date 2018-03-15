@@ -5,11 +5,15 @@ import org.xio.one.stream.event.EventSequenceComparator;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
-/** The Xio.contents.event eventQueryStore where the putAll events are persisted in memory */
+/**
+ * The Xio.contents.event eventQueryStore where the putAll events are persisted in memory
+ */
 final class StreamRepository<T> {
 
   protected volatile ConcurrentSkipListSet<Event<T>> eventRepositoryContents;
@@ -22,7 +26,6 @@ final class StreamRepository<T> {
   /**
    * New Event BaseWorker Execution using the given checked Comparator</Event> to order the results
    * events TTL seconds will be retained before being automatically removed from the store
-   *
    */
   public StreamRepository(AsyncStream eventStream) {
     this.eventStream = eventStream;
@@ -51,15 +54,15 @@ final class StreamRepository<T> {
    * @param events
    */
   private Event work(Event[] events) {
-    Arrays.stream(events)
-        .forEach(
-            event -> {
-              eventRepositoryContents.add(event);
-              if (getEventStoreIndexFieldName() != null)
-                eventStoreIndexContents.put(event.getFieldValue(getEventStoreIndexFieldName()), event);
-            });
-    if (events.length > 0) return events[events.length - 1];
-    else return null;
+    Arrays.stream(events).forEach(event -> {
+      eventRepositoryContents.add(event);
+      if (getEventStoreIndexFieldName() != null)
+        eventStoreIndexContents.put(event.getFieldValue(getEventStoreIndexFieldName()), event);
+    });
+    if (events.length > 0)
+      return events[events.length - 1];
+    else
+      return null;
   }
 
   public boolean hasEnded() {
@@ -93,13 +96,16 @@ final class StreamRepository<T> {
         boolean hasRunatLeastOnce = false;
         while (!eventStream.hasEnded() || !hasRunatLeastOnce) {
           Event next_last = this.eventStore.work(eventStream.takeAll());
-          if (next_last != null) last = next_last;
+          if (next_last != null)
+            last = next_last;
           hasRunatLeastOnce = true;
         }
         Event next_last = this.eventStore.work(eventStream.takeAll());
-        if (next_last != null) last = next_last;
+        if (next_last != null)
+          last = next_last;
         if (last != null)
-          while (!last.equals(this.eventStore.eventStoreOperations.last()))
+          while (!last.equals(this.eventStore.eventStoreOperations.last()) || (last.eventId()
+              > getMinimumLastSeenProcessed(eventStream)))
             LockSupport.parkNanos(100000);
         eventStore.isEnd = true;
       } catch (Exception e) {
@@ -109,7 +115,23 @@ final class StreamRepository<T> {
     }
   }
 
-  /** Removes dead events from the contents store */
+
+  private long getMinimumLastSeenProcessed(AsyncStream eventStream) {
+    Map<String, Subscription> subscriptionMap = eventStream.getSubscriberSubscriptions();
+    if (subscriptionMap.size() > 0) {
+      OptionalLong lastSeenEventId = subscriptionMap.entrySet().stream()
+          .mapToLong(e -> e.getValue().getLastSeenEvent().eventId()).min();
+      if (lastSeenEventId.isPresent())
+        return lastSeenEventId.getAsLong();
+      else
+        return Long.MAX_VALUE;
+    } else
+      return Long.MAX_VALUE;
+  }
+
+  /**
+   * Removes seen dead events from the contents store
+   */
   private class ExpiredEventsCollector implements Runnable {
 
     @Override
@@ -117,12 +139,15 @@ final class StreamRepository<T> {
       try {
         while (!eventStream.hasEnded()) {
           Thread.currentThread().sleep(1000);
-          if (!eventRepositoryContents.isEmpty())
-            eventRepositoryContents.removeIf(event -> !event.isAlive());
+          if (!eventRepositoryContents.isEmpty()) {
+            long lastSeenEventId = getMinimumLastSeenProcessed(eventStream);
+            eventRepositoryContents.removeIf(event -> !event.isAlive(lastSeenEventId));
+          }
         }
       } catch (Exception e) {
 
       }
     }
+
   }
 }

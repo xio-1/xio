@@ -2,21 +2,20 @@ package org.xio.one.stream.reactive.subscribers;
 
 import org.xio.one.stream.event.Event;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Future;
+import java.util.Optional;
 import java.util.stream.Stream;
 
-public abstract class MultiplexSubscriber<R, E> extends AbstractSubscriber<Map<Long,R>, E> {
-  
+public abstract class MultiplexSubscriber<R, E> extends AbstractSubscriber<R, E> {
+
   @Override
   public final void process(Stream<Event<E>> e) {
     accept(e);
   }
 
-  public abstract Map<Long,R> onNext(Stream<Event<E>> events) throws Throwable;
+  public abstract Optional<Map<Long, R>> onNext(Stream<Event<E>> events) throws Throwable;
 
-  public abstract Object onError(Throwable error, Stream<Event<E>> eventValue);
+  public abstract Optional<Object> onError(Throwable error, Stream<Event<E>> eventValue);
 
   @Override
   public void initialise() {
@@ -28,7 +27,8 @@ public abstract class MultiplexSubscriber<R, E> extends AbstractSubscriber<Map<L
 
   private void accept(Stream<Event<E>> event) {
     try {
-      callCallbacks(onNext(event));
+      onNext(event).ifPresent(
+          c -> c.entrySet().stream().parallel().forEach(value -> callCallbacks(value.getValue())));
     } catch (Throwable e) {
       callCallbacks(e, onError(e, event));
     }

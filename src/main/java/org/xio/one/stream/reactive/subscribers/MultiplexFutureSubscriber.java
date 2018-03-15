@@ -10,8 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class MultiplexFutureSubscriber<R, E>
-    extends AbstractFutureSubscriber<Map<Long, R>, E> {
+public abstract class MultiplexFutureSubscriber<R, E> extends AbstractFutureSubscriber<R, E> {
 
   BlockingMap<Long, R> results = new BlockingHashMap<>();
   Map<Long, Future<R>> futures = new HashMap<>();
@@ -34,9 +33,10 @@ public abstract class MultiplexFutureSubscriber<R, E>
   public final void process(Stream<Event<E>> e) {
     if (e != null) {
       Map<Long, R> streamResults = onNext(e);
-      streamResults.keySet().stream()
+      streamResults.keySet().stream().parallel()
           .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
-      callCallbacks(streamResults);
+      streamResults.entrySet().stream().parallel()
+          .forEach(value -> callCallbacks(value.getValue()));
     }
   }
 

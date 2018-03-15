@@ -1,5 +1,6 @@
 package org.xio.one.stream.reactive;
 
+import org.xio.one.stream.event.EmptyEvent;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.reactive.subscribers.Subscriber;
 
@@ -72,6 +73,9 @@ class Subscription<R, E> {
   }
 
   public Event getLastSeenEvent() {
-    return lastSeenEvent;
+    if (lastSeenEvent!=null)
+      return lastSeenEvent;
+    else
+      return EmptyEvent.EMPTY_EVENT;
   }
 }

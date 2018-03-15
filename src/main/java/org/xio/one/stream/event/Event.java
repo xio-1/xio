@@ -64,12 +64,16 @@ public class Event<E> {
 
   public boolean isAlive() {
     if (eventTTLSeconds > 0) {
-      if (this.eventTimestamp() + (eventTTLSeconds * 1000) >= System.currentTimeMillis())
+      if (this.eventTimestamp() + (eventTTLSeconds * 1000) > System.currentTimeMillis())
         return true;
       else
         return false;
     } else
       return true;
+  }
+
+  public boolean isAlive(long lastSeenEventId) {
+    return isAlive() || lastSeenEventId < this.eventId;
   }
 
   public long eventId() {
@@ -123,5 +127,4 @@ public class Event<E> {
     sb.append('}');
     return sb.toString();
   }
-
 }

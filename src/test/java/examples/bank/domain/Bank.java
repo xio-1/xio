@@ -28,15 +28,15 @@ public class Bank {
     eventLoop.withSingleSubscriber(new SingleSubscriber<Boolean, TransactionRequest>() {
 
       @Override
-      public Boolean onNext(TransactionRequest transaction) throws InsufficientFundsException {
+      public Optional<Boolean> onNext(TransactionRequest transaction) throws InsufficientFundsException {
         this.processTransaction(transaction);
-        return true;
+        return Optional.empty();
       }
 
       @Override
-      public Object onError(Throwable error, TransactionRequest eventValue) {
+      public Optional<Object> onError(Throwable error, TransactionRequest eventValue) {
         error.printStackTrace();
-        return error;
+        return Optional.empty();
       }
 
       private void processTransaction(TransactionRequest transaction)
@@ -70,7 +70,7 @@ public class Bank {
       @Override
       public Map<Long, Boolean> onNext(Stream<Event<TransactionRequest>> e) {
         String multiplexGroupID = UUID.randomUUID().toString();
-        e.forEach(event -> {
+        e.parallel().forEach(event -> {
           logger.info(
               "eventID" + "|" + event.eventId() +"|" + "groupID" + "|" + multiplexGroupID + "|" + event
                   .value().toString());
