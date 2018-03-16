@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public class AsyncStreamTestsShould {
+public class AsyncStreamTest {
 
   public static final int NUMBER_OF_EVENTS = 1000000;
   String HELLO_WORLD_STREAM = "helloWorldStream";

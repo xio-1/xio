@@ -9,10 +9,7 @@ import org.xio.one.stream.event.EmptyEventArray;
 import org.xio.one.stream.event.Event;
 import org.xio.one.stream.event.EventIDSequence;
 import org.xio.one.stream.event.JSONValue;
-import org.xio.one.stream.reactive.subscribers.MultiplexFutureSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleFutureSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
-import org.xio.one.stream.reactive.subscribers.Subscriber;
+import org.xio.one.stream.reactive.subscribers.*;
 import org.xio.one.stream.reactive.util.AsyncStreamExecutor;
 
 import java.io.IOException;
@@ -246,9 +243,9 @@ public final class AsyncStream<T, R> {
    * @param subscriber
    * @return
    */
-  public Future<R> withMultiplexSubscriber(MultiplexFutureSubscriber<R, T> subscriber) {
+  public Future<R> withMultiplexSubscriber(MultiplexSubscriber<R, T> subscriber) {
     if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<R, T>(this, (Subscriber<R, T>) subscriber);
+      Subscription<R, T> subscription = new Subscription<R, T>(this, subscriber);
       streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
       subscriberSubscriptions.put(subscriber.getId(), subscription);
     }

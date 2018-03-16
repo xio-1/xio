@@ -1,4 +1,4 @@
-package examples.logger;
+package examples.logger.domain;
 
 public enum LogLevel {
   INFO, ERROR, WARNING
