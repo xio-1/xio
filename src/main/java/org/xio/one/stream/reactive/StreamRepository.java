@@ -44,7 +44,7 @@ final class StreamRepository<T> {
    *
    * @return
    */
-  public StreamContents query() {
+  public StreamContents<Event<T>> query() {
     return eventStoreOperations;
   }
 

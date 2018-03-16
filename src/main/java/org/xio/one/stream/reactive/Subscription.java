@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
 class Subscription<R, E> {
 
   private Event lastSeenEvent = null;
-  private AsyncStream eventStream;
+  private AsyncStream<E,R> eventStream;
   private Future subscription;
   private Subscriber<R, E> subscriber;
 

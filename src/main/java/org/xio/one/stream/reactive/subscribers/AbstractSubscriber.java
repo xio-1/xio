@@ -27,11 +27,11 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
   }
 
   void callCallbacks(R result) {
-    callbacks.parallelStream().forEach(callback -> callback.handleResult(result));
+    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
   }
 
   void callCallbacks(Throwable e, Object source) {
-    callbacks.parallelStream().forEach(callback -> callback.handleResult(result));
+    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
   }
 
   @Override

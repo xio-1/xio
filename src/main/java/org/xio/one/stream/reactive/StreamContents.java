@@ -37,7 +37,7 @@ public final class StreamContents<T> {
   }
 
   public Event[] all() {
-    List<Event> events = eventStoreContents.parallelStream().collect(Collectors.toList());
+    List<Event> events = new ArrayList<>(eventStoreContents);
     return events.toArray(new Event[events.size()]);
   }
 
