@@ -186,8 +186,10 @@ public final class AsyncStream<T, R> {
       subscription.subscribe();
     }
     long eventId = putValueWithTTL(ttlSeconds, value);
+    CompletableFuture<R> completableFuture
+        = new CompletableFuture<>();
     if (eventId != -1) {
-      return subscriber.register(eventId);
+      return subscriber.register(eventId,completableFuture);
     } else
       return null;
   }
@@ -205,7 +207,7 @@ public final class AsyncStream<T, R> {
   public Future<R> putValueWithTTL(long ttlSeconds, T value,
       MultiplexFutureSubscriber<R, T> subscriber) {
     if (subscriberSubscriptions.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, (Subscriber<R, T>) subscriber);
+      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriberSubscriptions.put(subscriber.getId(), subscription);
       subscription.subscribe();
     }

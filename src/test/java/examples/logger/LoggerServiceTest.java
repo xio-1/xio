@@ -17,7 +17,7 @@ public class LoggerServiceTest {
   @Test
   public void logsOneEntryToFile() {
     LoggerService loggerService = LoggerService.logger(this.getClass());
-    loggerService.log(LogLevel.INFO, "hello log entry");
+    loggerService.logAsync(LogLevel.INFO, "hello logAsync entry");
     loggerService.close();
     System.out.println(loggerService.getLogFilePath().toString());
   }
@@ -26,7 +26,7 @@ public class LoggerServiceTest {
   public void logs100000EntriesToFile() {
     LoggerService loggerService = LoggerService.logger(this.getClass());
     for (int i = 0; i < 100000; i++)
-      loggerService.log(LogLevel.INFO, "hello log entry->"+i);
+      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->"+i);
     loggerService.close();
     System.out.println(loggerService.getLogFilePath().toString());
   }

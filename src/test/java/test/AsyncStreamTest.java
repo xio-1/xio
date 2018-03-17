@@ -9,6 +9,7 @@ import org.xio.one.stream.reactive.subscribers.SingleFutureSubscriber;
 import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -85,18 +86,18 @@ public class AsyncStreamTest {
   }
 
   @Test
-  public void shouldReturnHelloWorldForSingleAsyncSubscriber() throws Exception {
+  public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
     Future<String> result =
         asyncStream.putValue("Hello", new SingleFutureSubscriber<String, String>() {
           @Override
-          public String onNext(String eventValue) {
-            return eventValue + " world";
+          public Future<String> onNext(String eventValue) {
+            return CompletableFuture.completedFuture(eventValue + " world");
           }
 
           @Override
-          public Object onError(Throwable error, String eventValue) {
-            return null;
+          public void onError(Throwable error, String eventValue) {
+            error.printStackTrace();
           }
         });
     asyncStream.end(true);
@@ -189,7 +190,7 @@ public class AsyncStreamTest {
   public void stability() throws Exception {
     for (int i = 0; i < 10; i++) {
       shouldReturnHelloWorldEventFromStreamContents();
-      shouldReturnHelloWorldForSingleAsyncSubscriber();
+      shouldReturnHelloWorldFutureForSingleFutureSubscriber();
       JSONStringReturnsHelloWorldEventFromStreamContents();
     }
   }
@@ -261,4 +262,6 @@ public class AsyncStreamTest {
     asyncStream.end(true);
     Assert.assertThat(asyncStream.contents().event(eventIds[1]).value(), is(testObject2));
   }
+
+
 }

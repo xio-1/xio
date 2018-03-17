@@ -65,7 +65,7 @@ public class LoggerService {
     return null;
   }
 
-  public void log(LogLevel logLevel, String entry) {
+  public void logAsync(LogLevel logLevel, String entry) {
     eventLoop.putValue(logLevel + ":" + entry);
   }
 
