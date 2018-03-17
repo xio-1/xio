@@ -274,7 +274,7 @@ public final class AsyncFlow<T, R> {
    * @return
    */
   
-  public Contents contents() {
+  public FlowContents contents() {
     return eventEventStore.query();
   }
 

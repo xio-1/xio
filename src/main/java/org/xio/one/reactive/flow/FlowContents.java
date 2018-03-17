@@ -10,14 +10,14 @@ import java.util.concurrent.locks.LockSupport;
 import static org.xio.one.reactive.flow.events.EmptyEvent.EMPTY_EVENT;
 
 /** EventStoreOperations @Author Xio @Copyright Xio */
-public final class Contents<T> {
+public final class FlowContents<T> {
 
   public final NavigableSet<Event<T>> EMPTY_EVENT_SET = new ConcurrentSkipListSet<>();
   private FlowControl eventStore;
   private AsyncFlow eventStream;
   private NavigableSet<Event<T>> eventStoreContents = null;
 
-  public Contents(FlowControl eventStore, AsyncFlow eventStream) {
+  public FlowContents(FlowControl eventStore, AsyncFlow eventStream) {
     this.eventStore = eventStore;
     this.eventStream = eventStream;
     this.eventStoreContents = (NavigableSet<Event<T>>) eventStore.eventRepositoryContents;

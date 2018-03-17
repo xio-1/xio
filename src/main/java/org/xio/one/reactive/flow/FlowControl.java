@@ -20,7 +20,7 @@ final class FlowControl<T> {
   protected volatile ConcurrentHashMap<Object, Event<T>> eventStoreIndexContents;
   private AsyncFlow eventStream = null;
   private boolean isEnd = false;
-  private Contents eventStoreOperations = null;
+  private FlowContents eventStoreOperations = null;
   private String eventStoreIndexFieldName;
 
   /**
@@ -30,7 +30,7 @@ final class FlowControl<T> {
   public FlowControl(AsyncFlow eventStream) {
     this.eventStream = eventStream;
     eventRepositoryContents = new ConcurrentSkipListSet<>(new EventSequenceComparator<>());
-    eventStoreOperations = new Contents<Event<T>>(this, eventStream);
+    eventStoreOperations = new FlowContents<Event<T>>(this, eventStream);
     eventStoreIndexContents = new ConcurrentHashMap<>();
     if (eventStream.indexFieldName() != null) {
       eventStoreIndexFieldName = eventStream.indexFieldName();
@@ -44,7 +44,7 @@ final class FlowControl<T> {
    *
    * @return
    */
-  public Contents<Event<T>> query() {
+  public FlowContents<Event<T>> query() {
     return eventStoreOperations;
   }
 
