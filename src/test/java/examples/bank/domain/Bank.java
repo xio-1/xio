@@ -2,10 +2,10 @@ package examples.bank.domain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xio.one.stream.event.Event;
-import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.MultiplexFutureSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
+import org.xio.one.reactive.flow.events.Event;
+import org.xio.one.reactive.flow.AsyncFlow;
+import org.xio.one.reactive.flow.subscribers.MultiplexFutureSubscriber;
+import org.xio.one.reactive.flow.subscribers.SingleSubscriber;
 
 import java.util.*;
 import java.util.concurrent.Future;
@@ -14,13 +14,13 @@ import java.util.stream.Stream;
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
-  AsyncStream<TransactionRequest, Boolean> eventLoop;
+  AsyncFlow<TransactionRequest, Boolean> eventLoop;
   List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
   Logger logger = LoggerFactory.getLogger(Bank.class);
   MultiplexFutureSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    eventLoop = new AsyncStream<>(UUID.randomUUID().toString());
+    eventLoop = new AsyncFlow<>(UUID.randomUUID().toString());
   }
 
   public void open() {

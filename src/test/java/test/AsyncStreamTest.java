@@ -2,11 +2,11 @@ package test;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.xio.one.stream.event.Event;
-import org.xio.one.stream.reactive.AsyncStream;
-import org.xio.one.stream.reactive.subscribers.MultiplexFutureSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleFutureSubscriber;
-import org.xio.one.stream.reactive.subscribers.SingleSubscriber;
+import org.xio.one.reactive.flow.events.Event;
+import org.xio.one.reactive.flow.AsyncFlow;
+import org.xio.one.reactive.flow.subscribers.MultiplexFutureSubscriber;
+import org.xio.one.reactive.flow.subscribers.SingleFutureSubscriber;
+import org.xio.one.reactive.flow.subscribers.SingleSubscriber;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -36,8 +36,8 @@ public class AsyncStreamTest {
   }
 
   @Test
-  public void shouldReturnHelloWorldEventFromStreamContents() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
+  public void shouldReturnHelloWorldEventFromStreamContents() {
+    AsyncFlow<String, String> asyncStream = new AsyncFlow<>(HELLO_WORLD_STREAM);
     asyncStream.withImmediateFlushing().putValue("Hello world");
     asyncStream.end(true);
     assertThat(asyncStream.contents().last().value(), is("Hello world"));
@@ -45,7 +45,7 @@ public class AsyncStreamTest {
 
   @Test
   public void JSONStringReturnsHelloWorldEventFromStreamContents() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
+    AsyncFlow<String, String> asyncStream = new AsyncFlow<>(HELLO_WORLD_STREAM);
     asyncStream.withImmediateFlushing().putJSONValue("{\"msg\":\"Hello world\"}");
     asyncStream.end(true);
     assertThat(asyncStream.contents().last().jsonValue(), is("{\"msg\":\"Hello world\"}"));
@@ -53,7 +53,7 @@ public class AsyncStreamTest {
 
   @Test
   public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
-    AsyncStream<Integer, List<Integer>> asyncStream = new AsyncStream<>(INT_STREAM);
+    AsyncFlow<Integer, List<Integer>> asyncStream = new AsyncFlow<>(INT_STREAM);
 
     SingleSubscriber<List<Integer>, Integer> subscriber =
         new SingleSubscriber<List<Integer>, Integer>() {
@@ -82,12 +82,12 @@ public class AsyncStreamTest {
     asyncStream.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
     Assert
-        .assertEquals(true, Arrays.equals(((ArrayList<Integer>) result.get()).toArray(), intList));
+        .assertEquals(true, Arrays.equals(result.get().toArray(), intList));
   }
 
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>(HELLO_WORLD_STREAM);
+    AsyncFlow<String, String> asyncStream = new AsyncFlow<>(HELLO_WORLD_STREAM);
     Future<String> result =
         asyncStream.putValue("Hello", new SingleFutureSubscriber<String, String>() {
           @Override
@@ -105,9 +105,9 @@ public class AsyncStreamTest {
   }
 
   @Test
-  public void shouldPingAndPong() throws Exception {
-    AsyncStream<String, String> ping_stream = new AsyncStream<>("ping_stream");
-    AsyncStream<String, String> pong_stream = new AsyncStream<>("pong_stream");
+  public void shouldPingAndPong() {
+    AsyncFlow<String, String> ping_stream = new AsyncFlow<>("ping_stream");
+    AsyncFlow<String, String> pong_stream = new AsyncFlow<>("pong_stream");
 
     SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
       @Override
@@ -152,7 +152,7 @@ public class AsyncStreamTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    AsyncStream<String, Long> asyncStream = new AsyncStream<>("sustainedPerformanceTest");
+    AsyncFlow<String, Long> asyncStream = new AsyncFlow<>("sustainedPerformanceTest");
     Future<Long> count = asyncStream.withSingleSubscriber(new SingleSubscriber<Long, String>() {
       long count;
 
@@ -197,7 +197,7 @@ public class AsyncStreamTest {
 
   @Test
   public void putForMultiplexingFutures() throws Exception {
-    AsyncStream<String, String> micro_stream = new AsyncStream<>("micro_stream");
+    AsyncFlow<String, String> micro_stream = new AsyncFlow<>("micro_stream");
     MultiplexFutureSubscriber<String, String> microBatchStreamSubscriber =
         new MultiplexFutureSubscriber<String, String>() {
           @Override
@@ -218,7 +218,7 @@ public class AsyncStreamTest {
 
   @Test
   public void shouldRemoveExpiredEventsAfter1Second() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>("test_ttl");
+    AsyncFlow<String, String> asyncStream = new AsyncFlow<>("test_ttl");
     asyncStream.putValueWithTTL(10, "test10");
     asyncStream.putValueWithTTL(1, "test1");
     asyncStream.putValueWithTTL(1, "test2");
@@ -230,8 +230,9 @@ public class AsyncStreamTest {
   }
 
   @Test
-  public void shouldReturnEventUsingIndexField() throws Exception {
-    AsyncStream<TestObject, TestObject> asyncStream = new AsyncStream<>("test_index", "testField");
+  public void shouldReturnEventUsingIndexField() {
+    AsyncFlow<TestObject, TestObject>
+        asyncStream = new AsyncFlow<>("test_index", "testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
@@ -243,7 +244,7 @@ public class AsyncStreamTest {
 
   @Test
   public void shouldReturnEventUsingJSONIndexField() throws Exception {
-    AsyncStream<String, String> asyncStream = new AsyncStream<>("test_index_json", "msg");
+    AsyncFlow<String, String> asyncStream = new AsyncFlow<>("test_index_json", "msg");
     asyncStream.putJSONValue("{\"msg\":\"hello1\"}");
     asyncStream.putJSONValue("{\"msg\":\"hello2\"}");
     asyncStream.putJSONValue("{\"msg\":\"hello3\"}");
@@ -253,8 +254,8 @@ public class AsyncStreamTest {
   }
 
   @Test
-  public void shouldReturnEventUsingEventId() throws Exception {
-    AsyncStream<TestObject, TestObject> asyncStream = new AsyncStream<>("test_id");
+  public void shouldReturnEventUsingEventId() {
+    AsyncFlow<TestObject, TestObject> asyncStream = new AsyncFlow<>("test_id");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
