@@ -4,7 +4,7 @@
  * Author Xio
  */
 
-package org.xio.one.reactive.flow.util;
+package org.xio.one.reactive.flow.core.util;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,14 +14,14 @@ import java.util.concurrent.Executors;
  *
  * @author Xio
  */
-public class ReactiveExecutors {
+public class InternalExecutors {
 
   private static ExecutorService cachedThreadPoolexec;
   private static ExecutorService itemLoopThreadPoolexec;
   private static ExecutorService fixedThreadPoolexec;
 
   /**
-   * Gets an instance flow ExecutorService for the application JETI threadpool
+   * Gets an instance aFlowable ExecutorService for the application JETI threadpool
    *
    * @return
    */

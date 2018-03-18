@@ -1,9 +1,9 @@
 package org.xio.one.reactive.flow.core;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.util.ReactiveExecutors;
-import org.xio.one.reactive.flow.domain.Item;
-import org.xio.one.reactive.flow.domain.ItemSequenceComparator;
+import org.xio.one.reactive.flow.core.util.InternalExecutors;
+import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.ItemSequenceComparator;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -38,8 +38,8 @@ public final class FlowContentsControl<T> {
     if (itemStream.indexFieldName() != null) {
       itemStoreIndexFieldName = itemStream.indexFieldName();
     }
-    ReactiveExecutors.itemLoopThreadPoolInstance().submit(new ExpiredItemsCollector());
-    ReactiveExecutors.itemLoopThreadPoolInstance().submit(new WorkerInput(this));
+    InternalExecutors.itemLoopThreadPoolInstance().submit(new ExpiredItemsCollector());
+    InternalExecutors.itemLoopThreadPoolInstance().submit(new WorkerInput(this));
   }
 
   public void setItemStoreIndexFieldName(String itemStoreIndexFieldName) {

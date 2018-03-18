@@ -7,7 +7,7 @@ import org.xio.one.reactive.flow.Flowable;
 import org.xio.one.reactive.flow.core.MultiplexFutureSubscriber;
 import org.xio.one.reactive.flow.core.SingleFutureSubscriber;
 import org.xio.one.reactive.flow.core.SingleSubscriber;
-import org.xio.one.reactive.flow.domain.Item;
+import org.xio.one.reactive.flow.core.domain.Item;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +38,7 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnHelloWorldItemFromFlowContents() {
-    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName(HELLO_WORLD_FLOW);
+    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName(HELLO_WORLD_FLOW);
     asyncFlow.withImmediateFlushing().putItem("Hello world");
     asyncFlow.end(true);
     assertThat(asyncFlow.contents().last().value(), is("Hello world"));
@@ -46,7 +46,7 @@ public class AsyncFlowTest {
 
   @Test
   public void JSONStringReturnsHelloWorldItemFromFlowContents() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName(HELLO_WORLD_FLOW);
+    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName(HELLO_WORLD_FLOW);
     asyncFlow.withImmediateFlushing().putJSONItem("{\"msg\":\"Hello world\"}");
     asyncFlow.end(true);
     assertThat(asyncFlow.contents().last().jsonValue(), is("{\"msg\":\"Hello world\"}"));
@@ -55,7 +55,7 @@ public class AsyncFlowTest {
   @Test
   public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
     Flowable<Integer, List<Integer>> asyncFlow =
-        Flow.<Integer, List<Integer>>flow().withName(HELLO_WORLD_FLOW);
+        Flow.<Integer, List<Integer>>aFlowable().withName(HELLO_WORLD_FLOW);
 
     SingleSubscriber<List<Integer>, Integer> subscriber =
         new SingleSubscriber<List<Integer>, Integer>() {
@@ -87,7 +87,7 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName(HELLO_WORLD_FLOW);
+    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName(HELLO_WORLD_FLOW);
     Future<String> result =
         asyncFlow.putItem("Hello", new SingleFutureSubscriber<String, String>() {
           @Override
@@ -106,8 +106,8 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldPingAndPong() {
-    Flowable<String, String> ping_stream = Flow.<String, String>flow().withName("ping_stream");
-    Flowable<String, String> pong_stream = Flow.<String, String>flow().withName("pomg_stream");
+    Flowable<String, String> ping_stream = Flow.<String, String>aFlowable().withName("ping_stream");
+    Flowable<String, String> pong_stream = Flow.<String, String>aFlowable().withName("pomg_stream");
 
     SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
       @Override
@@ -153,7 +153,7 @@ public class AsyncFlowTest {
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
     Flowable<String, Long> asyncFlow =
-        Flow.<String, Long>flow().withName("sustainedPerformanceTest");
+        Flow.<String, Long>aFlowable().withName("sustainedPerformanceTest");
     final SingleSubscriber<Long, String> subscriber = new SingleSubscriber<Long, String>() {
       long count;
 
@@ -199,7 +199,7 @@ public class AsyncFlowTest {
 
   @Test
   public void putForMultiplexingFutures() throws Exception {
-    Flowable<String, String> micro_stream = Flow.<String, String>flow().withName("micro_stream");
+    Flowable<String, String> micro_stream = Flow.<String, String>aFlowable().withName("micro_stream");
     MultiplexFutureSubscriber<String, String> microBatchFlowSubscriber =
         new MultiplexFutureSubscriber<String, String>() {
           @Override
@@ -220,7 +220,7 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName("test_ttl");
+    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName("test_ttl");
     asyncFlow.putItemWithTTL(10, "test10");
     asyncFlow.putItemWithTTL(1, "test1");
     asyncFlow.putItemWithTTL(1, "test2");
@@ -234,7 +234,7 @@ public class AsyncFlowTest {
   @Test
   public void shouldReturnItemUsingIndexField() {
     Flowable<TestObject, TestObject> asyncFlow =
-        Flow.<TestObject, TestObject>flow().withName("test_index").withIndexField("testField");
+        Flow.<TestObject, TestObject>aFlowable().withName("test_index").withIndexField("testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
@@ -245,8 +245,8 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnItemUsingJSONIndexField() throws Exception {
-    Flowable<String, String> asyncFlow =
-        Flow.<String, String>flow().withName("test_index_json").withIndexField("msg");
+    Flowable<String, String> asyncFlow = Flow.aFlowable();
+    asyncFlow.withName("test_index_json").withIndexField("msg");
     asyncFlow.putJSONItem("{\"msg\":\"hello1\"}");
     asyncFlow.putJSONItem("{\"msg\":\"hello2\"}");
     asyncFlow.putJSONItem("{\"msg\":\"hello3\"}");
@@ -257,8 +257,8 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnItemUsingItemId() {
-    Flowable<TestObject, TestObject> asyncFlow =
-        Flow.<TestObject, TestObject>flow().withName("test_item_id");
+    Flowable<TestObject, TestObject> asyncFlow;
+    asyncFlow = Flow.<TestObject, TestObject>aFlowable().withName("test_item_id");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");

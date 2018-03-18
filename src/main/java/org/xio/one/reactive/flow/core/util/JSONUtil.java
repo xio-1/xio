@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.util;
+package org.xio.one.reactive.flow.core.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

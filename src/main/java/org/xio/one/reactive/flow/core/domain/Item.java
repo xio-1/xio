@@ -6,9 +6,9 @@
  * To change this template, choose Tools | Template Manager
  * and open the template in the editor.
  */
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.core.domain;
 
-import org.xio.one.reactive.flow.util.JSONUtil;
+import org.xio.one.reactive.flow.core.util.JSONUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

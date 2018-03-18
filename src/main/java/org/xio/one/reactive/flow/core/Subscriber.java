@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.domain.Item;
+import org.xio.one.reactive.flow.core.domain.Item;
 
 import java.util.stream.Stream;
 

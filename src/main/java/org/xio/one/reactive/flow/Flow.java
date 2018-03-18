@@ -6,11 +6,11 @@
 package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.core.*;
-import org.xio.one.reactive.flow.domain.EmptyItemArray;
-import org.xio.one.reactive.flow.domain.Item;
-import org.xio.one.reactive.flow.domain.ItemIdSequence;
-import org.xio.one.reactive.flow.domain.ItemJSONValue;
-import org.xio.one.reactive.flow.util.ReactiveExecutors;
+import org.xio.one.reactive.flow.core.domain.EmptyItemArray;
+import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.ItemIdSequence;
+import org.xio.one.reactive.flow.core.domain.ItemJSONValue;
+import org.xio.one.reactive.flow.core.util.InternalExecutors;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -21,10 +21,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * An Flow - a flowable stream of items
+ * An Flow - a aFlowable stream of items
  * <p>
  * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
- * json etc can be put into the flow and are then asynchronously loaded in memory to a
+ * json etc can be put into the aFlowable and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
  * subscribers
  */
@@ -56,10 +56,10 @@ public final class Flow<T, R> implements Flowable<T, R> {
   private final Object lock = new Object();
   private long slowDownNanos = 0;
   private boolean flushImmediately = false;
-  private ExecutorService executorService = ReactiveExecutors.subscriberCachedThreadPoolInstance();
+  private ExecutorService executorService = InternalExecutors.subscriberCachedThreadPoolInstance();
 
   //bad use of erasure need too find a better way
-  public static <T, R> Flowable<T, R> flow() {
+  public static <T, R> Flowable<T, R> aFlowable() {
     return new Flow<>();
   }
 
@@ -73,7 +73,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Name the flow
+   * Name the aFlowable
    *
    * @param name
    * @return
@@ -84,7 +84,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Sets the field flow the Value<T> on which the Flows contents can be indexed
+   * Sets the field aFlowable the Value<T> on which the Flows contents can be indexed
    * Use when it is required to query prior items in the Flow from a subscriber
    *
    * @param fieldName
@@ -184,7 +184,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Puts list flow values into the contents
+   * Puts list aFlowable values into the contents
    *
    * @param values
    * @return
@@ -244,7 +244,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Puts list flow values into the contents with ttlSeconds
+   * Puts list aFlowable values into the contents with ttlSeconds
    *
    * @param values
    * @return

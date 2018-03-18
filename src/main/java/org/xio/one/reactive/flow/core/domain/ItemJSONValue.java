@@ -1,9 +1,9 @@
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.xio.one.reactive.flow.util.JSONUtil;
+import org.xio.one.reactive.flow.core.util.JSONUtil;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;

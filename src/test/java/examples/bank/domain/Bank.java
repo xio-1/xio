@@ -3,7 +3,7 @@ package examples.bank.domain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.domain.Item;
+import org.xio.one.reactive.flow.core.domain.Item;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.core.MultiplexFutureSubscriber;
 import org.xio.one.reactive.flow.core.SingleSubscriber;
@@ -21,7 +21,7 @@ public class Bank {
   MultiplexFutureSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    itemLoop = Flow.flow();
+    itemLoop = Flow.aFlowable();
   }
 
   public void open() {

@@ -1,14 +1,14 @@
 package org.xio.one.reactive.flow.core;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.Item;
-import org.xio.one.reactive.flow.domain.ItemComparator;
+import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.ItemComparator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
-import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
+import static org.xio.one.reactive.flow.core.domain.EmptyItem.EMPTY_ITEM;
 
 /** ItemStoreOperations @Author Xio @Copyright Xio */
 public final class FlowContents<T> {
@@ -55,7 +55,7 @@ public final class FlowContents<T> {
           if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
             // if last domain is in correct sequence then
             if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
-              // if the size flow the domain to return is correct i.e. all in sequence
+              // if the size aFlowable the domain to return is correct i.e. all in sequence
               if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
                 return items;
               }

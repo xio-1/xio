@@ -1,9 +1,8 @@
 package org.xio.one.reactive.flow.core;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.Item;
-import org.xio.one.reactive.flow.core.Subscriber;
-import org.xio.one.reactive.flow.domain.EmptyItem;
+import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.EmptyItem;
 
 import java.util.Collections;
 import java.util.NavigableSet;

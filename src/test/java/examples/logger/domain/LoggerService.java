@@ -1,7 +1,7 @@
 package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.domain.Item;
+import org.xio.one.reactive.flow.core.domain.Item;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.core.MultiplexSubscriber;
 
@@ -29,7 +29,7 @@ public class LoggerService {
     AsynchronousFileChannel fileChannel =
         AsynchronousFileChannel.open(logFilePath, WRITE, CREATE, READ);
 
-    itemLoop = Flow.flow();
+    itemLoop = Flow.aFlowable();
 
     loggerSubscriber = new MultiplexSubscriber<Boolean, String>() {
 
