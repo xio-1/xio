@@ -1,12 +1,12 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.events.Event;
+import org.xio.one.reactive.flow.domain.Item;
 
 import java.util.stream.Stream;
 
 public interface Subscriber<R,E> {
 
-  void emit(Stream<Event<E>> e);
+  void emit(Stream<Item<E>> e);
 
   boolean stop();
 
@@ -22,7 +22,9 @@ public interface Subscriber<R,E> {
 
   void setResult(R result);
 
+  R getResult();
+
   void finalise();
 
-  void process(Stream<Event<E>> e);
+  void process(Stream<Item<E>> e);
 }

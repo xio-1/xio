@@ -1,8 +1,8 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.core;
 
 import org.thavam.util.concurrent.blockingMap.BlockingHashMap;
 import org.thavam.util.concurrent.blockingMap.BlockingMap;
-import org.xio.one.reactive.flow.events.Event;
+import org.xio.one.reactive.flow.domain.Item;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,33 +23,34 @@ public abstract class MultiplexFutureSubscriber<R, E> extends AbstractFutureSubs
   public void finalise() {
   }
 
-  public final Future<R> register(long eventId) {
-    Future<R> futureResult = new MultiplexFuture<>(eventId, results);
-    futures.put(eventId, new MultiplexFuture<>(eventId, results));
+  public final Future<R> register(long itemId) {
+    Future<R> futureResult = new MultiplexFuture<>(itemId, results);
+    futures.put(itemId, new MultiplexFuture<>(itemId, results));
     return futureResult;
   }
 
   @Override
-  public final void process(Stream<Event<E>> e) {
+  public final void process(Stream<Item<E>> e) {
     if (e != null) {
       Map<Long, R> streamResults = onNext(e);
       streamResults.keySet().stream().parallel()
-          .forEach(eventId -> results.put(eventId, streamResults.get(eventId)));
+          .forEach(itemId -> results.put(itemId, streamResults.get(itemId)));
       streamResults.entrySet().stream().parallel()
           .forEach(value -> callCallbacks(value.getValue()));
     }
   }
 
-  public abstract Map<Long, R> onNext(Stream<Event<E>> e);
+
+  public abstract Map<Long, R> onNext(Stream<Item<E>> e);
 
   class MultiplexFuture<R> implements Future<R> {
 
-    long eventId;
+    long itemId;
     BlockingMap<Long, R> results;
     boolean done = false;
 
-    public MultiplexFuture(long eventId, BlockingMap<Long, R> results) {
-      this.eventId = eventId;
+    public MultiplexFuture(long itemId, BlockingMap<Long, R> results) {
+      this.itemId = itemId;
       this.results = results;
     }
 
@@ -70,12 +71,11 @@ public abstract class MultiplexFutureSubscriber<R, E> extends AbstractFutureSubs
 
     @Override
     public R get() throws InterruptedException {
-      return results.take(eventId);
+      return results.take(itemId);
     }
-
     @Override
     public R get(long timeout, TimeUnit unit) throws InterruptedException {
-      return results.take(eventId, timeout, unit);
+      return results.take(itemId, timeout, unit);
     }
   }
 

@@ -1,10 +1,10 @@
-package org.xio.one.reactive.flow.events;
+package org.xio.one.reactive.flow.domain;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class EventIDSequence {
+public class ItemIdSequence {
 
-  public EventIDSequence() {
+  public ItemIdSequence() {
   }
 
   private AtomicLong counter = new AtomicLong(0);

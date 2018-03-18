@@ -1,39 +1,40 @@
-package org.xio.one.reactive.flow;
+package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.events.Event;
-import org.xio.one.reactive.flow.subscribers.Subscriber;
-import org.xio.one.reactive.flow.events.EmptyEvent;
+import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.domain.Item;
+import org.xio.one.reactive.flow.core.Subscriber;
+import org.xio.one.reactive.flow.domain.EmptyItem;
 
 import java.util.Collections;
 import java.util.NavigableSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-class Subscription<R, E> {
+public final class Subscription<R, E> {
 
-  private Event lastSeenEvent = null;
-  private AsyncFlow<E,R> eventStream;
+  private Item lastSeenItem = null;
+  private Flow<E,R> itemStream;
   private Future subscription;
   private Subscriber<R, E> subscriber;
 
-  public Subscription(AsyncFlow<E, R> eventStream, Subscriber<R, E> subscriber) {
-    this.eventStream = eventStream;
+  public Subscription(Flow<E, R> itemStream, Subscriber<R, E> subscriber) {
+    this.itemStream = itemStream;
     this.subscriber = subscriber;
   }
 
-  public AsyncFlow getEventStream() {
-    return eventStream;
+  public Flow getItemStream() {
+    return itemStream;
   }
 
   public Future<R> subscribe() {
     subscriber.initialise();
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
     this.subscription =
-        eventStream
+        itemStream
             .executorService()
             .submit(
                 () -> {
-                  while ((!eventStream.hasEnded() || !eventStream.contents().hasEnded())
+                  while ((!itemStream.hasEnded() || !itemStream.contents().hasEnded())
                       && !subscriber.isDone()) {
                     processResults(subscriber);
                   }
@@ -45,7 +46,7 @@ class Subscription<R, E> {
   }
 
   private void processFinalResults(Subscriber<R, E> subscriber) {
-    NavigableSet<Event<E>> streamContents = streamContents();
+    NavigableSet<Item<E>> streamContents = streamContents();
     while (streamContents.size() > 0) {
       subscriber.emit(streamContents.stream());
       streamContents = streamContents();
@@ -53,7 +54,7 @@ class Subscription<R, E> {
   }
 
   private void processResults(Subscriber<R, E> subscriber) {
-    NavigableSet<Event<E>> streamContents = streamContents();
+    NavigableSet<Item<E>> streamContents = streamContents();
     if (streamContents.size() > 0) subscriber.emit(streamContents.stream());
   }
 
@@ -61,10 +62,10 @@ class Subscription<R, E> {
     this.subscriber.stop();
   }
 
-  protected NavigableSet<Event<E>> streamContents() {
-    NavigableSet<Event<E>> streamContents =
-        Collections.unmodifiableNavigableSet(eventStream.contents().allAfter(lastSeenEvent));
-    if (streamContents.size() > 0) lastSeenEvent = streamContents.last();
+  protected NavigableSet<Item<E>> streamContents() {
+    NavigableSet<Item<E>> streamContents =
+        Collections.unmodifiableNavigableSet(itemStream.contents().allAfter(lastSeenItem));
+    if (streamContents.size() > 0) lastSeenItem = streamContents.last();
     return streamContents;
   }
 
@@ -72,10 +73,10 @@ class Subscription<R, E> {
     return subscriber;
   }
 
-  public Event getLastSeenEvent() {
-    if (lastSeenEvent!=null)
-      return lastSeenEvent;
+  public Item getLastSeenItem() {
+    if (lastSeenItem!=null)
+      return lastSeenItem;
     else
-      return EmptyEvent.EMPTY_EVENT;
+      return EmptyItem.EMPTY_ITEM;
   }
 }

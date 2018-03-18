@@ -1,8 +1,8 @@
 package examples.logger.domain;
 
-import org.xio.one.reactive.flow.events.Event;
-import org.xio.one.reactive.flow.AsyncFlow;
-import org.xio.one.reactive.flow.subscribers.MultiplexSubscriber;
+import org.xio.one.reactive.flow.domain.Item;
+import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.core.MultiplexSubscriber;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import static java.nio.file.StandardOpenOption.*;
 public class LoggerService {
 
   private MultiplexSubscriber<Boolean, String> loggerSubscriber;
-  private AsyncFlow<String, Boolean> eventLoop;
+  private Flow<String, Boolean> itemLoop;
   private Path logFilePath;
 
   public LoggerService(String canonicalName) throws IOException {
@@ -28,17 +28,17 @@ public class LoggerService {
     AsynchronousFileChannel fileChannel =
         AsynchronousFileChannel.open(logFilePath, WRITE, CREATE, READ);
 
-    eventLoop = new AsyncFlow<>(UUID.randomUUID().toString());
+    itemLoop = new Flow<>(UUID.randomUUID().toString());
 
     loggerSubscriber = new MultiplexSubscriber<Boolean, String>() {
 
       private long position = 0;
 
       @Override
-      public Optional<Map<Long, Boolean>> onNext(Stream<Event<String>> events) throws Throwable {
+      public Optional<Map<Long, Boolean>> onNext(Stream<Item<String>> items) throws Throwable {
         ByteBuffer buffer = ByteBuffer.allocate(64738);
-        events.forEach(event -> {
-          buffer.put((event.value() + "\r\n").getBytes());
+        items.forEach(item -> {
+          buffer.put((item.value() + "\r\n").getBytes());
         });
         buffer.flip();
         fileChannel.write(buffer, position);
@@ -48,12 +48,12 @@ public class LoggerService {
       }
 
       @Override
-      public Optional<Object> onError(Throwable error, Stream<Event<String>> eventValue) {
+      public Optional<Object> onError(Throwable error, Stream<Item<String>> itemValue) {
         return Optional.empty();
       }
     };
 
-    eventLoop.withMultiplexSubscriber(loggerSubscriber);
+    itemLoop.addMultiplexSubscriber(loggerSubscriber);
 
   }
 
@@ -66,7 +66,7 @@ public class LoggerService {
   }
 
   public void logAsync(LogLevel logLevel, String entry) {
-    eventLoop.putValue(logLevel + ":" + entry);
+    itemLoop.putItem(logLevel + ":" + entry);
   }
 
   public Path getLogFilePath() {
@@ -74,6 +74,6 @@ public class LoggerService {
   }
 
   public void close() {
-    eventLoop.end(true);
+    itemLoop.end(true);
   }
 }

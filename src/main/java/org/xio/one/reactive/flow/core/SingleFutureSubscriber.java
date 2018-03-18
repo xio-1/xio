@@ -1,6 +1,6 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.events.Event;
+import org.xio.one.reactive.flow.domain.Item;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,36 +16,36 @@ public abstract class SingleFutureSubscriber<R, E> extends AbstractFutureSubscri
   public void initialise() {
   }
 
-  public final Future<R> register(long eventId, CompletableFuture<R> completableFuture) {
-    futures.put(eventId, completableFuture);
+  public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {
+    futures.put(itemId, completableFuture);
     return completableFuture;
   }
 
   @Override
-  public final void process(Stream<Event<E>> e) {
+  public final void process(Stream<Item<E>> e) {
     if (e != null) {
-      e.parallel().forEach(event -> {
+      e.parallel().forEach(item -> {
         try {
-          Future<R> result = onNext(event.value());
-          CompletableFuture<R> future = futures.get(event.eventId());
+          Future<R> result = onNext(item.value());
+          CompletableFuture<R> future = futures.get(item.itemId());
           CompletableFuture.supplyAsync(() -> {
             try {
               future.complete(result.get());
             } catch (Exception e1) {
-              onError(e1, event.value());
+              onError(e1, item.value());
             }
             return null;
           });
         } catch (Throwable ex) {
-          onError(ex, event.value());
+          onError(ex, item.value());
         }
       });
     }
   }
 
-  public abstract Future<R> onNext(E eventValue) throws Throwable;
+  public abstract Future<R> onNext(E itemValue) throws Throwable;
 
-  public abstract void onError(Throwable error, E eventValue);
+  public abstract void onError(Throwable error, E itemValue);
 
   @Override
   public void finalise() {

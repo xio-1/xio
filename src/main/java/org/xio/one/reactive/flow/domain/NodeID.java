@@ -1,8 +1,8 @@
-package org.xio.one.reactive.flow.events;
+package org.xio.one.reactive.flow.domain;
 
 import java.util.Random;
 
-public class EventNodeID {
+public class NodeID {
 
   private static long nodeID = new Random().nextLong();
 
@@ -11,6 +11,6 @@ public class EventNodeID {
   }
 
   public static void setNodeID(long nodeID) {
-    EventNodeID.nodeID = nodeID;
+    NodeID.nodeID = nodeID;
   }
 }

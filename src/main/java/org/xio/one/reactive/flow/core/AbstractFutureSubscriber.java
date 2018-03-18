@@ -1,6 +1,6 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.events.Event;
+import org.xio.one.reactive.flow.domain.Item;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +8,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
+public abstract class AbstractFutureSubscriber<R,E> implements Subscriber<R,E> {
+
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
@@ -16,8 +17,13 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
   private boolean done = false;
   private List<Callback<R>> callbacks = new ArrayList<>();
 
-  public AbstractSubscriber() {
+  public AbstractFutureSubscriber() {
     initialise();
+  }
+
+  public AbstractFutureSubscriber(Callback<R> callback) {
+    initialise();
+    addCallback(callback);
   }
 
   public abstract void initialise();
@@ -49,14 +55,14 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
   }
 
   @Override
-  public final void emit(Stream<Event<E>> e) {
+  public final void emit(Stream<Item<E>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(Stream<Event<E>> e);
+  public abstract void process(Stream<Item<E>> e);
 
   @Override
   public final R peek() {
@@ -101,4 +107,8 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
     this.result = result;
   }
 
+  @Override
+  public R getResult() {
+    return result;
+  }
 }

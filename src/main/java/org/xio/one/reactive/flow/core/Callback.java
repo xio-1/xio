@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.core;
 
 public interface Callback<R> {
   void handleResult(R result);

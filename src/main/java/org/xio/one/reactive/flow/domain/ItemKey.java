@@ -1,18 +1,18 @@
-package org.xio.one.reactive.flow.events;
+package org.xio.one.reactive.flow.domain;
 
 import java.util.Map;
 
-public class EventKey {
+public class ItemKey {
 
   private final Object value;
   private final String fieldName;
 
-  public EventKey(String fieldName, Map.Entry<String, Object> entry) {
+  public ItemKey(String fieldName, Map.Entry<String, Object> entry) {
     this.fieldName = fieldName;
     this.value = entry.getValue();
   }
 
-  public EventKey(String fieldname, Object value) {
+  public ItemKey(String fieldname, Object value) {
     this.fieldName=fieldname;
     this.value=value;
   }
@@ -26,11 +26,11 @@ public class EventKey {
     if (o == null || getClass() != o.getClass())
       return false;
 
-    EventKey eventKey = (EventKey) o;
+    ItemKey itemKey = (ItemKey) o;
 
-    if (!value.equals(eventKey.value))
+    if (!value.equals(itemKey.value))
       return false;
-    return fieldName.equals(eventKey.fieldName);
+    return fieldName.equals(itemKey.fieldName);
   }
 
   @Override

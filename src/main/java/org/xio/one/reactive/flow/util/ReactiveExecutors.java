@@ -4,7 +4,7 @@
  * Author Xio
  */
 
-package org.xio.one.reactive.util;
+package org.xio.one.reactive.flow.util;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,7 +17,7 @@ import java.util.concurrent.Executors;
 public class ReactiveExecutors {
 
   private static ExecutorService cachedThreadPoolexec;
-  private static ExecutorService eventLoopThreadPoolexec;
+  private static ExecutorService itemLoopThreadPoolexec;
   private static ExecutorService fixedThreadPoolexec;
 
   /**
@@ -33,12 +33,12 @@ public class ReactiveExecutors {
     return cachedThreadPoolexec;
   }
 
-  public static synchronized ExecutorService eventLoopThreadPoolInstance() {
-    if (eventLoopThreadPoolexec == null)
-      eventLoopThreadPoolexec = Executors.newCachedThreadPool();
-    else if (eventLoopThreadPoolexec.isShutdown() || eventLoopThreadPoolexec.isTerminated())
-      eventLoopThreadPoolexec = Executors.newCachedThreadPool();
-    return eventLoopThreadPoolexec;
+  public static synchronized ExecutorService itemLoopThreadPoolInstance() {
+    if (itemLoopThreadPoolexec == null)
+      itemLoopThreadPoolexec = Executors.newCachedThreadPool();
+    else if (itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
+      itemLoopThreadPoolexec = Executors.newCachedThreadPool();
+    return itemLoopThreadPoolexec;
   }
 
 
