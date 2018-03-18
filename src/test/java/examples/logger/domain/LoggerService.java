@@ -1,5 +1,6 @@
 package examples.logger.domain;
 
+import org.xio.one.reactive.flow.Flowable;
 import org.xio.one.reactive.flow.domain.Item;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.core.MultiplexSubscriber;
@@ -19,7 +20,7 @@ import static java.nio.file.StandardOpenOption.*;
 public class LoggerService {
 
   private MultiplexSubscriber<Boolean, String> loggerSubscriber;
-  private Flow<String, Boolean> itemLoop;
+  private Flowable<String, Boolean> itemLoop;
   private Path logFilePath;
 
   public LoggerService(String canonicalName) throws IOException {
@@ -28,7 +29,7 @@ public class LoggerService {
     AsynchronousFileChannel fileChannel =
         AsynchronousFileChannel.open(logFilePath, WRITE, CREATE, READ);
 
-    itemLoop = new Flow<>(UUID.randomUUID().toString());
+    itemLoop = Flow.flow();
 
     loggerSubscriber = new MultiplexSubscriber<Boolean, String>() {
 

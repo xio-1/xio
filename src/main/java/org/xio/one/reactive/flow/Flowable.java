@@ -8,6 +8,10 @@ import java.util.concurrent.Future;
 
 public interface Flowable<T, R> {
 
+  default <Z,A> Flowable<Z,A> of() {
+    return new Flow<>();
+  }
+
   String name();
 
   Flowable<T,R> addSingleSubscriber(SingleSubscriber<R, T> subscriber);

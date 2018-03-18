@@ -14,11 +14,11 @@ import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
 public final class FlowContents<T> {
 
   public final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  private FlowControl itemStore;
+  private FlowContentsControl itemStore;
   private Flow itemStream;
   private NavigableSet<Item<T>> itemStoreContents = null;
 
-  FlowContents(FlowControl itemStore, Flow itemStream) {
+  FlowContents(FlowContentsControl itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
     this.itemStoreContents = (NavigableSet<Item<T>>) itemStore.itemRepositoryContents;
@@ -55,7 +55,7 @@ public final class FlowContents<T> {
           if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
             // if last domain is in correct sequence then
             if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
-              // if the size of the domain to return is correct i.e. all in sequence
+              // if the size flow the domain to return is correct i.e. all in sequence
               if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
                 return items;
               }

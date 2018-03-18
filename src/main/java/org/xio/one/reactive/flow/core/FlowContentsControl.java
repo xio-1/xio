@@ -15,7 +15,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * The Xio.contents.domain itemQueryStore where the putAll domain are persisted in memory
  */
-public final class FlowControl<T> {
+public final class FlowContentsControl<T> {
 
   protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, Item<T>> itemStoreIndexContents;
@@ -25,10 +25,12 @@ public final class FlowControl<T> {
   private String itemStoreIndexFieldName;
 
   /**
-   * New Item BaseWorker Execution using the given checked Comparator</Item> to order the results
-   * domain TTL seconds will be retained before being automatically removed from the store
+   * New Item BaseWorker Execution using the sequence comparator to order the results
+   * by item sequence number.
+   * Items will be retained until consumed to by all subscribers and whilst they are alive
+   * i.e. before they expire their/stream TTL
    */
-  public FlowControl(Flow itemStream) {
+  public FlowContentsControl(Flow itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreOperations = new FlowContents<Item<T>>(this, itemStream);
@@ -38,6 +40,10 @@ public final class FlowControl<T> {
     }
     ReactiveExecutors.itemLoopThreadPoolInstance().submit(new ExpiredItemsCollector());
     ReactiveExecutors.itemLoopThreadPoolInstance().submit(new WorkerInput(this));
+  }
+
+  public void setItemStoreIndexFieldName(String itemStoreIndexFieldName) {
+    this.itemStoreIndexFieldName = itemStoreIndexFieldName;
   }
 
   /**
@@ -84,9 +90,9 @@ public final class FlowControl<T> {
    */
   private class WorkerInput implements Runnable {
 
-    FlowControl itemStore;
+    FlowContentsControl itemStore;
 
-    public WorkerInput(FlowControl itemStore) {
+    public WorkerInput(FlowContentsControl itemStore) {
       this.itemStore = itemStore;
     }
 

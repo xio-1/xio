@@ -17,11 +17,11 @@ import java.util.stream.Stream;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public class AsyncStreamTest {
+public class AsyncFlowTest {
 
   public static final int NUMBER_OF_ITEMS = 1000000;
-  String HELLO_WORLD_STREAM = "helloWorldStream";
-  String INT_STREAM = "integerStream";
+  String HELLO_WORLD_FLOW = "helloWorldFlow";
+  String INT_FLOW = "integerFlow";
 
 
   public class TestObject {
@@ -37,24 +37,25 @@ public class AsyncStreamTest {
   }
 
   @Test
-  public void shouldReturnHelloWorldItemFromStreamContents() {
-    Flow<String, String> asyncStream = new Flow<>(HELLO_WORLD_STREAM);
-    asyncStream.withImmediateFlushing().putItem("Hello world");
-    asyncStream.end(true);
-    assertThat(asyncStream.contents().last().value(), is("Hello world"));
+  public void shouldReturnHelloWorldItemFromFlowContents() {
+    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName(HELLO_WORLD_FLOW);
+    asyncFlow.withImmediateFlushing().putItem("Hello world");
+    asyncFlow.end(true);
+    assertThat(asyncFlow.contents().last().value(), is("Hello world"));
   }
 
   @Test
-  public void JSONStringReturnsHelloWorldItemFromStreamContents() throws Exception {
-    Flow<String, String> asyncStream = new Flow<>(HELLO_WORLD_STREAM);
-    asyncStream.withImmediateFlushing().putJSONItem("{\"msg\":\"Hello world\"}");
-    asyncStream.end(true);
-    assertThat(asyncStream.contents().last().jsonValue(), is("{\"msg\":\"Hello world\"}"));
+  public void JSONStringReturnsHelloWorldItemFromFlowContents() throws Exception {
+    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName(HELLO_WORLD_FLOW);
+    asyncFlow.withImmediateFlushing().putJSONItem("{\"msg\":\"Hello world\"}");
+    asyncFlow.end(true);
+    assertThat(asyncFlow.contents().last().jsonValue(), is("{\"msg\":\"Hello world\"}"));
   }
 
   @Test
-  public void shouldReturnInSequenceForStreamSubscriber() throws Exception {
-    Flow<Integer, List<Integer>> asyncStream = new Flow<>(INT_STREAM);
+  public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
+    Flowable<Integer, List<Integer>> asyncFlow =
+        Flow.<Integer, List<Integer>>flow().withName(HELLO_WORLD_FLOW);
 
     SingleSubscriber<List<Integer>, Integer> subscriber =
         new SingleSubscriber<List<Integer>, Integer>() {
@@ -77,18 +78,18 @@ public class AsyncStreamTest {
             this.setResult(output);
           }
         };
-    asyncStream.withImmediateFlushing().addSingleSubscriber(subscriber);
-    asyncStream.putItem(1, 2, 3, 4);
-    asyncStream.end(true);
+    asyncFlow.withImmediateFlushing().addSingleSubscriber(subscriber);
+    asyncFlow.putItem(1, 2, 3, 4);
+    asyncFlow.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
     Assert.assertEquals(true, Arrays.equals(subscriber.getResult().toArray(), intList));
   }
 
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
-    Flow<String, String> asyncStream = new Flow<>(HELLO_WORLD_STREAM);
+    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName(HELLO_WORLD_FLOW);
     Future<String> result =
-        asyncStream.putItem("Hello", new SingleFutureSubscriber<String, String>() {
+        asyncFlow.putItem("Hello", new SingleFutureSubscriber<String, String>() {
           @Override
           public Future<String> onNext(String itemValue) {
             return CompletableFuture.completedFuture(itemValue + " world");
@@ -99,14 +100,14 @@ public class AsyncStreamTest {
             error.printStackTrace();
           }
         });
-    asyncStream.end(true);
+    asyncFlow.end(true);
     assertThat(result.get(), is("Hello world"));
   }
 
   @Test
   public void shouldPingAndPong() {
-    Flow<String, String> ping_stream = new Flow<>("ping_stream");
-    Flow<String, String> pong_stream = new Flow<>("pong_stream");
+    Flowable<String, String> ping_stream = Flow.<String, String>flow().withName("ping_stream");
+    Flowable<String, String> pong_stream = Flow.<String, String>flow().withName("pomg_stream");
 
     SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
       @Override
@@ -151,7 +152,8 @@ public class AsyncStreamTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    Flow<String, Long> asyncStream = new Flow<>("sustainedPerformanceTest");
+    Flowable<String, Long> asyncFlow =
+        Flow.<String, Long>flow().withName("sustainedPerformanceTest");
     final SingleSubscriber<Long, String> subscriber = new SingleSubscriber<Long, String>() {
       long count;
 
@@ -176,11 +178,11 @@ public class AsyncStreamTest {
         this.setResult(this.count);
       }
     };
-    asyncStream.addSingleSubscriber(subscriber);
+    asyncFlow.addSingleSubscriber(subscriber);
     for (int i = 0; i < 10000000; i++) {
-      asyncStream.putItemWithTTL(1, "Hello world" + i);
+      asyncFlow.putItemWithTTL(1, "Hello world" + i);
     }
-    asyncStream.end(true);
+    asyncFlow.end(true);
     assertThat(subscriber.getResult(), is(10000000L));
     System.out
         .println("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
@@ -189,16 +191,16 @@ public class AsyncStreamTest {
   @Test
   public void stability() throws Exception {
     for (int i = 0; i < 10; i++) {
-      shouldReturnHelloWorldItemFromStreamContents();
+      shouldReturnHelloWorldItemFromFlowContents();
       shouldReturnHelloWorldFutureForSingleFutureSubscriber();
-      JSONStringReturnsHelloWorldItemFromStreamContents();
+      JSONStringReturnsHelloWorldItemFromFlowContents();
     }
   }
 
   @Test
   public void putForMultiplexingFutures() throws Exception {
-    Flow<String, String> micro_stream = new Flow<>("micro_stream");
-    MultiplexFutureSubscriber<String, String> microBatchStreamSubscriber =
+    Flowable<String, String> micro_stream = Flow.<String, String>flow().withName("micro_stream");
+    MultiplexFutureSubscriber<String, String> microBatchFlowSubscriber =
         new MultiplexFutureSubscriber<String, String>() {
           @Override
           public Map<Long, String> onNext(Stream<Item<String>> e) {
@@ -208,9 +210,9 @@ public class AsyncStreamTest {
             return results;
           }
         };
-    Future<String> result1 = micro_stream.putItem("hello1", microBatchStreamSubscriber);
-    Future<String> result2 = micro_stream.putItem("hello2", microBatchStreamSubscriber);
-    Future<String> result3 = micro_stream.putItem("hello3", microBatchStreamSubscriber);
+    Future<String> result1 = micro_stream.putItem("hello1", microBatchFlowSubscriber);
+    Future<String> result2 = micro_stream.putItem("hello2", microBatchFlowSubscriber);
+    Future<String> result3 = micro_stream.putItem("hello3", microBatchFlowSubscriber);
     assertThat(result1.get(), is("HELLO1"));
     assertThat(result2.get(), is("HELLO2"));
     assertThat(result3.get(), is("HELLO3"));
@@ -218,50 +220,51 @@ public class AsyncStreamTest {
 
   @Test
   public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
-    Flow<String, String> asyncStream = new Flow<>("test_ttl");
-    asyncStream.putItemWithTTL(10, "test10");
-    asyncStream.putItemWithTTL(1, "test1");
-    asyncStream.putItemWithTTL(1, "test2");
-    asyncStream.putItemWithTTL(1, "test3");
-    asyncStream.end(true);
+    Flowable<String, String> asyncFlow = Flow.<String, String>flow().withName("test_ttl");
+    asyncFlow.putItemWithTTL(10, "test10");
+    asyncFlow.putItemWithTTL(1, "test1");
+    asyncFlow.putItemWithTTL(1, "test2");
+    asyncFlow.putItemWithTTL(1, "test3");
+    asyncFlow.end(true);
     Thread.currentThread().sleep(1000);
-    assertThat(asyncStream.contents().count(), is(1L));
-    assertThat(asyncStream.contents().last().value(), is("test10"));
+    assertThat(asyncFlow.contents().count(), is(1L));
+    assertThat(asyncFlow.contents().last().value(), is("test10"));
   }
 
   @Test
   public void shouldReturnItemUsingIndexField() {
-    Flow<TestObject, TestObject> asyncStream = new Flow<>("test_index", "testField");
+    Flowable<TestObject, TestObject> asyncFlow =
+        Flow.<TestObject, TestObject>flow().withName("test_index").withIndexField("testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
-    asyncStream.putItem(testObject1, testObject2, testObject3);
-    asyncStream.end(true);
-    Assert.assertThat(asyncStream.contents().item("hello1").value(), is(testObject1));
-    asyncStream.indexFieldName();
+    asyncFlow.putItem(testObject1, testObject2, testObject3);
+    asyncFlow.end(true);
+    Assert.assertThat(asyncFlow.contents().item("hello1").value(), is(testObject1));
   }
 
   @Test
   public void shouldReturnItemUsingJSONIndexField() throws Exception {
-    Flow<String, String> asyncStream = new Flow<>("test_index_json", "msg");
-    asyncStream.putJSONItem("{\"msg\":\"hello1\"}");
-    asyncStream.putJSONItem("{\"msg\":\"hello2\"}");
-    asyncStream.putJSONItem("{\"msg\":\"hello3\"}");
-    asyncStream.end(true);
-    Assert.assertThat(asyncStream.contents().item("hello2").jsonValue(),
-        is(("{\"msg\":\"hello2\"}")));
+    Flowable<String, String> asyncFlow =
+        Flow.<String, String>flow().withName("test_index_json").withIndexField("msg");
+    asyncFlow.putJSONItem("{\"msg\":\"hello1\"}");
+    asyncFlow.putJSONItem("{\"msg\":\"hello2\"}");
+    asyncFlow.putJSONItem("{\"msg\":\"hello3\"}");
+    asyncFlow.end(true);
+    Assert
+        .assertThat(asyncFlow.contents().item("hello2").jsonValue(), is(("{\"msg\":\"hello2\"}")));
   }
 
   @Test
   public void shouldReturnItemUsingItemId() {
-    Flow<TestObject, TestObject> asyncStream = new Flow<>("test_id");
+    Flowable<TestObject, TestObject> asyncFlow =
+        Flow.<TestObject, TestObject>flow().withName("test_item_id");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
-    long[] itemIds = asyncStream.putItem(testObject1, testObject2, testObject3);
-    asyncStream.end(true);
-    Assert.assertThat(asyncStream.contents().item(itemIds[1]).value(), is(testObject2));
+    long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
+    asyncFlow.end(true);
+    Assert.assertThat(asyncFlow.contents().item(itemIds[1]).value(), is(testObject2));
   }
-
 
 }

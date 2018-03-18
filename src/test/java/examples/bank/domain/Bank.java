@@ -2,6 +2,7 @@ package examples.bank.domain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xio.one.reactive.flow.Flowable;
 import org.xio.one.reactive.flow.domain.Item;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.core.MultiplexFutureSubscriber;
@@ -14,13 +15,13 @@ import java.util.stream.Stream;
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
-  Flow<TransactionRequest, Boolean> itemLoop;
+  Flowable<TransactionRequest, Boolean> itemLoop;
   List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
   Logger logger = LoggerFactory.getLogger(Bank.class);
   MultiplexFutureSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    itemLoop = new Flow<>(UUID.randomUUID().toString());
+    itemLoop = Flow.flow();
   }
 
   public void open() {

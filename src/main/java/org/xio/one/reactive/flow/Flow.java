@@ -6,29 +6,32 @@
 package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.core.*;
-import org.xio.one.reactive.flow.util.ReactiveExecutors;
 import org.xio.one.reactive.flow.domain.EmptyItemArray;
 import org.xio.one.reactive.flow.domain.Item;
 import org.xio.one.reactive.flow.domain.ItemIdSequence;
 import org.xio.one.reactive.flow.domain.ItemJSONValue;
+import org.xio.one.reactive.flow.util.ReactiveExecutors;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * An AsyncStream - a streamContents of information
+ * An Flow - a flowable stream of items
  * <p>
- * <p>AsyncStream is implemented with a Command Query Responsibility Segregation external objects,
- * json, map can be PUT into the streamContents that are asynchronously loaded in memory to a
- * contents store that is used to provide a sequenced view of the domain to downstream core
- * using a separate thread
+ * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
+ * json etc can be put into the flow and are then asynchronously loaded in memory to a
+ * contents store that is used to provide a sequenced view of the flowing items to downstream
+ * subscribers
  */
 public final class Flow<T, R> implements Flowable<T, R> {
 
   // streamContents variables
-  private FlowControl<T> itemItemStore;
+  private FlowContentsControl<T> contentsControl;
 
   // constants
   private final long count_down_latch = 10;
@@ -39,7 +42,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   private String indexFieldName;
   private long defaultTTL = 10;
   private Map<String, Future> streamSubscriberFutureResultMap = new HashMap<>();
-  Map<String, Subscription<R, T>> subscriberSubscriptions = new HashMap<>();
+  private Map<String, Subscription<R, T>> subscriberSubscriptions = new HashMap<>();
 
   // Queue control
   private Item[] itemqueue_out;
@@ -53,67 +56,53 @@ public final class Flow<T, R> implements Flowable<T, R> {
   private final Object lock = new Object();
   private long slowDownNanos = 0;
   private boolean flushImmediately = false;
-  private ExecutorService executorService =
-      ReactiveExecutors.subscriberCachedThreadPoolInstance();
+  private ExecutorService executorService = ReactiveExecutors.subscriberCachedThreadPoolInstance();
 
-  public static <Z,A> Flowable<Z,A> of(Class<Z> item, Class<A> result) {
+  //bad use of erasure need too find a better way
+  public static <T, R> Flowable<T, R> flow() {
     return new Flow<>();
   }
 
-  public Flow() {
+  Flow() {
     this.item_queue = new LinkedBlockingQueue<>(queue_max_size);
     this.itemqueue_out = new Item[this.queue_max_size];
     this.name = UUID.randomUUID().toString();
     this.indexFieldName = null;
-    this.itemItemStore = new FlowControl<>(this);
-    this.itemIDSequence = new ItemIdSequence();
-  }
-
-  public Flow(String name) {
-    this.item_queue = new LinkedBlockingQueue<>(queue_max_size);
-    this.itemqueue_out = new Item[this.queue_max_size];
-    this.name = name;
-    this.indexFieldName = null;
-    this.itemItemStore = new FlowControl<>(this);
-    this.itemIDSequence = new ItemIdSequence();
-  }
-
-  public Flow(String name, String indexFieldName) {
-    this.item_queue = new LinkedBlockingQueue<>(queue_max_size);
-    this.itemqueue_out = new Item[this.queue_max_size];
-    this.name = name;
-    this.indexFieldName = indexFieldName;
-    this.itemItemStore = new FlowControl<>(this);
+    this.contentsControl = new FlowContentsControl<>(this);
     this.itemIDSequence = new ItemIdSequence();
   }
 
   /**
    * Name the flow
+   *
    * @param name
    * @return
    */
-  public Flowable<T,R> withName(String name) {
+  public Flowable<T, R> withName(String name) {
     this.name = name;
     return this;
   }
 
   /**
-   * Sets the field of the Value<T> on which the Flows contents can be indexed
+   * Sets the field flow the Value<T> on which the Flows contents can be indexed
    * Use when it is required to query prior items in the Flow from a subscriber
+   *
    * @param fieldName
    * @return
    */
-  public Flowable<T,R> withIndexField(String fieldName) {
+  public Flowable<T, R> withIndexField(String fieldName) {
     this.indexFieldName = fieldName;
+    this.contentsControl.setItemStoreIndexFieldName(fieldName);
     return this;
   }
 
   /**
    * Add a single subscriber
+   *
    * @param subscriber
    * @return
    */
-  public Flowable<T,R> addSingleSubscriber(SingleSubscriber<R, T> subscriber) {
+  public Flowable<T, R> addSingleSubscriber(SingleSubscriber<R, T> subscriber) {
     if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
@@ -124,10 +113,11 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   /**
    * Add a multiplex subscriber
+   *
    * @param subscriber
    * @return
    */
-  public Flowable<T,R> addMultiplexSubscriber(MultiplexSubscriber<R, T> subscriber) {
+  public Flowable<T, R> addMultiplexSubscriber(MultiplexSubscriber<R, T> subscriber) {
     if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<R, T>(this, subscriber);
       streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
@@ -138,10 +128,11 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   /**
    * Specify default ttl for items placed into the Flow
+   *
    * @param ttlSeconds
    * @return
    */
-  public Flowable<T,R> withDefaultTTL(long ttlSeconds) {
+  public Flowable<T, R> withDefaultTTL(long ttlSeconds) {
     this.defaultTTL = ttlSeconds;
     return this;
   }
@@ -149,6 +140,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   /**
    * Indicate that each item place should be flushed immediately
    * Use when low latency < 2ms is required for core
+   *
    * @return
    */
   public Flowable<T, R> withImmediateFlushing() {
@@ -159,6 +151,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   /**
    * Indicate that core should be create using the given executor service
    * Use when low latency < 2ms is required for core
+   *
    * @return
    */
   public Flowable<T, R> withExecutorService(ExecutorService executorService) {
@@ -184,19 +177,19 @@ public final class Flow<T, R> implements Flowable<T, R> {
   /**
    * Put a putItem value into the contents
    */
-  
+
   @Override
   public long putItem(T value) {
     return putItemWithTTL(defaultTTL, value);
   }
 
   /**
-   * Puts list of values into the contents
+   * Puts list flow values into the contents
    *
    * @param values
    * @return
    */
-  
+
   @Override
   public long[] putItem(T... values) {
     return putItemWithTTL(defaultTTL, values);
@@ -205,7 +198,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   /**
    * Put a json string value into the contents Throws IOException if json string is invalid
    */
-  
+
   @Override
   public boolean putJSONItem(String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
@@ -222,7 +215,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    * Put a json string value into the contents with ttlSeconds Throws IOException if json string is
    * invalid
    */
-  
+
   @Override
   public boolean putJSONItemWithTTL(long ttlSeconds, String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
@@ -251,12 +244,12 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Puts list of values into the contents with ttlSeconds
+   * Puts list flow values into the contents with ttlSeconds
    *
    * @param values
    * @return
    */
-  
+
   @Override
   public long[] putItemWithTTL(long ttlSeconds, T... values) {
     long[] ids = new long[values.length];
@@ -279,17 +272,17 @@ public final class Flow<T, R> implements Flowable<T, R> {
    * @return
    */
   @Override
-  public Future<R> putItemWithTTL(long ttlSeconds, T value, SingleFutureSubscriber<R, T> subscriber) {
+  public Future<R> putItemWithTTL(long ttlSeconds, T value,
+      SingleFutureSubscriber<R, T> subscriber) {
     if (subscriberSubscriptions.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriberSubscriptions.put(subscriber.getId(), subscription);
       subscription.subscribe();
     }
     long itemId = putItemWithTTL(ttlSeconds, value);
-    CompletableFuture<R> completableFuture
-        = new CompletableFuture<>();
+    CompletableFuture<R> completableFuture = new CompletableFuture<>();
     if (itemId != -1) {
-      return subscriber.register(itemId,completableFuture);
+      return subscriber.register(itemId, completableFuture);
     } else
       return null;
   }
@@ -344,7 +337,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    */
   @Override
   public FlowContents contents() {
-    return itemItemStore.query();
+    return contentsControl.query();
   }
 
   /**
@@ -356,7 +349,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
     this.isEnd = true;
     try {
       if (waitForEnd)
-        while (!this.hasEnded() || !this.itemItemStore.hasEnded()) {
+        while (!this.hasEnded() || !this.contentsControl.hasEnded()) {
           Thread.currentThread().sleep(100);
         }
 
@@ -367,23 +360,25 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   /**
    * Has the Flow ended
+   *
    * @return
    */
   @Override
   public boolean hasEnded() {
-    return isEnd && size() == 0;
+    return this.isEnd && this.size() == 0;
   }
 
   /**
    * Return the index field name
+   *
    * @return
    */
   public String indexFieldName() {
-    return indexFieldName;
+    return this.indexFieldName;
   }
 
   public Map<String, Subscription<R, T>> getSubscriberSubscriptions() {
-    return subscriberSubscriptions;
+    return this.subscriberSubscriptions;
   }
 
   protected void slowdown() {

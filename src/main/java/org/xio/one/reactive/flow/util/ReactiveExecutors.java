@@ -21,7 +21,7 @@ public class ReactiveExecutors {
   private static ExecutorService fixedThreadPoolexec;
 
   /**
-   * Gets an instance of ExecutorService for the application JETI threadpool
+   * Gets an instance flow ExecutorService for the application JETI threadpool
    *
    * @return
    */
