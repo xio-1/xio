@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public class AsyncFlowTest {
+public class FlowTest {
 
   public static final int NUMBER_OF_ITEMS = 1000000;
   String HELLO_WORLD_FLOW = "helloWorldFlow";
@@ -38,16 +38,16 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnHelloWorldItemFromFlowContents() {
-    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName(HELLO_WORLD_FLOW);
-    asyncFlow.withImmediateFlushing().putItem("Hello world");
+    Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
+    asyncFlow.enableImmediateFlushing().putItem("Hello world");
     asyncFlow.end(true);
     assertThat(asyncFlow.contents().last().value(), is("Hello world"));
   }
 
   @Test
   public void JSONStringReturnsHelloWorldItemFromFlowContents() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName(HELLO_WORLD_FLOW);
-    asyncFlow.withImmediateFlushing().putJSONItem("{\"msg\":\"Hello world\"}");
+    Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
+    asyncFlow.enableImmediateFlushing().putJSONItem("{\"msg\":\"Hello world\"}");
     asyncFlow.end(true);
     assertThat(asyncFlow.contents().last().jsonValue(), is("{\"msg\":\"Hello world\"}"));
   }
@@ -55,7 +55,7 @@ public class AsyncFlowTest {
   @Test
   public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
     Flowable<Integer, List<Integer>> asyncFlow =
-        Flow.<Integer, List<Integer>>aFlowable().withName(HELLO_WORLD_FLOW);
+        Flow.aFlowable(HELLO_WORLD_FLOW);
 
     SingleSubscriber<List<Integer>, Integer> subscriber =
         new SingleSubscriber<List<Integer>, Integer>() {
@@ -78,7 +78,7 @@ public class AsyncFlowTest {
             this.setResult(output);
           }
         };
-    asyncFlow.withImmediateFlushing().addSingleSubscriber(subscriber);
+    asyncFlow.enableImmediateFlushing().addSingleSubscriber(subscriber);
     asyncFlow.putItem(1, 2, 3, 4);
     asyncFlow.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
@@ -87,7 +87,7 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName(HELLO_WORLD_FLOW);
+    Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
     Future<String> result =
         asyncFlow.putItem("Hello", new SingleFutureSubscriber<String, String>() {
           @Override
@@ -106,9 +106,10 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldPingAndPong() {
-    Flowable<String, String> ping_stream = Flow.<String, String>aFlowable().withName("ping_stream");
-    Flowable<String, String> pong_stream = Flow.<String, String>aFlowable().withName("pomg_stream");
-
+    Flowable<String, String> ping_stream = Flow.aFlowable("ping_stream");
+    Flowable<String, String> pong_stream = Flow.aFlowable("pomg_stream");
+    ping_stream.enableImmediateFlushing();
+    pong_stream.enableImmediateFlushing();
     SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
       @Override
       public Optional<String> onNext(String itemValue) {
@@ -153,7 +154,7 @@ public class AsyncFlowTest {
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
     Flowable<String, Long> asyncFlow =
-        Flow.<String, Long>aFlowable().withName("sustainedPerformanceTest");
+        Flow.aFlowable("sustainedPerformanceTest");
     final SingleSubscriber<Long, String> subscriber = new SingleSubscriber<Long, String>() {
       long count;
 
@@ -199,7 +200,7 @@ public class AsyncFlowTest {
 
   @Test
   public void putForMultiplexingFutures() throws Exception {
-    Flowable<String, String> micro_stream = Flow.<String, String>aFlowable().withName("micro_stream");
+    Flowable<String, String> micro_stream = Flow.aFlowable("micro_stream");
     MultiplexFutureSubscriber<String, String> microBatchFlowSubscriber =
         new MultiplexFutureSubscriber<String, String>() {
           @Override
@@ -220,7 +221,7 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.<String, String>aFlowable().withName("test_ttl");
+    Flowable<String, String> asyncFlow = Flow.aFlowable("test_ttl");
     asyncFlow.putItemWithTTL(10, "test10");
     asyncFlow.putItemWithTTL(1, "test1");
     asyncFlow.putItemWithTTL(1, "test2");
@@ -234,7 +235,7 @@ public class AsyncFlowTest {
   @Test
   public void shouldReturnItemUsingIndexField() {
     Flowable<TestObject, TestObject> asyncFlow =
-        Flow.<TestObject, TestObject>aFlowable().withName("test_index").withIndexField("testField");
+        Flow.aFlowable("test_index","testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
@@ -245,8 +246,7 @@ public class AsyncFlowTest {
 
   @Test
   public void shouldReturnItemUsingJSONIndexField() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.aFlowable();
-    asyncFlow.withName("test_index_json").withIndexField("msg");
+    Flowable<String, String> asyncFlow = Flow.aFlowable("test_index_json","msg");
     asyncFlow.putJSONItem("{\"msg\":\"hello1\"}");
     asyncFlow.putJSONItem("{\"msg\":\"hello2\"}");
     asyncFlow.putJSONItem("{\"msg\":\"hello3\"}");
@@ -258,7 +258,7 @@ public class AsyncFlowTest {
   @Test
   public void shouldReturnItemUsingItemId() {
     Flowable<TestObject, TestObject> asyncFlow;
-    asyncFlow = Flow.<TestObject, TestObject>aFlowable().withName("test_item_id");
+    asyncFlow = Flow.<TestObject, TestObject>aFlowable("test_item_id");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");

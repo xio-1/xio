@@ -15,18 +15,18 @@ import java.util.stream.Stream;
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
-  Flowable<TransactionRequest, Boolean> itemLoop;
+  Flowable<TransactionRequest, Boolean> transactionEventLoop;
   List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
   Logger logger = LoggerFactory.getLogger(Bank.class);
   MultiplexFutureSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    itemLoop = Flow.aFlowable();
+    transactionEventLoop = Flow.aFlowable();
   }
 
   public void open() {
     //Subscriber for every transaction request
-    itemLoop.addSingleSubscriber(new SingleSubscriber<Boolean, TransactionRequest>() {
+    transactionEventLoop.addSingleSubscriber(new SingleSubscriber<Boolean, TransactionRequest>() {
 
       @Override
       public Optional<Boolean> onNext(TransactionRequest transaction) throws InsufficientFundsException {
@@ -86,7 +86,7 @@ public class Bank {
   }
 
   public Future<Boolean> submitTransactionRequest(TransactionRequest transaction) {
-    return itemLoop.putItem(transaction, ledgerMultiplexFutureSubscriber);
+    return transactionEventLoop.putItem(transaction, ledgerMultiplexFutureSubscriber);
   }
 
   public Account newAccount(String name) {
@@ -100,7 +100,7 @@ public class Bank {
   }
 
   public void close() {
-    this.itemLoop.end(true);
+    this.transactionEventLoop.end(true);
   }
 
   public Double getLiquidity() {

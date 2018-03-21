@@ -40,7 +40,11 @@ public final class Flow<T, R> implements Flowable<T, R> {
   // input parameters
   private String name;
   private String indexFieldName;
-  private long defaultTTL = 10;
+
+  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
+  private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
+
+
   private Map<String, Future> streamSubscriberFutureResultMap = new HashMap<>();
   private Map<String, Subscription<R, T>> subscriberSubscriptions = new HashMap<>();
 
@@ -60,40 +64,37 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   //bad use of erasure need too find a better way
   public static <T, R> Flowable<T, R> aFlowable() {
-    return new Flow<>();
+    return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  Flow() {
+  public static <T, R> Flowable<T, R> aFlowable(String name) {
+    return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
+  }
+
+  public static <T, R> Flowable<T, R> aFlowable(String name, long ttlSeconds) {
+    return new Flow<>(name, null, ttlSeconds);
+  }
+
+  public static <T, R> Flowable<T, R> aFlowable(String name, String indexFieldName) {
+    return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS);
+  }
+
+  public static <T, R> Flowable<T, R> aFlowable(String name, String indexFieldName,
+      long ttlSeconds) {
+    return new Flow<>(name, indexFieldName, ttlSeconds);
+  }
+
+  private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.item_queue = new LinkedBlockingQueue<>(queue_max_size);
     this.itemqueue_out = new Item[this.queue_max_size];
-    this.name = UUID.randomUUID().toString();
-    this.indexFieldName = null;
+    this.name = name;
+    this.indexFieldName = indexFieldName;
+    if (ttlSeconds > 0)
+      this.defaultTTLSeconds = ttlSeconds;
     this.contentsControl = new FlowContentsControl<>(this);
     this.itemIDSequence = new ItemIdSequence();
-  }
+    this.flushImmediately = flushImmediately;
 
-  /**
-   * Name the aFlowable
-   *
-   * @param name
-   * @return
-   */
-  public Flowable<T, R> withName(String name) {
-    this.name = name;
-    return this;
-  }
-
-  /**
-   * Sets the field aFlowable the Value<T> on which the Flows contents can be indexed
-   * Use when it is required to query prior items in the Flow from a subscriber
-   *
-   * @param fieldName
-   * @return
-   */
-  public Flowable<T, R> withIndexField(String fieldName) {
-    this.indexFieldName = fieldName;
-    this.contentsControl.setItemStoreIndexFieldName(fieldName);
-    return this;
   }
 
   /**
@@ -127,23 +128,12 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Specify default ttl for items placed into the Flow
-   *
-   * @param ttlSeconds
-   * @return
-   */
-  public Flowable<T, R> withDefaultTTL(long ttlSeconds) {
-    this.defaultTTL = ttlSeconds;
-    return this;
-  }
-
-  /**
    * Indicate that each item place should be flushed immediately
    * Use when low latency < 2ms is required for core
    *
    * @return
    */
-  public Flowable<T, R> withImmediateFlushing() {
+  public Flowable<T, R> enableImmediateFlushing() {
     this.flushImmediately = true;
     return this;
   }
@@ -180,7 +170,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   @Override
   public long putItem(T value) {
-    return putItemWithTTL(defaultTTL, value);
+    return putItemWithTTL(defaultTTLSeconds, value);
   }
 
   /**
@@ -192,7 +182,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   @Override
   public long[] putItem(T... values) {
-    return putItemWithTTL(defaultTTL, values);
+    return putItemWithTTL(defaultTTLSeconds, values);
   }
 
   /**
@@ -202,7 +192,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   @Override
   public boolean putJSONItem(String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
-      Item item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), defaultTTL);
+      Item item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), defaultTTLSeconds);
       addToStreamWithLock(item, flushImmediately);
       if (slowDownNanos > 0)
         LockSupport.parkNanos(slowDownNanos);
@@ -295,7 +285,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    */
   @Override
   public Future<R> putItem(T value, SingleFutureSubscriber<R, T> subscriber) {
-    return putItemWithTTL(defaultTTL, value, subscriber);
+    return putItemWithTTL(defaultTTLSeconds, value, subscriber);
   }
 
   /**
@@ -327,7 +317,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    */
   @Override
   public Future<R> putItem(T value, MultiplexFutureSubscriber<R, T> subscriber) {
-    return putItemWithTTL(defaultTTL, value, subscriber);
+    return putItemWithTTL(defaultTTLSeconds, value, subscriber);
   }
 
   /**

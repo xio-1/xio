@@ -8,23 +8,13 @@ import java.util.concurrent.Future;
 
 public interface Flowable<T, R> {
 
-  default <Z,A> Flowable<Z,A> of() {
-    return new Flow<>();
-  }
-
   String name();
 
   Flowable<T,R> addSingleSubscriber(SingleSubscriber<R, T> subscriber);
 
   Flowable<T,R> addMultiplexSubscriber(MultiplexSubscriber<R, T> subscriber);
 
-  Flowable<T,R> withName(String name);
-
-  Flowable<T,R> withIndexField(String fieldName);
-
-  Flowable<T,R> withDefaultTTL(long ttlSeconds);
-
-  Flowable<T, R> withImmediateFlushing();
+  Flowable<T, R> enableImmediateFlushing();
 
   Flowable<T, R> withExecutorService(ExecutorService executorService);
 
