@@ -1,11 +1,11 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.NavigableSet;
 import java.util.concurrent.Future;
 
-public abstract class SingleFutureItemSubscriber<R, E> extends FutureSubscriberBase<R, E> {
+public abstract class SingleFutureItemSubscriber<R, E> extends FutureSubscriber<R, E> {
 
   @Override
   public void initialise() {

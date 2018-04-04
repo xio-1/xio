@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
 
@@ -7,8 +7,8 @@ import java.util.NavigableSet;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
-public abstract class MultiplexedFutureItemSubscriber<R, E>
-    extends FutureSubscriberBase<R, E> {
+public abstract class MultiplexFutureItemSubscriber<R, E>
+    extends FutureSubscriber<R, E> {
 
   @Override
   public void initialise() {
