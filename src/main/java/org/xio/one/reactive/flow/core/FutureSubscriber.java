@@ -1,23 +1,29 @@
 package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
-public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
+public abstract class FutureSubscriber<R, E> implements Subscriber<R, E> {
+
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
   private List<Callback<R>> callbacks = new ArrayList<>();
+  private Map<Long, CompletableFuture<R>> futures = new HashMap<>();
 
-  public AbstractSubscriber() {
+  public FutureSubscriber() {
     initialise();
+  }
+
+  public FutureSubscriber(Callback<R> callback) {
+    initialise();
+    addCallback(callback);
   }
 
   public abstract void initialise();
@@ -49,14 +55,14 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
   }
 
   @Override
-  public final void emit(Stream<Item<E>> e) {
+  public final void emit(NavigableSet<FlowItem<E>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(Stream<Item<E>> e);
+  public abstract void process(NavigableSet<FlowItem<E>> e);
 
   @Override
   public final R peek() {
@@ -103,6 +109,27 @@ public abstract class AbstractSubscriber<R, E> implements Subscriber<R, E> {
 
   @Override
   public R getResult() {
-    return getNext();
+    return result;
   }
+
+  public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {
+    futures.put(itemId, completableFuture);
+    return completableFuture;
+  }
+
+  final void completeFuture(FlowItem<E> item, Future<R> result) {
+    CompletableFuture<R> future = futures.get(item.itemId());
+    CompletableFuture.supplyAsync(() -> {
+      try {
+        future.complete(result.get());
+      } catch (Exception e1) {
+        onFutureError(e1, item.value());
+      }
+      return null;
+    });
+  }
+
+
+  public abstract void onFutureError(Throwable error, E itemValue);
+
 }

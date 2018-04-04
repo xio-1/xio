@@ -1,7 +1,7 @@
 package org.xio.one.reactive.flow.core;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 import org.xio.one.reactive.flow.core.domain.ItemComparator;
 
 import java.util.*;
@@ -13,45 +13,45 @@ import static org.xio.one.reactive.flow.core.domain.EmptyItem.EMPTY_ITEM;
 /** ItemStoreOperations @Author Xio @Copyright Xio */
 public final class FlowContents<T> {
 
-  public final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
+  public final NavigableSet<FlowItem<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   private FlowContentsControl itemStore;
   private Flow itemStream;
-  private NavigableSet<Item<T>> itemStoreContents = null;
+  private NavigableSet<FlowItem<T>> itemStoreContents = null;
 
   FlowContents(FlowContentsControl itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
-    this.itemStoreContents = (NavigableSet<Item<T>>) itemStore.itemRepositoryContents;
+    this.itemStoreContents = (NavigableSet<FlowItem<T>>) itemStore.itemRepositoryContents;
   }
 
-  public Item<T> item(long id) {
+  public FlowItem<T> item(long id) {
     return itemStoreContents.higher(new ItemComparator(id - 1));
   }
 
-  public Item item(Object index) {
-    return (Item) itemStore.getItemStoreIndexContents().get(index);
+  public FlowItem item(Object index) {
+    return (FlowItem) itemStore.getItemStoreIndexContents().get(index);
   }
 
   public long count() {
     return itemStoreContents.size();
   }
 
-  public Item[] all() {
-    List<Item> items = new ArrayList<>(itemStoreContents);
-    return items.toArray(new Item[items.size()]);
+  public FlowItem[] all() {
+    List<FlowItem> items = new ArrayList<>(itemStoreContents);
+    return items.toArray(new FlowItem[items.size()]);
   }
 
-  protected final NavigableSet<Item<T>> allAfter(Item lastItem) {
+  protected final NavigableSet<FlowItem<T>> allAfter(FlowItem lastItem) {
     try {
-      NavigableSet<Item<T>> querystorecontents =
+      NavigableSet<FlowItem<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (lastItem != null) {
-        Item newLastItem = querystorecontents.last();
-        NavigableSet<Item<T>> items =
+        FlowItem newLastItem = querystorecontents.last();
+        NavigableSet<FlowItem<T>> items =
             Collections.unmodifiableNavigableSet(
                 querystorecontents.subSet(lastItem, false, newLastItem, true));
         if (items.size() > 0) {
-          Item newFirstItem = items.first();
+          FlowItem newFirstItem = items.first();
           if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
             // if last domain is in correct sequence then
             if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
@@ -70,12 +70,12 @@ public final class FlowContents<T> {
     return EMPTY_ITEM_SET;
   }
 
-  private NavigableSet<Item<T>> extractItemsThatAreInSequence(
-      Item lastItem, NavigableSet<Item<T>> items, Item newFirstItem) {
-    Item[] items1 = items.toArray(new Item[items.size()]);
+  private NavigableSet<FlowItem<T>> extractItemsThatAreInSequence(
+      FlowItem lastItem, NavigableSet<FlowItem<T>> items, FlowItem newFirstItem) {
+    FlowItem[] items1 = items.toArray(new FlowItem[items.size()]);
     int index = 0;
-    Item last = lastItem;
-    Item current = items1[0];
+    FlowItem last = lastItem;
+    FlowItem current = items1[0];
     while (current.itemId() == last.itemId() + 1 && index <= items1.length) {
       last = current;
       index++;
@@ -84,8 +84,8 @@ public final class FlowContents<T> {
     return items.subSet(newFirstItem, true, last, true);
   }
 
-  public Item<T> last() {
-    NavigableSet<Item<T>> querystorecontents =
+  public FlowItem<T> last() {
+    NavigableSet<FlowItem<T>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
     if (querystorecontents.isEmpty()) return EMPTY_ITEM;
     else {
@@ -111,11 +111,11 @@ public final class FlowContents<T> {
     return EMPTY_ITEM;
   }*/
 
-  public Item first() {
+  public FlowItem first() {
     return this.itemStoreContents.first();
   }
 
-  public Optional<Item> nextFollowing(long itemid) {
+  public Optional<FlowItem> nextFollowing(long itemid) {
     return Optional.ofNullable(this.itemStoreContents.higher(new ItemComparator(itemid)));
   }
 
@@ -192,7 +192,7 @@ public final class FlowContents<T> {
 
   */
 
-  public NavigableSet<Item<T>> getTimeWindowSet(long from, long to)
+  public NavigableSet<FlowItem<T>> getTimeWindowSet(long from, long to)
       throws FlowException {
     // Get first and last domain in the window
     // otherwise return empty set as nothing found in the window

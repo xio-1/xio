@@ -1,7 +1,7 @@
 package org.xio.one.reactive.flow.core;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 import org.xio.one.reactive.flow.core.domain.EmptyItem;
 
 import java.util.Collections;
@@ -11,7 +11,7 @@ import java.util.concurrent.Future;
 
 public final class Subscription<R, E> {
 
-  private Item lastSeenItem = null;
+  private FlowItem lastSeenItem = null;
   private Flow<E,R> itemStream;
   private Future subscription;
   private Subscriber<R, E> subscriber;
@@ -45,24 +45,24 @@ public final class Subscription<R, E> {
   }
 
   private void processFinalResults(Subscriber<R, E> subscriber) {
-    NavigableSet<Item<E>> streamContents = streamContents();
+    NavigableSet<FlowItem<E>> streamContents = streamContents();
     while (streamContents.size() > 0) {
-      subscriber.emit(streamContents.stream());
+      subscriber.emit(streamContents);
       streamContents = streamContents();
     }
   }
 
   private void processResults(Subscriber<R, E> subscriber) {
-    NavigableSet<Item<E>> streamContents = streamContents();
-    if (streamContents.size() > 0) subscriber.emit(streamContents.stream());
+    NavigableSet<FlowItem<E>> streamContents = streamContents();
+    if (streamContents.size() > 0) subscriber.emit(streamContents);
   }
 
   public void unsubscribe() {
     this.subscriber.stop();
   }
 
-  protected NavigableSet<Item<E>> streamContents() {
-    NavigableSet<Item<E>> streamContents =
+  protected NavigableSet<FlowItem<E>> streamContents() {
+    NavigableSet<FlowItem<E>> streamContents =
         Collections.unmodifiableNavigableSet(itemStream.contents().allAfter(lastSeenItem));
     if (streamContents.size() > 0) lastSeenItem = streamContents.last();
     return streamContents;
@@ -72,7 +72,7 @@ public final class Subscription<R, E> {
     return subscriber;
   }
 
-  public Item getLastSeenItem() {
+  public FlowItem getLastSeenItem() {
     if (lastSeenItem!=null)
       return lastSeenItem;
     else

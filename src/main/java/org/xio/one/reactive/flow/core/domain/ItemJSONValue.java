@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class ItemJSONValue extends Item<Map<String, Object>> {
+public class ItemJSONValue extends FlowItem<Map<String, Object>> {
 
   private static Map<String, Object> EMPTY_FIELD_VALUES = new LinkedHashMap<>();
   private static final Object EMPTY_OBJECT = new Object();

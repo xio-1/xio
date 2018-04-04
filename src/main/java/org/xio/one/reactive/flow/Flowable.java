@@ -10,9 +10,9 @@ public interface Flowable<T, R> {
 
   String name();
 
-  Flowable<T,R> addSingleSubscriber(SingleSubscriber<R, T> subscriber);
+  Flowable<T,R> addSingleSubscriber(FlowItemSubscriber<R, T> subscriber);
 
-  Flowable<T,R> addMultiplexSubscriber(MultiplexSubscriber<R, T> subscriber);
+  Flowable<T,R> addMultiplexSubscriber(FlowItemMultiplexSubscriber<R, T> subscriber);
 
   Flowable<T, R> enableImmediateFlushing();
 
@@ -30,13 +30,9 @@ public interface Flowable<T, R> {
 
   long[] putItemWithTTL(long ttlSeconds, T... values);
 
-  Future<R> putItemWithTTL(long ttlSeconds, T value, SingleFutureSubscriber<R, T> subscriber);
+  Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber);
 
-  Future<R> putItem(T value, SingleFutureSubscriber<R, T> subscriber);
-
-  Future<R> putItemWithTTL(long ttlSeconds, T value, MultiplexFutureSubscriber<R, T> subscriber);
-
-  Future<R> putItem(T value, MultiplexFutureSubscriber<R, T> subscriber);
+  Future<R> putItem(T value, FutureSubscriber<R, T> subscriber);
 
   FlowContents contents();
 

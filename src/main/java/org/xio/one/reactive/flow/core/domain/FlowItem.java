@@ -18,7 +18,7 @@ import java.lang.reflect.Method;
  *
  * @author Xio
  */
-public class Item<E> {
+public class FlowItem<E> {
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;
@@ -26,21 +26,21 @@ public class Item<E> {
   private long itemTTLSeconds;
   protected E itemValue;
 
-  public Item() {
+  public FlowItem() {
     this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = System.currentTimeMillis();
     this.itemId = 0;
     this.itemTTLSeconds = 0;
   }
 
-  public Item(long itemId) {
+  public FlowItem(long itemId) {
     this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = Long.MAX_VALUE;
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
   }
 
-  public Item(E value, long itemId) {
+  public FlowItem(E value, long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -49,7 +49,7 @@ public class Item<E> {
     this.itemTTLSeconds = 0;
   }
 
-  public Item(E value, long itemId, long itemTTLSeconds) {
+  public FlowItem(E value, long itemId, long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -117,7 +117,7 @@ public class Item<E> {
     if (this == item)
       return true;
     else
-      return this.itemId() == (((Item) item).itemId());
+      return this.itemId() == (((FlowItem) item).itemId());
   }
 
   @Override

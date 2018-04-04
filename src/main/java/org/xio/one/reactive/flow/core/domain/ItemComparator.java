@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.core.domain;
 
-public final class ItemComparator<T> extends Item<T> {
+public final class ItemComparator<T> extends FlowItem<T> {
 
   public ItemComparator(long itemId) {
     super(itemId);

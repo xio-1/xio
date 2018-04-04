@@ -1,9 +1,9 @@
 package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.MultiplexSubscriber;
+import org.xio.one.reactive.flow.core.FlowItemMultiplexSubscriber;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import static java.nio.file.StandardOpenOption.*;
 
 public class LoggerService {
 
-  private MultiplexSubscriber<Boolean, String> loggerSubscriber;
+  private FlowItemMultiplexSubscriber<Boolean, String> loggerSubscriber;
   private Flowable<String, Boolean> itemLoop;
   private Path logFilePath;
 
@@ -31,12 +31,12 @@ public class LoggerService {
 
     itemLoop = Flow.aFlowable();
 
-    loggerSubscriber = new MultiplexSubscriber<Boolean, String>() {
+    loggerSubscriber = new FlowItemMultiplexSubscriber<Boolean, String>() {
 
       private long position = 0;
 
       @Override
-      public Optional<Map<Long, Boolean>> onNext(Stream<Item<String>> items) throws Throwable {
+      public void onNext(Stream<FlowItem<String>> items)  {
         ByteBuffer buffer = ByteBuffer.allocate(64738);
         items.forEach(item -> {
           buffer.put((item.value() + "\r\n").getBytes());
@@ -45,13 +45,8 @@ public class LoggerService {
         fileChannel.write(buffer, position);
         position = position + buffer.limit();
         buffer.clear();
-        return Optional.empty();
       }
 
-      @Override
-      public Optional<Object> onError(Throwable error, Stream<Item<String>> itemValue) {
-        return Optional.empty();
-      }
     };
 
     itemLoop.addMultiplexSubscriber(loggerSubscriber);

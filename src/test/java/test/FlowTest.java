@@ -4,10 +4,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.core.MultiplexFutureSubscriber;
-import org.xio.one.reactive.flow.core.SingleFutureSubscriber;
-import org.xio.one.reactive.flow.core.SingleSubscriber;
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.FlowItemSubscriber;
+import org.xio.one.reactive.flow.core.FutureFlowItemMultiplexSubscriber;
+import org.xio.one.reactive.flow.core.FutureFlowItemSubscriber;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -53,24 +53,35 @@ public class FlowTest {
   }
 
   @Test
-  public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
-    Flowable<Integer, List<Integer>> asyncFlow =
-        Flow.aFlowable(HELLO_WORLD_FLOW);
+  public void simpleExample() throws Exception {
 
-    SingleSubscriber<List<Integer>, Integer> subscriber =
-        new SingleSubscriber<List<Integer>, Integer>() {
+    Flowable<String, String> toUPPERcaseFlow = Flow.aFlowable();
+
+    toUPPERcaseFlow.addSingleSubscriber(new FlowItemSubscriber<String, String>() {
+
+      @Override
+      public void onNext(FlowItem<String> itemValue) {
+        System.out.println(itemValue.value().toUpperCase());
+      }
+
+    });
+
+    toUPPERcaseFlow.putItem("value1", "value2");
+
+  }
+
+  @Test
+  public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
+    Flowable<Integer, List<Integer>> asyncFlow = Flow.aFlowable(INT_FLOW);
+
+    FlowItemSubscriber<List<Integer>, Integer> subscriber =
+        new FlowItemSubscriber<List<Integer>, Integer>() {
 
           List<Integer> output = new ArrayList<>();
 
           @Override
-          public Optional<List<Integer>> onNext(Integer itemValue) {
-            output.add(itemValue * 10);
-            return Optional.empty();
-          }
-
-          @Override
-          public Optional<Object> onError(Throwable error, Integer itemValue) {
-            return Optional.empty();
+          public void onNext(FlowItem<Integer> itemValue) {
+            output.add(itemValue.value() * 10);
           }
 
           @Override
@@ -89,14 +100,14 @@ public class FlowTest {
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
     Future<String> result =
-        asyncFlow.putItem("Hello", new SingleFutureSubscriber<String, String>() {
+        asyncFlow.putItem("Hello", new FutureFlowItemSubscriber<String, String>() {
           @Override
           public Future<String> onNext(String itemValue) {
             return CompletableFuture.completedFuture(itemValue + " world");
           }
 
           @Override
-          public void onError(Throwable error, String itemValue) {
+          public void onFutureError(Throwable error, String itemValue) {
             error.printStackTrace();
           }
         });
@@ -110,38 +121,27 @@ public class FlowTest {
     Flowable<String, String> pong_stream = Flow.aFlowable("pomg_stream");
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
-    SingleSubscriber<String, String> pingSubscriber = new SingleSubscriber<String, String>() {
+    FlowItemSubscriber<String, String> pingSubscriber = new FlowItemSubscriber<String, String>() {
       @Override
-      public Optional<String> onNext(String itemValue) {
-        if (itemValue.equals("ping")) {
+      public void onNext(FlowItem<String> itemValue) {
+        if (itemValue.value().equals("ping")) {
           System.out.println("got ping");
           pong_stream.putItem("pong");
           System.out.println("sent pong");
         }
-        return Optional.empty();
-      }
-
-      @Override
-      public Optional<Object> onError(Throwable error, String itemValue) {
-        return Optional.empty();
       }
     };
 
-    SingleSubscriber<String, String> pongSubscriber = new SingleSubscriber<String, String>() {
+    FlowItemSubscriber<String, String> pongSubscriber = new FlowItemSubscriber<String, String>() {
       @Override
-      public Optional<String> onNext(String itemValue) {
-        if (itemValue.equals("pong")) {
+      public void onNext(FlowItem<String> itemValue) {
+        if (itemValue.value().equals("pong")) {
           System.out.println("got pong");
           ping_stream.putItem("ping");
           System.out.println("sent ping");
         }
-        return Optional.empty();
       }
 
-      @Override
-      public Optional<Object> onError(Throwable error, String itemValue) {
-        return Optional.empty();
-      }
     };
     ping_stream.addSingleSubscriber(pingSubscriber);
     pong_stream.addSingleSubscriber(pongSubscriber);
@@ -153,9 +153,8 @@ public class FlowTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    Flowable<String, Long> asyncFlow =
-        Flow.aFlowable("sustainedPerformanceTest");
-    final SingleSubscriber<Long, String> subscriber = new SingleSubscriber<Long, String>() {
+    Flowable<String, Long> asyncFlow = Flow.aFlowable("sustainedPerformanceTest");
+    final FlowItemSubscriber<Long, String> subscriber = new FlowItemSubscriber<Long, String>() {
       long count;
 
       @Override
@@ -164,14 +163,8 @@ public class FlowTest {
       }
 
       @Override
-      public Optional<Long> onNext(String itemValue) {
+      public void onNext(FlowItem<String> itemValue) {
         this.count++;
-        return Optional.empty();
-      }
-
-      @Override
-      public Optional<Object> onError(Throwable error, String itemValue) {
-        return Optional.empty();
       }
 
       @Override
@@ -201,14 +194,20 @@ public class FlowTest {
   @Test
   public void putForMultiplexingFutures() throws Exception {
     Flowable<String, String> micro_stream = Flow.aFlowable("micro_stream");
-    MultiplexFutureSubscriber<String, String> microBatchFlowSubscriber =
-        new MultiplexFutureSubscriber<String, String>() {
+    FutureFlowItemMultiplexSubscriber<String, String> microBatchFlowSubscriber =
+        new FutureFlowItemMultiplexSubscriber<String, String>() {
+
           @Override
-          public Map<Long, String> onNext(Stream<Item<String>> e) {
-            Map<Long, String> results = new HashMap<>();
-            e.forEach(
-                stringItem -> results.put(stringItem.itemId(), stringItem.value().toUpperCase()));
+          public Map<Long, Future<String>> onNext(Stream<FlowItem<String>> e) {
+            Map<Long, Future<String>> results = new HashMap<>();
+            e.forEach(stringItem -> results.put(stringItem.itemId(),
+                CompletableFuture.completedFuture(stringItem.value().toUpperCase())));
             return results;
+          }
+
+          @Override
+          public void onFutureError(Throwable error, String itemValue) {
+
           }
         };
     Future<String> result1 = micro_stream.putItem("hello1", microBatchFlowSubscriber);
@@ -234,8 +233,7 @@ public class FlowTest {
 
   @Test
   public void shouldReturnItemUsingIndexField() {
-    Flowable<TestObject, TestObject> asyncFlow =
-        Flow.aFlowable("test_index","testField");
+    Flowable<TestObject, TestObject> asyncFlow = Flow.aFlowable("test_index", "testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
@@ -246,7 +244,7 @@ public class FlowTest {
 
   @Test
   public void shouldReturnItemUsingJSONIndexField() throws Exception {
-    Flowable<String, String> asyncFlow = Flow.aFlowable("test_index_json","msg");
+    Flowable<String, String> asyncFlow = Flow.aFlowable("test_index_json", "msg");
     asyncFlow.putJSONItem("{\"msg\":\"hello1\"}");
     asyncFlow.putJSONItem("{\"msg\":\"hello2\"}");
     asyncFlow.putJSONItem("{\"msg\":\"hello3\"}");

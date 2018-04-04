@@ -1,44 +1,24 @@
 package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public abstract class AbstractFutureSubscriber<R,E> implements Subscriber<R,E> {
-
+public abstract class AbstractFlowItemSubscriber<R, E> implements Subscriber<R, E> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
-  private List<Callback<R>> callbacks = new ArrayList<>();
 
-  public AbstractFutureSubscriber() {
+  public AbstractFlowItemSubscriber() {
     initialise();
-  }
-
-  public AbstractFutureSubscriber(Callback<R> callback) {
-    initialise();
-    addCallback(callback);
   }
 
   public abstract void initialise();
-
-  void addCallback(Callback<R> callback) {
-    callbacks.add(callback);
-  }
-
-  void callCallbacks(R result) {
-    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
-  }
-
-  void callCallbacks(Throwable e, Object source) {
-    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
-  }
 
   @Override
   public final boolean isDone() {
@@ -55,14 +35,14 @@ public abstract class AbstractFutureSubscriber<R,E> implements Subscriber<R,E> {
   }
 
   @Override
-  public final void emit(Stream<Item<E>> e) {
+  public final void emit(NavigableSet<FlowItem<E>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(Stream<Item<E>> e);
+  public abstract void process(NavigableSet<FlowItem<E>> e);
 
   @Override
   public final R peek() {
@@ -109,6 +89,6 @@ public abstract class AbstractFutureSubscriber<R,E> implements Subscriber<R,E> {
 
   @Override
   public R getResult() {
-    return result;
+    return getNext();
   }
 }

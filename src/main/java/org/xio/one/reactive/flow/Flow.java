@@ -7,7 +7,7 @@ package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.core.*;
 import org.xio.one.reactive.flow.core.domain.EmptyItemArray;
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 import org.xio.one.reactive.flow.core.domain.ItemIdSequence;
 import org.xio.one.reactive.flow.core.domain.ItemJSONValue;
 import org.xio.one.reactive.flow.core.util.InternalExecutors;
@@ -49,8 +49,8 @@ public final class Flow<T, R> implements Flowable<T, R> {
   private Map<String, Subscription<R, T>> subscriberSubscriptions = new HashMap<>();
 
   // Queue control
-  private Item[] itemqueue_out;
-  private BlockingQueue<Item> item_queue;
+  private FlowItem[] itemqueue_out;
+  private BlockingQueue<FlowItem> item_queue;
   private int last_queue_size = 0;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
@@ -86,7 +86,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.item_queue = new LinkedBlockingQueue<>(queue_max_size);
-    this.itemqueue_out = new Item[this.queue_max_size];
+    this.itemqueue_out = new FlowItem[this.queue_max_size];
     this.name = name;
     this.indexFieldName = indexFieldName;
     if (ttlSeconds > 0)
@@ -103,7 +103,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    * @param subscriber
    * @return
    */
-  public Flowable<T, R> addSingleSubscriber(SingleSubscriber<R, T> subscriber) {
+  public Flowable<T, R> addSingleSubscriber(FlowItemSubscriber<R, T> subscriber) {
     if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
@@ -118,7 +118,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    * @param subscriber
    * @return
    */
-  public Flowable<T, R> addMultiplexSubscriber(MultiplexSubscriber<R, T> subscriber) {
+  public Flowable<T, R> addMultiplexSubscriber(FlowItemMultiplexSubscriber<R, T> subscriber) {
     if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<R, T>(this, subscriber);
       streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
@@ -192,7 +192,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   @Override
   public boolean putJSONItem(String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
-      Item item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), defaultTTLSeconds);
+      FlowItem item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), defaultTTLSeconds);
       addToStreamWithLock(item, flushImmediately);
       if (slowDownNanos > 0)
         LockSupport.parkNanos(slowDownNanos);
@@ -209,7 +209,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   @Override
   public boolean putJSONItemWithTTL(long ttlSeconds, String jsonValue) throws IOException {
     if (jsonValue != null && !isEnd) {
-      Item item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), ttlSeconds);
+      FlowItem item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), ttlSeconds);
       addToStreamWithLock(item, flushImmediately);
       if (slowDownNanos > 0)
         LockSupport.parkNanos(slowDownNanos);
@@ -224,7 +224,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   @Override
   public long putItemWithTTL(long ttlSeconds, T value) {
     if (value != null && !isEnd) {
-      Item<T> item = new Item<>(value, itemIDSequence.getNext(), ttlSeconds);
+      FlowItem<T> item = new FlowItem<>(value, itemIDSequence.getNext(), ttlSeconds);
       addToStreamWithLock(item, flushImmediately);
       if (slowDownNanos > 0)
         LockSupport.parkNanos(slowDownNanos);
@@ -245,7 +245,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
     long[] ids = new long[values.length];
     if (values != null && !isEnd) {
       for (int i = 0; i < values.length; i++) {
-        Item<T> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
+        FlowItem<T> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
         addToStreamWithLock(item, flushImmediately);
         if (slowDownNanos > 0)
@@ -256,19 +256,27 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Each putItem is processed as a Future<R> using the given single future subscriber
+   * Each putItem is processed as a Future<R> using the given a single flow or multiplexed flow future subscriber
    * A future result will be made available immediately the domain is processed by the subscriber
    *
    * @return
    */
   @Override
-  public Future<R> putItemWithTTL(long ttlSeconds, T value,
-      SingleFutureSubscriber<R, T> subscriber) {
+  public Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber) {
+    generateSubscription(subscriber);
+    return putAndReturnAsCompletableFuture(ttlSeconds, value, subscriber);
+  }
+
+  private void generateSubscription(FutureSubscriber<R, T> subscriber) {
     if (subscriberSubscriptions.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriberSubscriptions.put(subscriber.getId(), subscription);
       subscription.subscribe();
     }
+  }
+
+  private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value,
+      FutureSubscriber<R, T> subscriber) {
     long itemId = putItemWithTTL(ttlSeconds, value);
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
     if (itemId != -1) {
@@ -278,45 +286,13 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   /**
-   * Each putItem is processed as a Future<R> using the given single future subscriber
+   * Each putItem is processed as a Future<R> using the given single or multiplex future subscriber
    * A future result will be made available immediately the domain is processed by the subscriber
    *
    * @return
    */
   @Override
-  public Future<R> putItem(T value, SingleFutureSubscriber<R, T> subscriber) {
-    return putItemWithTTL(defaultTTLSeconds, value, subscriber);
-  }
-
-  /**
-   * Each putItem is processed as a Future<R> using the given multiplex future subscriber
-   * A future result will be made available immediately the domain is processed by the subscriber
-   *
-   * @return
-   */
-  @Override
-  public Future<R> putItemWithTTL(long ttlSeconds, T value,
-      MultiplexFutureSubscriber<R, T> subscriber) {
-    if (subscriberSubscriptions.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-      subscriberSubscriptions.put(subscriber.getId(), subscription);
-      subscription.subscribe();
-    }
-    long itemId = putItemWithTTL(ttlSeconds, value);
-    if (itemId != -1) {
-      return subscriber.register(itemId);
-    } else
-      return null;
-  }
-
-  /**
-   * Each putItem is processed as a Future<R> using the given multiplex future subscriber
-   * A future result will be made available immediately the domain is processed by the subscriber
-   *
-   * @return
-   */
-  @Override
-  public Future<R> putItem(T value, MultiplexFutureSubscriber<R, T> subscriber) {
+  public Future<R> putItem(T value, FutureSubscriber<R, T> subscriber) {
     return putItemWithTTL(defaultTTLSeconds, value, subscriber);
   }
 
@@ -384,8 +360,8 @@ public final class Flow<T, R> implements Flowable<T, R> {
     return slowDownNanos;
   }
 
-  public Item[] takeAll() {
-    Item[] result;
+  public FlowItem[] takeAll() {
+    FlowItem[] result;
     waitForInput();
     int mmsize = this.item_queue.size();
     if ((getNumberOfNewItems(mmsize, last_queue_size)) > 0) {
@@ -400,7 +376,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
     return result;
   }
 
-  private boolean addToStreamWithNoLock(Item item, boolean immediately) {
+  private boolean addToStreamWithNoLock(FlowItem item, boolean immediately) {
     boolean put_ok;
     this.flush = false;
     if (put_ok = this.item_queue.offer(item)) {
@@ -429,7 +405,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
     return put_ok;
   }
 
-  private boolean addToStreamWithLock(Item item, boolean immediately) {
+  private boolean addToStreamWithLock(FlowItem item, boolean immediately) {
     boolean put_ok = false;
     this.flush = false;
     while (!put_ok && !hasEnded())

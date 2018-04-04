@@ -2,13 +2,14 @@ package examples.bank.domain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.core.domain.Item;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.MultiplexFutureSubscriber;
-import org.xio.one.reactive.flow.core.SingleSubscriber;
+import org.xio.one.reactive.flow.Flowable;
+import org.xio.one.reactive.flow.core.FlowItemSubscriber;
+import org.xio.one.reactive.flow.core.FutureFlowItemMultiplexSubscriber;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -18,7 +19,7 @@ public class Bank {
   Flowable<TransactionRequest, Boolean> transactionEventLoop;
   List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
   Logger logger = LoggerFactory.getLogger(Bank.class);
-  MultiplexFutureSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
+  FutureFlowItemMultiplexSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
     transactionEventLoop = Flow.aFlowable();
@@ -26,18 +27,17 @@ public class Bank {
 
   public void open() {
     //Subscriber for every transaction request
-    transactionEventLoop.addSingleSubscriber(new SingleSubscriber<Boolean, TransactionRequest>() {
+    transactionEventLoop.addSingleSubscriber(new FlowItemSubscriber<Boolean, TransactionRequest>() {
 
       @Override
-      public Optional<Boolean> onNext(TransactionRequest transaction) throws InsufficientFundsException {
-        this.processTransaction(transaction);
-        return Optional.empty();
+      public void onNext(FlowItem<TransactionRequest> transaction)
+          throws InsufficientFundsException {
+        this.processTransaction(transaction.value());
       }
 
       @Override
-      public Optional<Object> onError(Throwable error, TransactionRequest itemValue) {
+      public void onError(Throwable error, FlowItem<TransactionRequest> itemValue) {
         error.printStackTrace();
-        return Optional.empty();
       }
 
       private void processTransaction(TransactionRequest transaction)
@@ -65,23 +65,28 @@ public class Bank {
 
     });
 
-    ledgerMultiplexFutureSubscriber = new MultiplexFutureSubscriber<Boolean, TransactionRequest>() {
-      HashMap<Long, Boolean> toReturn = new HashMap<>();
+    ledgerMultiplexFutureSubscriber =
+        new FutureFlowItemMultiplexSubscriber<Boolean, TransactionRequest>() {
+          HashMap<Long, Future<Boolean>> toReturn = new HashMap<>();
 
-      @Override
-      public Map<Long, Boolean> onNext(Stream<Item<TransactionRequest>> e) {
-        String multiplexGroupID = UUID.randomUUID().toString();
-        e.parallel().forEach(item -> {
-          logger.info(
-              "itemID" + "|" + item.itemId() +"|" + "groupID" + "|" + multiplexGroupID + "|" + item
-                  .value().toString());
-          bankTransactionLedger.add(item.value());
-          toReturn.put(item.itemId(), true);
-        });
+          @Override
+          public Map<Long, Future<Boolean>> onNext(Stream<FlowItem<TransactionRequest>> e) {
+            String multiplexGroupID = UUID.randomUUID().toString();
+            e.parallel().forEach(item -> {
+              logger.info(
+                  "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|"
+                      + item.value().toString());
+              toReturn.put(item.itemId(), CompletableFuture.completedFuture(bankTransactionLedger.add(item.value())));
+            });
 
-        return toReturn;
-      }
-    };
+            return toReturn;
+          }
+
+          @Override
+          public void onFutureError(Throwable error, TransactionRequest itemValue) {
+          }
+
+        };
 
   }
 

@@ -2,7 +2,7 @@ package org.xio.one.reactive.flow.core;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.core.util.InternalExecutors;
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 import org.xio.one.reactive.flow.core.domain.ItemSequenceComparator;
 
 import java.util.Arrays;
@@ -17,8 +17,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 public final class FlowContentsControl<T> {
 
-  protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
-  protected volatile ConcurrentHashMap<Object, Item<T>> itemStoreIndexContents;
+  protected volatile ConcurrentSkipListSet<FlowItem<T>> itemRepositoryContents;
+  protected volatile ConcurrentHashMap<Object, FlowItem<T>> itemStoreIndexContents;
   private Flow itemStream = null;
   private boolean isEnd = false;
   private FlowContents itemStoreOperations = null;
@@ -33,7 +33,7 @@ public final class FlowContentsControl<T> {
   public FlowContentsControl(Flow itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
-    itemStoreOperations = new FlowContents<Item<T>>(this, itemStream);
+    itemStoreOperations = new FlowContents<FlowItem<T>>(this, itemStream);
     itemStoreIndexContents = new ConcurrentHashMap<>();
     if (itemStream.indexFieldName() != null) {
       itemStoreIndexFieldName = itemStream.indexFieldName();
@@ -51,7 +51,7 @@ public final class FlowContentsControl<T> {
    *
    * @return
    */
-  public FlowContents<Item<T>> query() {
+  public FlowContents<FlowItem<T>> query() {
     return itemStoreOperations;
   }
 
@@ -60,7 +60,7 @@ public final class FlowContentsControl<T> {
    *
    * @param items
    */
-  private Item work(Item[] items) {
+  private FlowItem work(FlowItem[] items) {
     Arrays.stream(items).forEach(item -> {
       itemRepositoryContents.add(item);
       if (getItemStoreIndexFieldName() != null)
@@ -81,7 +81,7 @@ public final class FlowContentsControl<T> {
     return itemStoreIndexFieldName;
   }
 
-  public ConcurrentHashMap<Object, Item<T>> getItemStoreIndexContents() {
+  public ConcurrentHashMap<Object, FlowItem<T>> getItemStoreIndexContents() {
     return itemStoreIndexContents;
   }
 
@@ -99,15 +99,15 @@ public final class FlowContentsControl<T> {
     @Override
     public void run() {
       try {
-        Item last = null;
+        FlowItem last = null;
         boolean hasRunatLeastOnce = false;
         while (!itemStream.hasEnded() || !hasRunatLeastOnce) {
-          Item next_last = this.itemStore.work(itemStream.takeAll());
+          FlowItem next_last = this.itemStore.work(itemStream.takeAll());
           if (next_last != null)
             last = next_last;
           hasRunatLeastOnce = true;
         }
-        Item next_last = this.itemStore.work(itemStream.takeAll());
+        FlowItem next_last = this.itemStore.work(itemStream.takeAll());
         if (next_last != null)
           last = next_last;
         if (last != null)

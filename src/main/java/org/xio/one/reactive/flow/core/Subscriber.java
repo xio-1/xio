@@ -1,12 +1,12 @@
 package org.xio.one.reactive.flow.core;
 
-import org.xio.one.reactive.flow.core.domain.Item;
+import org.xio.one.reactive.flow.core.domain.FlowItem;
 
-import java.util.stream.Stream;
+import java.util.NavigableSet;
 
 public interface Subscriber<R,E> {
 
-  void emit(Stream<Item<E>> e);
+  void emit(NavigableSet<FlowItem<E>> e);
 
   boolean stop();
 
@@ -26,5 +26,5 @@ public interface Subscriber<R,E> {
 
   void finalise();
 
-  void process(Stream<Item<E>> e);
+  void process(NavigableSet<FlowItem<E>> e);
 }
