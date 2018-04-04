@@ -1,19 +1,20 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriberOperations;
 
 import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public abstract class SubscriberBase<R, E> implements Subscriber<R, E> {
+public abstract class Subscriber<R, E> implements SubscriberOperations<R, E> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
 
-  public SubscriberBase() {
+  public Subscriber() {
     initialise();
   }
 
@@ -73,7 +74,7 @@ public abstract class SubscriberBase<R, E> implements Subscriber<R, E> {
   }
 
   @Override
-  public final Subscriber<R, E> getSubscriber() {
+  public final SubscriberOperations<R, E> getSubscriber() {
     return this;
   }
 

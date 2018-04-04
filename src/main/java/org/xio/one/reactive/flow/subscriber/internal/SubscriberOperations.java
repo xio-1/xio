@@ -1,10 +1,10 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber.internal;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.NavigableSet;
 
-public interface Subscriber<R,E> {
+public interface SubscriberOperations<R,E> {
 
   void emit(NavigableSet<FlowItem<E>> e);
 
@@ -16,7 +16,7 @@ public interface Subscriber<R,E> {
 
   R getNext();
 
-  Subscriber<R,E> getSubscriber();
+  SubscriberOperations<R,E> getSubscriber();
 
   void initialise();
 

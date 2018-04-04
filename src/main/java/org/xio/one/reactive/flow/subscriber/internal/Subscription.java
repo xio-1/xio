@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber.internal;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowItem;
@@ -14,9 +14,9 @@ public final class Subscription<R, E> {
   private FlowItem lastSeenItem = null;
   private Flow<E,R> itemStream;
   private Future subscription;
-  private Subscriber<R, E> subscriber;
+  private SubscriberOperations<R, E> subscriber;
 
-  public Subscription(Flow<E, R> itemStream, Subscriber<R, E> subscriber) {
+  public Subscription(Flow<E, R> itemStream, SubscriberOperations<R, E> subscriber) {
     this.itemStream = itemStream;
     this.subscriber = subscriber;
   }
@@ -44,7 +44,7 @@ public final class Subscription<R, E> {
     return completableFuture;
   }
 
-  private void processFinalResults(Subscriber<R, E> subscriber) {
+  private void processFinalResults(SubscriberOperations<R, E> subscriber) {
     NavigableSet<FlowItem<E>> streamContents = streamContents();
     while (streamContents.size() > 0) {
       subscriber.emit(streamContents);
@@ -52,7 +52,7 @@ public final class Subscription<R, E> {
     }
   }
 
-  private void processResults(Subscriber<R, E> subscriber) {
+  private void processResults(SubscriberOperations<R, E> subscriber) {
     NavigableSet<FlowItem<E>> streamContents = streamContents();
     if (streamContents.size() > 0) subscriber.emit(streamContents);
   }
@@ -68,7 +68,7 @@ public final class Subscription<R, E> {
     return streamContents;
   }
 
-  public Subscriber<R, E> getSubscriber() {
+  public SubscriberOperations<R, E> getSubscriber() {
     return subscriber;
   }
 

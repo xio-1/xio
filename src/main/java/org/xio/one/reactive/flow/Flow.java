@@ -11,10 +11,10 @@ import org.xio.one.reactive.flow.domain.ItemIdSequence;
 import org.xio.one.reactive.flow.domain.ItemJSONValue;
 import org.xio.one.reactive.flow.service.FlowContents;
 import org.xio.one.reactive.flow.service.FlowService;
-import org.xio.one.reactive.flow.subscribers.FutureSubscriberBase;
-import org.xio.one.reactive.flow.subscribers.MultiplexItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.SingleItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.Subscription;
+import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
+import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ import java.util.concurrent.locks.LockSupport;
  * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
  * json etc can be put into the aFlowable and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
- * subscribers
+ * subscriber
  */
 public final class Flow<T, R> implements Flowable<T, R> {
 
@@ -267,12 +267,12 @@ public final class Flow<T, R> implements Flowable<T, R> {
    * @return
    */
   @Override
-  public Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriberBase<R, T> subscriber) {
+  public Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber) {
     generateSubscription(subscriber);
     return putAndReturnAsCompletableFuture(ttlSeconds, value, subscriber);
   }
 
-  private void generateSubscription(FutureSubscriberBase<R, T> subscriber) {
+  private void generateSubscription(FutureSubscriber<R, T> subscriber) {
     if (subscriberSubscriptions.get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       subscriberSubscriptions.put(subscriber.getId(), subscription);
@@ -281,7 +281,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value,
-      FutureSubscriberBase<R, T> subscriber) {
+      FutureSubscriber<R, T> subscriber) {
     long itemId = putItemWithTTL(ttlSeconds, value);
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
     if (itemId != -1) {
@@ -297,7 +297,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    * @return
    */
   @Override
-  public Future<R> putItem(T value, FutureSubscriberBase<R, T> subscriber) {
+  public Future<R> putItem(T value, FutureSubscriber<R, T> subscriber) {
     return putItemWithTTL(defaultTTLSeconds, value, subscriber);
   }
 

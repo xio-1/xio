@@ -1,10 +1,10 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.NavigableSet;
 
-public abstract class SingleItemSubscriber<R, T> extends SubscriberBase<R, T> {
+public abstract class SingleItemSubscriber<R, T> extends Subscriber<R, T> {
 
   @Override
   public final void process(NavigableSet<FlowItem<T>> e) {

@@ -4,9 +4,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.subscribers.SingleItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.MultiplexedFutureItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.SingleFutureItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.FutureSingleItemSubscriber;
 import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.*;
@@ -100,7 +100,7 @@ public class FlowTest {
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
     Future<String> result =
-        asyncFlow.putItem("Hello", new SingleFutureItemSubscriber<String, String>() {
+        asyncFlow.putItem("Hello", new FutureSingleItemSubscriber<String, String>() {
           @Override
           public Future<String> onNext(String itemValue) {
             return CompletableFuture.completedFuture(itemValue + " world");
@@ -194,8 +194,8 @@ public class FlowTest {
   @Test
   public void putForMultiplexingFutures() throws Exception {
     Flowable<String, String> micro_stream = Flow.aFlowable("micro_stream");
-    MultiplexedFutureItemSubscriber<String, String> microBatchFlowSubscriber =
-        new MultiplexedFutureItemSubscriber<String, String>() {
+    FutureMultiplexItemSubscriber<String, String> microBatchFlowSubscriber =
+        new FutureMultiplexItemSubscriber<String, String>() {
 
           @Override
           public Map<Long, Future<String>> onNext(Stream<FlowItem<String>> e) {

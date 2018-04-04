@@ -1,7 +1,7 @@
 package org.xio.one.reactive.flow.service;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.subscribers.Subscription;
+import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.ItemSequenceComparator;
@@ -28,7 +28,7 @@ public final class FlowService<T> {
   /**
    * New Item BaseWorker Execution using the sequence comparator to order the results
    * by item sequence number.
-   * Items will be retained until consumed to by all subscribers and whilst they are alive
+   * Items will be retained until consumed to by all subscriber and whilst they are alive
    * i.e. before they expire their/stream TTL
    */
   public FlowService(Flow itemStream) {

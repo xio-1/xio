@@ -1,13 +1,15 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.subscriber.internal.Callback;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriberOperations;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public abstract class FutureSubscriberBase<R, E> implements Subscriber<R, E> {
+public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, E> {
 
 
   private final String id = UUID.randomUUID().toString();
@@ -17,11 +19,11 @@ public abstract class FutureSubscriberBase<R, E> implements Subscriber<R, E> {
   private List<Callback<R>> callbacks = new ArrayList<>();
   private Map<Long, CompletableFuture<R>> futures = new HashMap<>();
 
-  public FutureSubscriberBase() {
+  public FutureSubscriber() {
     initialise();
   }
 
-  public FutureSubscriberBase(Callback<R> callback) {
+  public FutureSubscriber(Callback<R> callback) {
     initialise();
     addCallback(callback);
   }
@@ -94,7 +96,7 @@ public abstract class FutureSubscriberBase<R, E> implements Subscriber<R, E> {
   }
 
   @Override
-  public final Subscriber<R, E> getSubscriber() {
+  public final SubscriberOperations<R, E> getSubscriber() {
     return this;
   }
 
