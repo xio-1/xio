@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.core.domain;
+package org.xio.one.reactive.flow.domain;
 
 public final class ItemComparator<T> extends FlowItem<T> {
 

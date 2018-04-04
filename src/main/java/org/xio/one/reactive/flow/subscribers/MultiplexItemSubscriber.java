@@ -1,12 +1,12 @@
-package org.xio.one.reactive.flow.core;
+package org.xio.one.reactive.flow.subscribers;
 
-import org.xio.one.reactive.flow.core.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class FlowItemMultiplexSubscriber<R, E> extends AbstractFlowItemSubscriber<R, E> {
+public abstract class MultiplexItemSubscriber<R, E> extends SubscriberBase<R, E> {
 
   @Override
   public final void process(NavigableSet<FlowItem<E>> e) {

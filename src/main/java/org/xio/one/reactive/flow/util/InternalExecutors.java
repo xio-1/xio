@@ -4,7 +4,7 @@
  * Author Xio
  */
 
-package org.xio.one.reactive.flow.core.util;
+package org.xio.one.reactive.flow.util;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -4,9 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.core.FlowItemSubscriber;
-import org.xio.one.reactive.flow.core.FutureFlowItemMultiplexSubscriber;
-import org.xio.one.reactive.flow.core.domain.FlowItem;
+import org.xio.one.reactive.flow.subscribers.SingleItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiplexedFutureItemSubscriber;
+import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +19,7 @@ public class Bank {
   Flowable<TransactionRequest, Boolean> transactionEventLoop;
   List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
   Logger logger = LoggerFactory.getLogger(Bank.class);
-  FutureFlowItemMultiplexSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
+  MultiplexedFutureItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
     transactionEventLoop = Flow.aFlowable();
@@ -27,7 +27,7 @@ public class Bank {
 
   public void open() {
     //Subscriber for every transaction request
-    transactionEventLoop.addSingleSubscriber(new FlowItemSubscriber<Boolean, TransactionRequest>() {
+    transactionEventLoop.addSingleSubscriber(new SingleItemSubscriber<Boolean, TransactionRequest>() {
 
       @Override
       public void onNext(FlowItem<TransactionRequest> transaction)
@@ -66,7 +66,7 @@ public class Bank {
     });
 
     ledgerMultiplexFutureSubscriber =
-        new FutureFlowItemMultiplexSubscriber<Boolean, TransactionRequest>() {
+        new MultiplexedFutureItemSubscriber<Boolean, TransactionRequest>() {
           HashMap<Long, Future<Boolean>> toReturn = new HashMap<>();
 
           @Override

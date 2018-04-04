@@ -1,9 +1,10 @@
-package org.xio.one.reactive.flow.core;
+package org.xio.one.reactive.flow.service;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.util.InternalExecutors;
-import org.xio.one.reactive.flow.core.domain.FlowItem;
-import org.xio.one.reactive.flow.core.domain.ItemSequenceComparator;
+import org.xio.one.reactive.flow.subscribers.Subscription;
+import org.xio.one.reactive.flow.util.InternalExecutors;
+import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.ItemSequenceComparator;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -15,7 +16,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * The Xio.contents.domain itemQueryStore where the putAll domain are persisted in memory
  */
-public final class FlowContentsControl<T> {
+public final class FlowService<T> {
 
   protected volatile ConcurrentSkipListSet<FlowItem<T>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, FlowItem<T>> itemStoreIndexContents;
@@ -30,7 +31,7 @@ public final class FlowContentsControl<T> {
    * Items will be retained until consumed to by all subscribers and whilst they are alive
    * i.e. before they expire their/stream TTL
    */
-  public FlowContentsControl(Flow itemStream) {
+  public FlowService(Flow itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreOperations = new FlowContents<FlowItem<T>>(this, itemStream);
@@ -90,9 +91,9 @@ public final class FlowContentsControl<T> {
    */
   private class WorkerInput implements Runnable {
 
-    FlowContentsControl itemStore;
+    FlowService itemStore;
 
-    public WorkerInput(FlowContentsControl itemStore) {
+    public WorkerInput(FlowService itemStore) {
       this.itemStore = itemStore;
     }
 

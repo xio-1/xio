@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.core.domain;
+package org.xio.one.reactive.flow.domain;
 
 import java.util.concurrent.atomic.AtomicLong;
 

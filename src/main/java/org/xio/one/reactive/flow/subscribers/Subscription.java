@@ -1,8 +1,8 @@
-package org.xio.one.reactive.flow.core;
+package org.xio.one.reactive.flow.subscribers;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.domain.FlowItem;
-import org.xio.one.reactive.flow.core.domain.EmptyItem;
+import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.EmptyItem;
 
 import java.util.Collections;
 import java.util.NavigableSet;
@@ -57,11 +57,11 @@ public final class Subscription<R, E> {
     if (streamContents.size() > 0) subscriber.emit(streamContents);
   }
 
-  public void unsubscribe() {
+  private void unsubscribe() {
     this.subscriber.stop();
   }
 
-  protected NavigableSet<FlowItem<E>> streamContents() {
+  private NavigableSet<FlowItem<E>> streamContents() {
     NavigableSet<FlowItem<E>> streamContents =
         Collections.unmodifiableNavigableSet(itemStream.contents().allAfter(lastSeenItem));
     if (streamContents.size() > 0) lastSeenItem = streamContents.last();

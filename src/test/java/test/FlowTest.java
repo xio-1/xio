@@ -4,10 +4,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.core.FlowItemSubscriber;
-import org.xio.one.reactive.flow.core.FutureFlowItemMultiplexSubscriber;
-import org.xio.one.reactive.flow.core.FutureFlowItemSubscriber;
-import org.xio.one.reactive.flow.core.domain.FlowItem;
+import org.xio.one.reactive.flow.subscribers.SingleItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiplexedFutureItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.SingleFutureItemSubscriber;
+import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -57,7 +57,7 @@ public class FlowTest {
 
     Flowable<String, String> toUPPERcaseFlow = Flow.aFlowable();
 
-    toUPPERcaseFlow.addSingleSubscriber(new FlowItemSubscriber<String, String>() {
+    toUPPERcaseFlow.addSingleSubscriber(new SingleItemSubscriber<String, String>() {
 
       @Override
       public void onNext(FlowItem<String> itemValue) {
@@ -74,8 +74,8 @@ public class FlowTest {
   public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
     Flowable<Integer, List<Integer>> asyncFlow = Flow.aFlowable(INT_FLOW);
 
-    FlowItemSubscriber<List<Integer>, Integer> subscriber =
-        new FlowItemSubscriber<List<Integer>, Integer>() {
+    SingleItemSubscriber<List<Integer>, Integer> subscriber =
+        new SingleItemSubscriber<List<Integer>, Integer>() {
 
           List<Integer> output = new ArrayList<>();
 
@@ -100,7 +100,7 @@ public class FlowTest {
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
     Future<String> result =
-        asyncFlow.putItem("Hello", new FutureFlowItemSubscriber<String, String>() {
+        asyncFlow.putItem("Hello", new SingleFutureItemSubscriber<String, String>() {
           @Override
           public Future<String> onNext(String itemValue) {
             return CompletableFuture.completedFuture(itemValue + " world");
@@ -121,7 +121,7 @@ public class FlowTest {
     Flowable<String, String> pong_stream = Flow.aFlowable("pomg_stream");
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
-    FlowItemSubscriber<String, String> pingSubscriber = new FlowItemSubscriber<String, String>() {
+    SingleItemSubscriber<String, String> pingSubscriber = new SingleItemSubscriber<String, String>() {
       @Override
       public void onNext(FlowItem<String> itemValue) {
         if (itemValue.value().equals("ping")) {
@@ -132,7 +132,7 @@ public class FlowTest {
       }
     };
 
-    FlowItemSubscriber<String, String> pongSubscriber = new FlowItemSubscriber<String, String>() {
+    SingleItemSubscriber<String, String> pongSubscriber = new SingleItemSubscriber<String, String>() {
       @Override
       public void onNext(FlowItem<String> itemValue) {
         if (itemValue.value().equals("pong")) {
@@ -154,7 +154,7 @@ public class FlowTest {
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
     Flowable<String, Long> asyncFlow = Flow.aFlowable("sustainedPerformanceTest");
-    final FlowItemSubscriber<Long, String> subscriber = new FlowItemSubscriber<Long, String>() {
+    final SingleItemSubscriber<Long, String> subscriber = new SingleItemSubscriber<Long, String>() {
       long count;
 
       @Override
@@ -194,8 +194,8 @@ public class FlowTest {
   @Test
   public void putForMultiplexingFutures() throws Exception {
     Flowable<String, String> micro_stream = Flow.aFlowable("micro_stream");
-    FutureFlowItemMultiplexSubscriber<String, String> microBatchFlowSubscriber =
-        new FutureFlowItemMultiplexSubscriber<String, String>() {
+    MultiplexedFutureItemSubscriber<String, String> microBatchFlowSubscriber =
+        new MultiplexedFutureItemSubscriber<String, String>() {
 
           @Override
           public Map<Long, Future<String>> onNext(Stream<FlowItem<String>> e) {

@@ -1,11 +1,11 @@
-package org.xio.one.reactive.flow.core.domain;
+package org.xio.one.reactive.flow.domain;
 
 import java.util.Comparator;
 
 /**
  * Created by Admin on 09/09/2014.
  */
-public class ItemSequenceComparator<T> implements Comparator<FlowItem<T>> {
+public class ItemIdComparator implements Comparator<FlowItem> {
   @Override
   public int compare(FlowItem o1, FlowItem o2) {
     if (o1 == o2)

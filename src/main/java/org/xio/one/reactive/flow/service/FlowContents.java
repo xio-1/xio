@@ -1,24 +1,24 @@
-package org.xio.one.reactive.flow.core;
+package org.xio.one.reactive.flow.service;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.core.domain.FlowItem;
-import org.xio.one.reactive.flow.core.domain.ItemComparator;
+import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.ItemComparator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
-import static org.xio.one.reactive.flow.core.domain.EmptyItem.EMPTY_ITEM;
+import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
 
 /** ItemStoreOperations @Author Xio @Copyright Xio */
 public final class FlowContents<T> {
 
   public final NavigableSet<FlowItem<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  private FlowContentsControl itemStore;
+  private FlowService itemStore;
   private Flow itemStream;
   private NavigableSet<FlowItem<T>> itemStoreContents = null;
 
-  FlowContents(FlowContentsControl itemStore, Flow itemStream) {
+  FlowContents(FlowService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
     this.itemStoreContents = (NavigableSet<FlowItem<T>>) itemStore.itemRepositoryContents;
@@ -41,7 +41,7 @@ public final class FlowContents<T> {
     return items.toArray(new FlowItem[items.size()]);
   }
 
-  protected final NavigableSet<FlowItem<T>> allAfter(FlowItem lastItem) {
+  public final NavigableSet<FlowItem<T>> allAfter(FlowItem lastItem) {
     try {
       NavigableSet<FlowItem<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);

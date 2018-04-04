@@ -1,44 +1,23 @@
-package org.xio.one.reactive.flow.core;
+package org.xio.one.reactive.flow.subscribers;
 
-import org.xio.one.reactive.flow.core.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.FlowItem;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
+import java.util.NavigableSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public abstract class FutureSubscriber<R, E> implements Subscriber<R, E> {
-
+public abstract class SubscriberBase<R, E> implements Subscriber<R, E> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
-  private List<Callback<R>> callbacks = new ArrayList<>();
-  private Map<Long, CompletableFuture<R>> futures = new HashMap<>();
 
-  public FutureSubscriber() {
+  public SubscriberBase() {
     initialise();
-  }
-
-  public FutureSubscriber(Callback<R> callback) {
-    initialise();
-    addCallback(callback);
   }
 
   public abstract void initialise();
-
-  void addCallback(Callback<R> callback) {
-    callbacks.add(callback);
-  }
-
-  void callCallbacks(R result) {
-    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
-  }
-
-  void callCallbacks(Throwable e, Object source) {
-    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
-  }
 
   @Override
   public final boolean isDone() {
@@ -109,27 +88,6 @@ public abstract class FutureSubscriber<R, E> implements Subscriber<R, E> {
 
   @Override
   public R getResult() {
-    return result;
+    return getNext();
   }
-
-  public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {
-    futures.put(itemId, completableFuture);
-    return completableFuture;
-  }
-
-  final void completeFuture(FlowItem<E> item, Future<R> result) {
-    CompletableFuture<R> future = futures.get(item.itemId());
-    CompletableFuture.supplyAsync(() -> {
-      try {
-        future.complete(result.get());
-      } catch (Exception e1) {
-        onFutureError(e1, item.value());
-      }
-      return null;
-    });
-  }
-
-
-  public abstract void onFutureError(Throwable error, E itemValue);
-
 }
