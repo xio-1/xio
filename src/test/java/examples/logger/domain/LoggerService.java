@@ -1,8 +1,8 @@
 package examples.logger.domain;
 
+import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
 
 import java.io.File;
@@ -17,37 +17,32 @@ import static java.nio.file.StandardOpenOption.*;
 
 public class LoggerService {
 
-  private MultiplexItemSubscriber<Boolean, String> loggerSubscriber;
-  private Flowable<String, Boolean> itemLoop;
+  private Flowable<String, Boolean> logEntryFlow;
   private Path logFilePath;
 
   public LoggerService(String canonicalName) throws IOException {
     String fileName = UUID.randomUUID().toString() + canonicalName + ".tmp";
     logFilePath = File.createTempFile(fileName, null).toPath();
+
     AsynchronousFileChannel fileChannel =
         AsynchronousFileChannel.open(logFilePath, WRITE, CREATE, READ);
 
-    itemLoop = Flow.aFlowable();
+    logEntryFlow = Flow.aFlowable();
 
-    loggerSubscriber = new MultiplexItemSubscriber<Boolean, String>() {
-
+    logEntryFlow.addMultiplexSubscriber(new MultiplexItemSubscriber<Boolean, String>() {
       private long position = 0;
-
       @Override
-      public void onNext(Stream<FlowItem<String>> items)  {
+      public void onNext(Stream<FlowItem<String>> entries) {
         ByteBuffer buffer = ByteBuffer.allocate(64738);
-        items.forEach(item -> {
-          buffer.put((item.value() + "\r\n").getBytes());
+        entries.forEach(entry -> {
+          buffer.put((entry.value() + "\r\n").getBytes());
         });
         buffer.flip();
         fileChannel.write(buffer, position);
         position = position + buffer.limit();
         buffer.clear();
       }
-
-    };
-
-    itemLoop.addMultiplexSubscriber(loggerSubscriber);
+    });
 
   }
 
@@ -60,7 +55,7 @@ public class LoggerService {
   }
 
   public void logAsync(LogLevel logLevel, String entry) {
-    itemLoop.putItem(logLevel + ":" + entry);
+    logEntryFlow.putItem(logLevel + ":" + entry);
   }
 
   public Path getLogFilePath() {
@@ -68,6 +63,6 @@ public class LoggerService {
   }
 
   public void close() {
-    itemLoop.end(true);
+    logEntryFlow.end(true);
   }
 }

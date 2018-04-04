@@ -88,7 +88,7 @@ public abstract class Subscriber<R, E> implements SubscriberOperations<R, E> {
   }
 
   @Override
-  public R getResult() {
+  public final R getResult() {
     return getNext();
   }
 }
