@@ -6,6 +6,7 @@ import org.xio.one.reactive.flow.subscriber.internal.SubscriberOperations;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -17,7 +18,7 @@ public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, 
   private volatile R result = null;
   private boolean done = false;
   private List<Callback<R>> callbacks = new ArrayList<>();
-  private Map<Long, CompletableFuture<R>> futures = new HashMap<>();
+  private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
 
   public FutureSubscriber() {
     initialise();

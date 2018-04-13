@@ -20,9 +20,16 @@ public abstract class FutureMultiplexItemSubscriber<R, E>
 
   @Override
   public final void process(NavigableSet<FlowItem<E>> e) {
+    Map<Long, Future<R>> streamResults;
     if (e != null) {
-      Map<Long, Future<R>> streamResults = onNext(e.stream());
-      e.stream().parallel().forEach(i -> completeFuture(i, streamResults.get(i.itemId())));
+      try {
+        streamResults = onNext(e.stream());
+        e.stream().forEach(i -> completeFuture(i, streamResults.get(i.itemId())));
+      }
+      catch (Exception ex) {
+        ex.printStackTrace();
+      }
+
     }
   }
 

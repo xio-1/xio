@@ -98,7 +98,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
       this.defaultTTLSeconds = ttlSeconds;
     this.contentsControl = new FlowService<>(this);
     this.itemIDSequence = new ItemIdSequence();
-    this.flushImmediately = flushImmediately;
+    this.flushImmediately = false;
 
   }
 
@@ -175,7 +175,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   @Override
   public long putItem(T value) {
-    return putItemWithTTL(defaultTTLSeconds, value);
+    return putItemWithTTL(defaultTTLSeconds, value)[0];
   }
 
   /**
@@ -223,20 +223,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
     return false;
   }
 
-  /**
-   * Put value to contents with ttlSeconds
-   */
-  @Override
-  public long putItemWithTTL(long ttlSeconds, T value) {
-    if (value != null && !isEnd) {
-      FlowItem<T> item = new FlowItem<>(value, itemIDSequence.getNext(), ttlSeconds);
-      addToStreamWithLock(item, flushImmediately);
-      if (slowDownNanos > 0)
-        LockSupport.parkNanos(slowDownNanos);
-      return item.itemId();
-    }
-    return -1;
-  }
+
 
   /**
    * Puts list aFlowable values into the contents with ttlSeconds
@@ -248,7 +235,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   @Override
   public long[] putItemWithTTL(long ttlSeconds, T... values) {
     long[] ids = new long[values.length];
-    if (values != null && !isEnd) {
+    if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
         FlowItem<T> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
@@ -282,12 +269,9 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value,
       FutureSubscriber<R, T> subscriber) {
-    long itemId = putItemWithTTL(ttlSeconds, value);
+    long itemId = putItemWithTTL(ttlSeconds, value)[0];
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
-    if (itemId != -1) {
-      return subscriber.register(itemId, completableFuture);
-    } else
-      return null;
+    return subscriber.register(itemId, completableFuture);
   }
 
   /**

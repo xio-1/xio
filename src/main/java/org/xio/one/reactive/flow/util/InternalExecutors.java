@@ -18,7 +18,8 @@ public class InternalExecutors {
 
   private static ExecutorService cachedThreadPoolexec;
   private static ExecutorService itemLoopThreadPoolexec;
-  private static ExecutorService fixedThreadPoolexec;
+  private static ExecutorService computeThreadPoolexec;
+  private static ExecutorService ioThreadPoolexec;
 
   /**
    * Gets an instance aFlowable ExecutorService for the application JETI threadpool
@@ -42,12 +43,21 @@ public class InternalExecutors {
   }
 
 
-  public static synchronized ExecutorService fixedThreadPoolInstance() {
-    if (fixedThreadPoolexec == null || fixedThreadPoolexec.isShutdown() || fixedThreadPoolexec
+  public static synchronized ExecutorService computeThreadPoolInstance() {
+    if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown() || computeThreadPoolexec
         .isTerminated())
-      fixedThreadPoolexec =
+      computeThreadPoolexec =
           Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    return fixedThreadPoolexec;
+    return computeThreadPoolexec;
+  }
+
+
+  public static synchronized ExecutorService ioThreadPoolInstance() {
+    if (ioThreadPoolexec == null || ioThreadPoolexec.isShutdown() || ioThreadPoolexec
+        .isTerminated())
+      ioThreadPoolexec =
+          Executors.newFixedThreadPool(1024);
+    return ioThreadPoolexec;
   }
 
 }

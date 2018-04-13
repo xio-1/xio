@@ -29,7 +29,7 @@ public interface Flowable<T, R> {
 
   boolean putJSONItemWithTTL(long ttlSeconds, String jsonValue) throws IOException;
 
-  long putItemWithTTL(long ttlSeconds, T value);
+
 
   long[] putItemWithTTL(long ttlSeconds, T... values);
 

@@ -1,34 +1,68 @@
 package examples.logger;
 
+import examples.logger.domain.AsyncFutureMultiplexLoggerService;
 import examples.logger.domain.LogLevel;
-import examples.logger.domain.LoggerService;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
+import static org.hamcrest.CoreMatchers.is;
+
 public class LoggerServiceTest {
+
+  public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
+  private static int ONE_MILLION = 1000000;
 
   @Test
   public void createEmptyLogFileOnCreation() {
-    LoggerService loggerService = LoggerService.logger(this.getClass());
+    AsyncFutureMultiplexLoggerService loggerService =
+        AsyncFutureMultiplexLoggerService.logger(this.getClass());
     loggerService.close();
     Assert.assertTrue(loggerService.getLogFilePath().toFile().exists());
   }
 
   @Test
-  public void logsOneEntryToFile() {
-    LoggerService loggerService = LoggerService.logger(this.getClass());
-    loggerService.logAsync(LogLevel.INFO, "hello logAsync entry");
+  public void logsOneEntryToFileUsingMultiplexLoggerService() throws Exception {
+    AsyncFutureMultiplexLoggerService loggerService =
+        AsyncFutureMultiplexLoggerService.logger(this.getClass());
+    Future<Integer> bytesLogged = loggerService.logAsync(LogLevel.INFO, HELLO_LOG_ASYNC_ENTRY);
     loggerService.close();
+    Assert.assertThat(bytesLogged.get(),
+        is(("INFO" + ":" + HELLO_LOG_ASYNC_ENTRY + "\r\n").getBytes().length));
     System.out.println(loggerService.getLogFilePath().toString());
   }
 
   @Test
-  public void logs100000EntriesToFile() {
-    LoggerService loggerService = LoggerService.logger(this.getClass());
-    for (int i = 0; i < 100000; i++)
-      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->"+i);
+  public void logs1MillionFutureEntriesToFile() {
+
+    long start = System.currentTimeMillis();
+    ArrayList<Future<Integer>> results = new ArrayList<>();
+    AsyncFutureMultiplexLoggerService loggerService =
+        AsyncFutureMultiplexLoggerService.logger(this.getClass());
+    for (int i = 0; i < ONE_MILLION; i++)
+      results.add(loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i));
     loggerService.close();
+    System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
+
+    results.parallelStream().forEach(i -> {
+      try {
+        i.get();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } catch (ExecutionException e) {
+        e.printStackTrace();
+      }
+    });
+    System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
+
+    System.out
+        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis() - start) / 1000));
+
     System.out.println(loggerService.getLogFilePath().toString());
   }
+
 
 }
