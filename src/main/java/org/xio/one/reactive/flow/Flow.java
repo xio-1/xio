@@ -35,12 +35,13 @@ import java.util.concurrent.locks.LockSupport;
  */
 public final class Flow<T, R> implements Flowable<T, R> {
 
+  public static final int LOCK_PARK_NANOS = 100000;
   // streamContents variables
   private FlowService<T> contentsControl;
 
   // constants
   private final long count_down_latch = 10;
-  private final int queue_max_size = 1024 * Runtime.getRuntime().availableProcessors();
+  private final int queue_max_size = 8192;
 
   // input parameters
   private String name;
@@ -337,7 +338,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   protected void slowdown() {
-    slowDownNanos = slowDownNanos + 100000;
+    slowDownNanos = slowDownNanos + LOCK_PARK_NANOS;
   }
 
   protected void speedup() {
@@ -384,10 +385,10 @@ public final class Flow<T, R> implements Flowable<T, R> {
             synchronized (lock) {
               lock.notify();
             }
-            LockSupport.parkNanos(100000);
+            LockSupport.parkNanos(LOCK_PARK_NANOS);
           }
         } catch (InterruptedException e) {
-          LockSupport.parkNanos(100000);
+          LockSupport.parkNanos(LOCK_PARK_NANOS);
         }
       }
     }
@@ -411,10 +412,10 @@ public final class Flow<T, R> implements Flowable<T, R> {
           }
         }
         if (!put_ok)
-          LockSupport.parkNanos(100000);
+          LockSupport.parkNanos(LOCK_PARK_NANOS);
       } catch (Exception e) {
         this.flush = true;
-        LockSupport.parkNanos(100000);
+        LockSupport.parkNanos(LOCK_PARK_NANOS);
       }
 
     return put_ok;
@@ -430,7 +431,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
         && !flush) {
       try {
         synchronized (lock) {
-          lock.wait(1);
+          lock.wait(0,LOCK_PARK_NANOS);
         }
       } catch (InterruptedException e) {
         break;
