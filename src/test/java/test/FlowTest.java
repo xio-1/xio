@@ -4,10 +4,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
+import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureSingleItemSubscriber;
-import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -117,37 +117,52 @@ public class FlowTest {
 
   @Test
   public void shouldPingAndPong() {
-    Flowable<String, String> ping_stream = Flow.aFlowable("ping_stream");
-    Flowable<String, String> pong_stream = Flow.aFlowable("pomg_stream");
+    Flowable<String, Long> ping_stream = Flow.aFlowable("ping_stream");
+    Flowable<String, Long> pong_stream = Flow.aFlowable("pomg_stream");
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
-    SingleItemSubscriber<String, String> pingSubscriber = new SingleItemSubscriber<String, String>() {
-      @Override
-      public void onNext(FlowItem<String> itemValue) {
-        if (itemValue.value().equals("ping")) {
-          System.out.println("got ping");
-          pong_stream.putItem("pong");
-          System.out.println("sent pong");
-        }
-      }
-    };
 
-    SingleItemSubscriber<String, String> pongSubscriber = new SingleItemSubscriber<String, String>() {
-      @Override
-      public void onNext(FlowItem<String> itemValue) {
-        if (itemValue.value().equals("pong")) {
-          System.out.println("got pong");
-          ping_stream.putItem("ping");
-          System.out.println("sent ping");
-        }
-      }
 
-    };
+
+    SingleItemSubscriber<Long, String> pingSubscriber =
+        new SingleItemSubscriber<Long, String>() {
+
+          long pingtime;
+
+          @Override
+          public void onNext(FlowItem<String> itemValue) {
+            if (itemValue.value().equals("ping")) {
+              setResult(System.currentTimeMillis());
+              System.out.println("got ping");
+              pong_stream.putItem("pong");
+              System.out.println("sent pong");
+            }
+          }
+
+          public long getPingtime() {
+            return pingtime;
+          }
+        };
+
+    SingleItemSubscriber<Long, String> pongSubscriber =
+        new SingleItemSubscriber<Long, String>() {
+          @Override
+          public void onNext(FlowItem<String> itemValue) {
+            if (itemValue.value().equals("pong")) {
+              setResult(System.currentTimeMillis());
+              System.out.println("got pong");
+              ping_stream.putItem("ping");
+              System.out.println("sent ping");
+            }
+          }
+
+        };
     ping_stream.addSingleSubscriber(pingSubscriber);
     pong_stream.addSingleSubscriber(pongSubscriber);
     ping_stream.putItem("ping");
     ping_stream.end(true);
     pong_stream.end(true);
+    System.out.println("Latency Ms = " + (pongSubscriber.getResult()-pingSubscriber.getResult()));
   }
 
   @Test
@@ -226,7 +241,7 @@ public class FlowTest {
     asyncFlow.putItemWithTTL(1, "test2");
     asyncFlow.putItemWithTTL(1, "test3");
     asyncFlow.end(true);
-    Thread.currentThread().sleep(1000);
+    Thread.currentThread().sleep(1100);
     assertThat(asyncFlow.contents().count(), is(1L));
     assertThat(asyncFlow.contents().last().value(), is("test10"));
   }

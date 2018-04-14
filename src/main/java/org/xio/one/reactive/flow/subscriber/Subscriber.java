@@ -66,7 +66,6 @@ public abstract class Subscriber<R, E> implements SubscriberOperations<R, E> {
         }
       this.finalise();
       R toreturn = result;
-      result = null;
       if (reset)
         this.initialise();
       return toreturn;
