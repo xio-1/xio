@@ -95,7 +95,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
     this.itemqueue_out = new FlowItem[this.queue_max_size];
     this.name = name;
     this.indexFieldName = indexFieldName;
-    if (ttlSeconds > 0)
+    if (ttlSeconds >= 0)
       this.defaultTTLSeconds = ttlSeconds;
     this.contentsControl = new FlowService<>(this);
     this.itemIDSequence = new ItemIdSequence();

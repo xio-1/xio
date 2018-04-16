@@ -10,7 +10,9 @@ import java.util.concurrent.locks.LockSupport;
 
 import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
 
-/** ItemStoreOperations @Author Xio @Copyright Xio */
+/**
+ * ItemStoreOperations @Author Xio @Copyright Xio
+ */
 public final class FlowContents<T> {
 
   public final NavigableSet<FlowItem<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
@@ -45,33 +47,36 @@ public final class FlowContents<T> {
     try {
       NavigableSet<FlowItem<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
-      if (lastItem != null) {
-        FlowItem newLastItem = querystorecontents.last();
-        NavigableSet<FlowItem<T>> items =
-            Collections.unmodifiableNavigableSet(
-                querystorecontents.subSet(lastItem, false, newLastItem, true));
-        if (items.size() > 0) {
-          FlowItem newFirstItem = items.first();
-          if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
-            // if last domain is in correct sequence then
-            if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
-              // if the size aFlowable the domain to return is correct i.e. all in sequence
-              if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
-                return items;
-              }
-            return extractItemsThatAreInSequence(lastItem, items, newFirstItem);
-          } else LockSupport.parkNanos(100000);
-        } else LockSupport.parkNanos(100000);
-      } else
-        return extractItemsThatAreInSequence(
-            EMPTY_ITEM, querystorecontents, querystorecontents.first());
+      if (querystorecontents.size() > 0)
+        if (lastItem != null) {
+          FlowItem newLastItem = querystorecontents.last();
+          NavigableSet<FlowItem<T>> items = Collections.unmodifiableNavigableSet(
+              querystorecontents.subSet(lastItem, false, newLastItem, true));
+          if (items.size() > 0) {
+            FlowItem newFirstItem = items.first();
+            if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
+              // if last domain is in correct sequence then
+              if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
+                // if the size aFlowable the domain to return is correct i.e. all in sequence
+                if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
+                  return items;
+                }
+              return extractItemsThatAreInSequence(lastItem, items, newFirstItem);
+            } else
+              LockSupport.parkNanos(100000);
+          } else
+            LockSupport.parkNanos(100000);
+        } else
+          return extractItemsThatAreInSequence(EMPTY_ITEM, querystorecontents,
+              querystorecontents.first());
+      else LockSupport.parkNanos(100000);
     } catch (NoSuchElementException | IllegalArgumentException e) {
     }
     return EMPTY_ITEM_SET;
   }
 
-  private NavigableSet<FlowItem<T>> extractItemsThatAreInSequence(
-      FlowItem lastItem, NavigableSet<FlowItem<T>> items, FlowItem newFirstItem) {
+  private NavigableSet<FlowItem<T>> extractItemsThatAreInSequence(FlowItem lastItem,
+      NavigableSet<FlowItem<T>> items, FlowItem newFirstItem) {
     FlowItem[] items1 = items.toArray(new FlowItem[items.size()]);
     int index = 0;
     FlowItem last = lastItem;
@@ -79,7 +84,8 @@ public final class FlowContents<T> {
     while (current.itemId() == last.itemId() + 1 && index <= items1.length) {
       last = current;
       index++;
-      if (index < items1.length) current = items1[index];
+      if (index < items1.length)
+        current = items1[index];
     }
     return items.subSet(newFirstItem, true, last, true);
   }
@@ -87,7 +93,8 @@ public final class FlowContents<T> {
   public FlowItem<T> last() {
     NavigableSet<FlowItem<T>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
-    if (querystorecontents.isEmpty()) return EMPTY_ITEM;
+    if (querystorecontents.isEmpty())
+      return EMPTY_ITEM;
     else {
       return querystorecontents.last();
     }
@@ -192,8 +199,7 @@ public final class FlowContents<T> {
 
   */
 
-  public NavigableSet<FlowItem<T>> getTimeWindowSet(long from, long to)
-      throws FlowException {
+  public NavigableSet<FlowItem<T>> getTimeWindowSet(long from, long to) throws FlowException {
     // Get first and last domain in the window
     // otherwise return empty set as nothing found in the window
     return EMPTY_ITEM_SET;

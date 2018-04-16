@@ -73,7 +73,10 @@ public class FlowItem<E> {
   }
 
   public boolean isAlive(long lastSeenItemId) {
-    return isAlive() || lastSeenItemId < this.itemId;
+    if (isAlive() || lastSeenItemId < this.itemId)
+      return true;
+    else
+      return false;
   }
 
   public long itemId() {

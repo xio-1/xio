@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, E> {
 
@@ -121,6 +122,9 @@ public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, 
   }
 
   final void completeFuture(FlowItem<E> item, Future<R> result) {
+    while (futures.get(item.itemId())==null) {
+      LockSupport.parkNanos(100000);
+    }
     CompletableFuture<R> future = futures.get(item.itemId());
     CompletableFuture.supplyAsync(() -> {
       try {

@@ -153,6 +153,7 @@ public final class FlowService<T> {
           }
         }
       } catch (Exception e) {
+        e.printStackTrace();
 
       }
     }

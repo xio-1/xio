@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -24,8 +25,8 @@ public class AsyncFutureMultiplexLoggerService {
 
   public AsyncFutureMultiplexLoggerService(String canonicalName) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
-    logEntryFlow = Flow.aFlowable();
-    ByteBuffer buffer = ByteBuffer.allocate(1024 * 20000);
+    logEntryFlow = Flow.aFlowable(UUID.randomUUID().toString(), 0);
+    ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
 
     futureMultiplexItemSubscriber = new FutureMultiplexItemSubscriber<Integer, String>() {
 
@@ -38,7 +39,7 @@ public class AsyncFutureMultiplexLoggerService {
 
       @Override
       public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String>> entries) {
-        Map<Long, Future<Integer>> futureMap = new HashMap<>();
+        Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
         List<Long> itemIds = new ArrayList<>();
 
         entries.forEach(entry -> {
@@ -51,10 +52,13 @@ public class AsyncFutureMultiplexLoggerService {
         try {
           //fileChannel.lock(position, toWrite.limit(), true);
           Future<Integer> bytesWrittenFuture = fileChannel.write(toWrite, position);
-          position = position + buffer.limit();
-          itemIds.stream().forEach(i -> {
-            futureMap.put(i, bytesWrittenFuture);
-          });
+          if (bytesWrittenFuture != null) {
+            position = position + buffer.limit();
+            itemIds.stream().forEach(i -> {
+              futureMap.put(i, bytesWrittenFuture);
+            });
+          } else
+            System.currentTimeMillis();
         } catch (Exception e) {
           e.printStackTrace();
         } finally {
