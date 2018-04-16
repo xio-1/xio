@@ -1,16 +1,15 @@
 package examples.bank.domain;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Flowable;
-import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class Bank {
@@ -18,7 +17,7 @@ public class Bank {
   HashMap<String, Account> accounts = new HashMap<>();
   Flowable<TransactionRequest, Boolean> transactionEventLoop;
   List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
-  Logger logger = LoggerFactory.getLogger(Bank.class);
+  Logger logger = Logger.getLogger(Bank.class.getCanonicalName());
   FutureMultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {

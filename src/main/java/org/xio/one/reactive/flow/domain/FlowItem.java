@@ -8,8 +8,6 @@
  */
 package org.xio.one.reactive.flow.domain;
 
-import org.xio.one.reactive.flow.util.JSONUtil;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -93,10 +91,6 @@ public class FlowItem<E> {
 
   public Object indexKeyValue() {
     return indexKeyValue;
-  }
-
-  public String jsonValue() {
-    return JSONUtil.toJSONString(itemValue);
   }
 
   public Object getFieldValue(String fieldname) {

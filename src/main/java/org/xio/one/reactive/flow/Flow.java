@@ -8,7 +8,6 @@ package org.xio.one.reactive.flow;
 import org.xio.one.reactive.flow.domain.EmptyItemArray;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.ItemIdSequence;
-import org.xio.one.reactive.flow.domain.ItemJSONValue;
 import org.xio.one.reactive.flow.service.FlowContents;
 import org.xio.one.reactive.flow.service.FlowService;
 import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
@@ -17,7 +16,6 @@ import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -190,41 +188,6 @@ public final class Flow<T, R> implements Flowable<T, R> {
   public long[] putItem(T... values) {
     return putItemWithTTL(defaultTTLSeconds, values);
   }
-
-  /**
-   * Put a json string value into the contents Throws IOException if json string is invalid
-   */
-
-  @Override
-  public boolean putJSONItem(String jsonValue) throws IOException {
-    if (jsonValue != null && !isEnd) {
-      FlowItem item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), defaultTTLSeconds);
-      addToStreamWithLock(item, flushImmediately);
-      if (slowDownNanos > 0)
-        LockSupport.parkNanos(slowDownNanos);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Put a json string value into the contents with ttlSeconds Throws IOException if json string is
-   * invalid
-   */
-
-  @Override
-  public boolean putJSONItemWithTTL(long ttlSeconds, String jsonValue) throws IOException {
-    if (jsonValue != null && !isEnd) {
-      FlowItem item = new ItemJSONValue(jsonValue, itemIDSequence.getNext(), ttlSeconds);
-      addToStreamWithLock(item, flushImmediately);
-      if (slowDownNanos > 0)
-        LockSupport.parkNanos(slowDownNanos);
-      return true;
-    }
-    return false;
-  }
-
-
 
   /**
    * Puts list aFlowable values into the contents with ttlSeconds

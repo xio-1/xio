@@ -5,7 +5,6 @@ import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
 import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -24,12 +23,6 @@ public interface Flowable<T, R> {
   long putItem(T value);
 
   long[] putItem(T... values);
-
-  boolean putJSONItem(String jsonValue) throws IOException;
-
-  boolean putJSONItemWithTTL(long ttlSeconds, String jsonValue) throws IOException;
-
-
 
   long[] putItemWithTTL(long ttlSeconds, T... values);
 
