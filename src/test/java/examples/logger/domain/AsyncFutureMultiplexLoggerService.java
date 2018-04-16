@@ -68,7 +68,7 @@ public class AsyncFutureMultiplexLoggerService {
       }
 
       @Override
-      public void onFutureError(Throwable error, String itemValue) {
+      public void onFutureCompletionError(Throwable error, String itemValue) {
         System.out.println("ERROR " + itemValue);
         error.printStackTrace();
       }

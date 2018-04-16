@@ -83,7 +83,7 @@ public class Bank {
           }
 
           @Override
-          public void onFutureError(Throwable error, TransactionRequest itemValue) {
+          public void onFutureCompletionError(Throwable error, TransactionRequest itemValue) {
           }
 
         };

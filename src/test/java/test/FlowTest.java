@@ -11,10 +11,13 @@ import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class FlowTest {
@@ -107,7 +110,7 @@ public class FlowTest {
           }
 
           @Override
-          public void onFutureError(Throwable error, String itemValue) {
+          public void onFutureCompletionError(Throwable error, String itemValue) {
             error.printStackTrace();
           }
         });
@@ -124,45 +127,37 @@ public class FlowTest {
 
 
 
-    SingleItemSubscriber<Long, String> pingSubscriber =
-        new SingleItemSubscriber<Long, String>() {
+    SingleItemSubscriber<Long, String> pingSubscriber = new SingleItemSubscriber<Long, String>() {
+      @Override
+      public void onNext(FlowItem<String> itemValue) {
+        if (itemValue.value().equals("ping")) {
+          setResult(System.currentTimeMillis());
+          System.out.println("got ping");
+          pong_stream.putItem("pong");
+          System.out.println("sent pong");
+        }
+      }
 
-          long pingtime;
+    };
 
-          @Override
-          public void onNext(FlowItem<String> itemValue) {
-            if (itemValue.value().equals("ping")) {
-              setResult(System.currentTimeMillis());
-              System.out.println("got ping");
-              pong_stream.putItem("pong");
-              System.out.println("sent pong");
-            }
-          }
+    SingleItemSubscriber<Long, String> pongSubscriber = new SingleItemSubscriber<Long, String>() {
+      @Override
+      public void onNext(FlowItem<String> itemValue) {
+        if (itemValue.value().equals("pong")) {
+          setResult(System.currentTimeMillis());
+          System.out.println("got pong");
+          ping_stream.putItem("ping");
+          System.out.println("sent ping");
+        }
+      }
 
-          public long getPingtime() {
-            return pingtime;
-          }
-        };
-
-    SingleItemSubscriber<Long, String> pongSubscriber =
-        new SingleItemSubscriber<Long, String>() {
-          @Override
-          public void onNext(FlowItem<String> itemValue) {
-            if (itemValue.value().equals("pong")) {
-              setResult(System.currentTimeMillis());
-              System.out.println("got pong");
-              ping_stream.putItem("ping");
-              System.out.println("sent ping");
-            }
-          }
-
-        };
+    };
     ping_stream.addSingleSubscriber(pingSubscriber);
     pong_stream.addSingleSubscriber(pongSubscriber);
     ping_stream.putItem("ping");
     ping_stream.end(true);
     pong_stream.end(true);
-    System.out.println("Latency Ms = " + (pongSubscriber.getResult()-pingSubscriber.getResult()));
+    System.out.println("Latency Ms = " + (pongSubscriber.getResult() - pingSubscriber.getResult()));
   }
 
   @Test
@@ -221,7 +216,7 @@ public class FlowTest {
           }
 
           @Override
-          public void onFutureError(Throwable error, String itemValue) {
+          public void onFutureCompletionError(Throwable error, String itemValue) {
 
           }
         };
@@ -278,6 +273,46 @@ public class FlowTest {
     long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
     asyncFlow.end(true);
     Assert.assertThat(asyncFlow.contents().item(itemIds[1]).value(), is(testObject2));
+  }
+
+  @Test
+  public void shouldHandleExceptionForSingleFuture() throws ExecutionException, InterruptedException {
+    Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
+    final FutureSingleItemSubscriber<String, String> futureSingleItemSubscriber =
+        new FutureSingleItemSubscriber<String, String>() {
+
+          int count = 0;
+
+          @Override
+          public Future<String> onNext(String itemValue) {
+            return CompletableFuture.supplyAsync(this::functionalThrow);
+          }
+
+          private String functionalThrow() {
+            count++;
+            if (count == 3)
+              throw new RuntimeException("hello");
+            else
+              return "happy";
+          }
+
+          @Override
+          public void onFutureCompletionError(Throwable error, String itemValue) {
+            error.printStackTrace();
+          }
+        };
+    Future<String> result1 =
+        asyncFlow.putItem("Hello1", futureSingleItemSubscriber);
+    Future<String> result2 =
+        asyncFlow.putItem("Hello2", futureSingleItemSubscriber);
+    Future<String> result3 =
+        asyncFlow.putItem("Hello3", futureSingleItemSubscriber);
+
+    assertThat(result1.get(), is("happy"));
+    assertThat(result2.get(), is("happy"));
+    assertThat(result3.get(), is(nullValue()));
+    assertThat(result3.isDone(), is(true));
+    asyncFlow.end(true);
   }
 
 }

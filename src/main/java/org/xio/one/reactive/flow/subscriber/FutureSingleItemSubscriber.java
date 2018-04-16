@@ -15,11 +15,12 @@ public abstract class FutureSingleItemSubscriber<R, E> extends FutureSubscriber<
   public final void process(NavigableSet<FlowItem<E>> e) {
     if (e != null) {
       e.stream().parallel().forEach(item -> {
+        Future<R> result = null;
         try {
-          Future<R> result = onNext(item.value());
+          result = onNext(item.value());
           completeFuture(item, result);
         } catch (Throwable ex) {
-          onFutureError(ex, item.value());
+          ex.printStackTrace();
         }
       });
     }
@@ -27,7 +28,7 @@ public abstract class FutureSingleItemSubscriber<R, E> extends FutureSubscriber<
 
   public abstract Future<R> onNext(E itemValue) throws Throwable;
 
-  public abstract void onFutureError(Throwable error, E itemValue);
+  public abstract void onFutureCompletionError(Throwable error, E itemValue);
 
   @Override
   public void finalise() {

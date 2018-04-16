@@ -130,13 +130,14 @@ public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, 
       try {
         future.complete(result.get());
       } catch (Exception e1) {
-        onFutureError(e1, item.value());
+        future.complete(null);
+        onFutureCompletionError(e1, item.value());
       }
       return null;
     });
   }
 
 
-  public abstract void onFutureError(Throwable error, E itemValue);
+  public abstract void onFutureCompletionError(Throwable error, E itemValue);
 
 }
