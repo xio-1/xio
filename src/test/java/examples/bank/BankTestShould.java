@@ -22,29 +22,33 @@ public class BankTestShould {
   }
 
   @Test
-  public void bankWithOneAccountWhenOneDepositSubmittedHasLiquidityEqualToDepositOnClose() {
+  public void bankWithOneAccountWhenOneDepositSubmittedHasLiquidityEqualToDepositOnClose()
+      throws Exception {
     Bank bank = new Bank();
     bank.open();
     Account account = bank.newAccount("myaccount");
-    bank.submitTransactionRequest(
+    Future<Boolean> t1 = bank.submitTransactionRequest(
         new TransactionRequest("cash deposit", null, account.getAccountNumber(), 100d,
             TransactionType.CREDIT));
     bank.close();
+    Assert.assertThat(t1.get(), is(true));
     Assert.assertThat(bank.getLiquidity(), is(100d));
   }
 
   @Test
-  public void bankWithOneAccountWhenTwoTransactionSubmittedHasCorrectLiquidityOnClose() {
+  public void bankWithOneAccountWhenTwoTransactionSubmittedHasCorrectLiquidityOnClose()
+      throws Exception {
     Bank bank = new Bank();
     bank.open();
     Account account = bank.newAccount("myaccount");
-    bank.submitTransactionRequest(
+    Future<Boolean> t1 = bank.submitTransactionRequest(
         new TransactionRequest("cash deposit", null, account.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
+    Future<Boolean> t2 = bank.submitTransactionRequest(
         new TransactionRequest("cash withdrawal", null, account.getAccountNumber(), 200d,
             TransactionType.DEBIT));
     bank.close();
+    Assert.assertThat(t1.get() && t2.get(), is(true));
     Assert.assertThat(bank.getLiquidity(), is(800d));
   }
 
@@ -97,26 +101,27 @@ public class BankTestShould {
               TransactionType.DEBIT));
     }
     if (t1.get() && t2.get() && t3.get() && t4.get())
-    bank.close();
+      bank.close();
     Assert.assertThat(bank.getLiquidity(), is(2600d * 10000d));
   }
 
   @Test
-  public void shouldTransferMoniesBetweenTwoAccountsInSameBank() {
+  public void shouldTransferMoniesBetweenTwoAccountsInSameBank() throws Exception {
     Bank bank = new Bank();
     bank.open();
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
-    bank.submitTransactionRequest(
+    Future<Boolean> t1 = bank.submitTransactionRequest(
         new TransactionRequest("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
+    Future<Boolean> t2 = bank.submitTransactionRequest(
         new TransactionRequest("cash deposit", null, myaccount2.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
+    Future<Boolean> t3 = bank.submitTransactionRequest(
         new TransactionRequest("cash deposit", myaccount1.getAccountNumber(),
             myaccount2.getAccountNumber(), 500d, TransactionType.TRANSFER));
     bank.close();
+    Assert.assertThat(t1.get()&& t2.get() && t3.get(), is(true));
     Assert.assertThat(myaccount1.getBalance(), is(500d));
     Assert.assertThat(myaccount2.getBalance(), is(1500d));
     Assert.assertThat(bank.getLiquidity(), is(2000d));
