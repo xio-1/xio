@@ -5,7 +5,6 @@
  */
 package org.xio.one.reactive.flow;
 
-import org.xio.one.reactive.flow.domain.EmptyItemArray;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.ItemIdSequence;
 import org.xio.one.reactive.flow.service.FlowContents;
@@ -16,8 +15,7 @@ import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -25,7 +23,7 @@ import java.util.concurrent.locks.LockSupport;
 
 /**
  * An Flow - a aFlowable stream of items
- * <p>
+ *
  * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
  * json etc can be put into the aFlowable and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
@@ -35,11 +33,11 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
   // streamContents variables
-  private FlowService<T> contentsControl;
+  private FlowService<T, R> contentsControl;
 
   // constants
-  private final long count_down_latch = 10;
-  private final int queue_max_size = 8192;
+  private int count_down_latch = 10;
+  private final int queue_max_size = 100000;
 
   // input parameters
   private String name;
@@ -49,12 +47,12 @@ public final class Flow<T, R> implements Flowable<T, R> {
   private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
 
 
-  private Map<String, Future> streamSubscriberFutureResultMap = new HashMap<>();
-  private Map<String, Subscription<R, T>> subscriberSubscriptions = new HashMap<>();
+  private Map<String, Future> streamSubscriberFutureResultMap = new ConcurrentHashMap<>();
+  private Map<String, Subscription<R, T>> subscriberSubscriptions = new ConcurrentHashMap<>();
 
   // Queue control
   private FlowItem[] itemqueue_out;
-  private BlockingQueue<FlowItem> item_queue;
+  private BlockingQueue<FlowItem<T>> item_queue;
   private int last_queue_size = 0;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
@@ -89,7 +87,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   }
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
-    this.item_queue = new LinkedBlockingQueue<>(queue_max_size);
+    this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
     this.itemqueue_out = new FlowItem[this.queue_max_size];
     this.name = name;
     this.indexFieldName = indexFieldName;
@@ -148,7 +146,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
    *
    * @return
    */
-  public Flowable<T, R> withExecutorService(ExecutorService executorService) {
+  public Flowable<T, R> executorService(ExecutorService executorService) {
     this.executorService = executorService;
     return this;
   }
@@ -203,7 +201,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
       for (int i = 0; i < values.length; i++) {
         FlowItem<T> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
-        addToStreamWithLock(item, flushImmediately);
+        addToStreamWithBlock(item, flushImmediately);
         if (slowDownNanos > 0)
           LockSupport.parkNanos(slowDownNanos);
       }
@@ -219,14 +217,15 @@ public final class Flow<T, R> implements Flowable<T, R> {
    */
   @Override
   public Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber) {
-    generateSubscription(subscriber);
+    if (subscriberSubscriptions.get(subscriber.getId()) == null)
+      generateSubscription(subscriber);
     return putAndReturnAsCompletableFuture(ttlSeconds, value, subscriber);
   }
 
-  private void generateSubscription(FutureSubscriber<R, T> subscriber) {
-    if (subscriberSubscriptions.get(subscriber.getId()) == null) {
+  private synchronized void generateSubscription(FutureSubscriber<R, T> subscriber) {
+    if (Collections.synchronizedMap(subscriberSubscriptions).get(subscriber.getId()) == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-      subscriberSubscriptions.put(subscriber.getId(), subscription);
+      Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
       subscription.subscribe();
     }
   }
@@ -316,7 +315,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
   public FlowItem[] takeAll() {
     FlowItem[] result;
     waitForInput();
-    int mmsize = this.item_queue.size();
+    /*int mmsize = this.item_queue.size();
     if ((getNumberOfNewItems(mmsize, last_queue_size)) > 0) {
       result = Arrays
           .copyOfRange(this.item_queue.toArray(this.itemqueue_out), this.last_queue_size, mmsize);
@@ -324,12 +323,12 @@ public final class Flow<T, R> implements Flowable<T, R> {
       clearStreamWhenFull();
     } else { // no domain
       result = EmptyItemArray.EMPTY_ITEM_ARRAY;
-    }
+    }*/
 
-    return result;
+    return null;
   }
 
-  private boolean addToStreamWithNoLock(FlowItem item, boolean immediately) {
+  private boolean addToStreamWithNoBlock(FlowItem item, boolean immediately) {
     boolean put_ok;
     this.flush = false;
     if (put_ok = this.item_queue.offer(item)) {
@@ -358,50 +357,34 @@ public final class Flow<T, R> implements Flowable<T, R> {
     return put_ok;
   }
 
-  private boolean addToStreamWithLock(FlowItem item, boolean immediately) {
-    boolean put_ok = false;
-    this.flush = false;
-    while (!put_ok && !hasEnded())
-      try {
-        synchronized (lock) {
-          if (put_ok = this.item_queue.add(item)) {
-            if (immediately) {
-              this.flush = true;
-              lock.notify();
-            }
-          } else {
-            this.flush = true;
-            lock.notify();
-          }
-        }
-        if (!put_ok)
-          LockSupport.parkNanos(LOCK_PARK_NANOS);
-      } catch (Exception e) {
-        this.flush = true;
-        LockSupport.parkNanos(LOCK_PARK_NANOS);
+  private boolean addToStreamWithBlock(FlowItem<T> item, boolean immediately) {
+    try {
+      if (!this.item_queue.offer(item)) {
+        this.flush = immediately;
+        this.item_queue.put(item);
       }
 
-    return put_ok;
+    } catch (InterruptedException e) {
+      return false;
+    }
+    return true;
   }
 
   private int size() {
-    return item_queue.size() - last_queue_size;
+    return this.item_queue.size(); // - last_queue_size;
   }
 
   private void waitForInput() {
-    int ticks = 0;
-    while (this.item_queue.remainingCapacity() != 0 && !hasEnded() && ticks <= count_down_latch
-        && !flush) {
-      try {
-        synchronized (lock) {
-          lock.wait(0,LOCK_PARK_NANOS);
-        }
-      } catch (InterruptedException e) {
-        break;
+    int ticks = count_down_latch;
+    FlowItem<T> head;
+    while (!hasEnded()) {
+      if (ticks == 0 || flush) {
+        this.item_queue.drainTo(this.contentsControl.getItemRepositoryContents());
+        ticks = count_down_latch;
       }
-      ticks++;
+      ticks--;
+      LockSupport.parkNanos(100000);
     }
-    flush = false;
   }
 
   private int getNumberOfNewItems(int mmsize, int lastsize) {
@@ -413,5 +396,11 @@ public final class Flow<T, R> implements Flowable<T, R> {
       this.last_queue_size = 0;
       this.item_queue.clear();
     }
+  }
+
+  @Override
+  public Flowable<T, R> countDownLatch(int count_down_latch) {
+    this.count_down_latch = count_down_latch;
+    return this;
   }
 }

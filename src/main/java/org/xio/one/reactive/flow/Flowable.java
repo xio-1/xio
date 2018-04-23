@@ -18,7 +18,9 @@ public interface Flowable<T, R> {
 
   Flowable<T, R> enableImmediateFlushing();
 
-  Flowable<T, R> withExecutorService(ExecutorService executorService);
+  Flowable<T, R> executorService(ExecutorService executorService);
+
+  Flowable<T,R> countDownLatch(int count_down_latch);
 
   long putItem(T value);
 
@@ -35,4 +37,6 @@ public interface Flowable<T, R> {
   void end(boolean waitForEnd);
 
   boolean hasEnded();
+
+
 }

@@ -20,6 +20,10 @@ public final class FlowContents<T> {
   private Flow itemStream;
   private NavigableSet<FlowItem<T>> itemStoreContents = null;
 
+  public NavigableSet<FlowItem<T>> getItemStoreContents() {
+    return itemStoreContents;
+  }
+
   FlowContents(FlowService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;

@@ -74,14 +74,14 @@ public class LoggerServiceTest {
     AsyncFutureMultiplexLoggerService loggerService =
         AsyncFutureMultiplexLoggerService.logger(this.getClass());
 
-    for (int z = 0; z < 4; z++)
+    for (int z = 0; z < 50; z++)
       new Thread(() -> {
-        for (int i = 0; i < ONE_MILLION / 4; i++)
+        for (int i = 0; i < ONE_MILLION / 50; i++)
           results.add(loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i));
         System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
       }).run();
 
-    results.stream().forEach(i -> {
+    results.stream().parallel().forEach(i -> {
       try {
         i.get(5000, TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {
