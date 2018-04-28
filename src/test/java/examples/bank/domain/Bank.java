@@ -26,7 +26,7 @@ public class Bank {
 
   public void open() {
     //Subscriber for every transaction request
-    transactionEventLoop.addSingleSubscriber(new SingleItemSubscriber<Boolean, TransactionRequest>() {
+    transactionEventLoop.addSubscriber(new SingleItemSubscriber<>() {
 
       @Override
       public void onNext(FlowItem<TransactionRequest> transaction)
@@ -64,33 +64,35 @@ public class Bank {
 
     });
 
-    ledgerMultiplexFutureSubscriber =
-        new FutureMultiplexItemSubscriber<Boolean, TransactionRequest>() {
-          HashMap<Long, Future<Boolean>> toReturn = new HashMap<>();
+    transactionEventLoop.addSubscriber(new FutureMultiplexItemSubscriber<>() {
+      HashMap<Long, Future<Boolean>> toReturn = new HashMap<>();
 
-          @Override
-          public Map<Long, Future<Boolean>> onNext(Stream<FlowItem<TransactionRequest>> e) {
-            String multiplexGroupID = UUID.randomUUID().toString();
-            e.parallel().forEach(item -> {
-              logger.info(
-                  "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|"
-                      + item.value().toString());
-              toReturn.put(item.itemId(), CompletableFuture.completedFuture(bankTransactionLedger.add(item.value())));
-            });
+      @Override
+      public Map<Long, Future<Boolean>> onNext(Stream<FlowItem<TransactionRequest>> e) {
+        String multiplexGroupID = UUID.randomUUID().toString();
+        e.parallel().forEach(item -> {
+          logger.info(
+              "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|" + item
+                  .value().toString());
+          toReturn.put(item.itemId(),
+              CompletableFuture.completedFuture(bankTransactionLedger.add(item.value())));
+        });
 
-            return toReturn;
-          }
+        return toReturn;
+      }
 
-          @Override
-          public void onFutureCompletionError(Throwable error, TransactionRequest itemValue) {
-          }
+      @Override
+      public void onFutureCompletionError(Throwable error, TransactionRequest itemValue) {
+      }
 
-        };
+    });
+
+    transactionEventLoop.addSubscriber(ledgerMultiplexFutureSubscriber);
 
   }
 
   public Future<Boolean> submitTransactionRequest(TransactionRequest transaction) {
-    return transactionEventLoop.putItem(transaction, ledgerMultiplexFutureSubscriber);
+    return transactionEventLoop.submitItem(transaction);
   }
 
   public Account newAccount(String name) {

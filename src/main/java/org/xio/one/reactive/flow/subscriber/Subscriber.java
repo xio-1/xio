@@ -1,13 +1,13 @@
 package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.subscriber.internal.SubscriberOperations;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 
 import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public abstract class Subscriber<R, E> implements SubscriberOperations<R, E> {
+public abstract class Subscriber<R, E> implements SubscriberInterface<R, E> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
@@ -73,7 +73,7 @@ public abstract class Subscriber<R, E> implements SubscriberOperations<R, E> {
   }
 
   @Override
-  public final SubscriberOperations<R, E> getSubscriber() {
+  public final SubscriberInterface<R, E> getSubscriber() {
     return this;
   }
 

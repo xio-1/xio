@@ -52,7 +52,7 @@ public class FlowTest {
 
     Flowable<String, String> toUPPERcaseFlow = Flow.aFlowable();
 
-    toUPPERcaseFlow.addSingleSubscriber(new SingleItemSubscriber<String, String>() {
+    toUPPERcaseFlow.addSubscriber(new SingleItemSubscriber<String, String>() {
 
       @Override
       public void onNext(FlowItem<String> itemValue) {
@@ -84,7 +84,7 @@ public class FlowTest {
             this.setResult(output);
           }
         };
-    asyncFlow.enableImmediateFlushing().addSingleSubscriber(subscriber);
+    asyncFlow.enableImmediateFlushing().addSubscriber(subscriber);
     asyncFlow.putItem(1, 2, 3, 4);
     asyncFlow.end(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
@@ -94,18 +94,18 @@ public class FlowTest {
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
-    Future<String> result =
-        asyncFlow.putItem("Hello", new FutureSingleItemSubscriber<String, String>() {
-          @Override
-          public Future<String> onNext(String itemValue) {
-            return CompletableFuture.completedFuture(itemValue + " world");
-          }
+    asyncFlow.addSubscriber(new FutureSingleItemSubscriber<String, String>() {
+      @Override
+      public Future<String> onNext(String itemValue) {
+        return CompletableFuture.completedFuture(itemValue + " world");
+      }
 
-          @Override
-          public void onFutureCompletionError(Throwable error, String itemValue) {
-            error.printStackTrace();
-          }
-        });
+      @Override
+      public void onFutureCompletionError(Throwable error, String itemValue) {
+        error.printStackTrace();
+      }
+    });
+    Future<String> result = asyncFlow.submitItem("Hello");
     asyncFlow.end(true);
     assertThat(result.get(), is("Hello world"));
   }
@@ -154,8 +154,8 @@ public class FlowTest {
       }
 
     };
-    ping_stream.addSingleSubscriber(pingSubscriber);
-    pong_stream.addSingleSubscriber(pongSubscriber);
+    ping_stream.addSubscriber(pingSubscriber);
+    pong_stream.addSubscriber(pongSubscriber);
     ping_stream.putItem("ping");
     ping_stream.end(true);
     pong_stream.end(true);
@@ -184,7 +184,7 @@ public class FlowTest {
         this.setResult(this.count);
       }
     };
-    asyncFlow.addSingleSubscriber(subscriber);
+    asyncFlow.addSubscriber(subscriber);
     for (int i = 0; i < 10000000; i++) {
       asyncFlow.putItemWithTTL(1, "Hello world" + i);
     }
@@ -206,25 +206,25 @@ public class FlowTest {
   @Test
   public void putForMultiplexingFutures() throws Exception {
     Flowable<String, String> micro_stream = Flow.aFlowable("micro_stream");
-    FutureMultiplexItemSubscriber<String, String> microBatchFlowSubscriber =
-        new FutureMultiplexItemSubscriber<String, String>() {
+    micro_stream.addSubscriber(new FutureMultiplexItemSubscriber<>() {
 
-          @Override
-          public Map<Long, Future<String>> onNext(Stream<FlowItem<String>> e) {
-            Map<Long, Future<String>> results = new HashMap<>();
-            e.forEach(stringItem -> results.put(stringItem.itemId(),
-                CompletableFuture.completedFuture(stringItem.value().toUpperCase())));
-            return results;
-          }
+      @Override
+      public Map<Long, Future<String>> onNext(Stream<FlowItem<String>> e) {
+        Map<Long, Future<String>> results = new HashMap<>();
+        e.forEach(stringItem -> results.put(stringItem.itemId(),
+            CompletableFuture.completedFuture(stringItem.value().toUpperCase())));
+        return results;
+      }
 
-          @Override
-          public void onFutureCompletionError(Throwable error, String itemValue) {
+      @Override
+      public void onFutureCompletionError(Throwable error, String itemValue) {
 
-          }
-        };
-    Future<String> result1 = micro_stream.putItem("hello1", microBatchFlowSubscriber);
-    Future<String> result2 = micro_stream.putItem("hello2", microBatchFlowSubscriber);
-    Future<String> result3 = micro_stream.putItem("hello3", microBatchFlowSubscriber);
+      }
+    });
+
+    Future<String> result1 = micro_stream.submitItem("hello1");
+    Future<String> result2 = micro_stream.submitItem("hello2");
+    Future<String> result3 = micro_stream.submitItem("hello3");
     assertThat(result1.get(), is("HELLO1"));
     assertThat(result2.get(), is("HELLO2"));
     assertThat(result3.get(), is("HELLO3"));
@@ -270,7 +270,7 @@ public class FlowTest {
   public void shouldHandleExceptionForFutureSubscriber()
       throws ExecutionException, InterruptedException {
     Flowable<String, String> asyncFlow = Flow.aFlowable(HELLO_WORLD_FLOW);
-    final FutureSingleItemSubscriber<String, String> futureSingleItemSubscriber =
+    asyncFlow.addSubscriber(
         new FutureSingleItemSubscriber<String, String>() {
 
           @Override
@@ -289,10 +289,10 @@ public class FlowTest {
           public void onFutureCompletionError(Throwable error, String itemValue) {
             assert (error.getMessage().equals("hello"));
           }
-        };
-    Future<String> result1 = asyncFlow.putItem("Hello1", futureSingleItemSubscriber);
-    Future<String> result2 = asyncFlow.putItem("Hello2", futureSingleItemSubscriber);
-    Future<String> result3 = asyncFlow.putItem("Hello3", futureSingleItemSubscriber);
+        });
+    Future<String> result1 = asyncFlow.submitItem("Hello1");
+    Future<String> result2 = asyncFlow.submitItem("Hello2");
+    Future<String> result3 = asyncFlow.submitItem("Hello3");
 
     if (result1.get() == null || result2.get() == null || "happy".equals(result3.get()))
       System.currentTimeMillis();
@@ -331,7 +331,7 @@ public class FlowTest {
             this.setResult(new ArrayList<Integer>());
           }
         };
-    asyncFlow.enableImmediateFlushing().addSingleSubscriber(subscriber);
+    asyncFlow.enableImmediateFlushing().addSubscriber(subscriber);
     asyncFlow.putItem(1, 2, 3, 4);
     asyncFlow.end(true);
     Assert.assertThat(errors.size(), is(1));

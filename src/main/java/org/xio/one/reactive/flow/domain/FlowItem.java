@@ -10,19 +10,21 @@ package org.xio.one.reactive.flow.domain;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.channels.CompletionHandler;
 
 /**
  * Abstract Item to be extended by user defined Items
  *
  * @author Xio
  */
-public class FlowItem<E> {
+public class FlowItem<T> {
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;
   private Object indexKeyValue;
   private long itemTTLSeconds;
-  protected E itemValue;
+  protected T itemValue;
+
 
   public FlowItem() {
     this.itemNodeId = NodeID.getNodeID();
@@ -38,7 +40,7 @@ public class FlowItem<E> {
     this.itemTTLSeconds = 0;
   }
 
-  public FlowItem(E value, long itemId) {
+  public FlowItem(T value, long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -47,7 +49,7 @@ public class FlowItem<E> {
     this.itemTTLSeconds = 0;
   }
 
-  public FlowItem(E value, long itemId, long itemTTLSeconds) {
+  public FlowItem(T value, long itemId, long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -55,6 +57,8 @@ public class FlowItem<E> {
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
+
+
 
   public long itemTimestamp() {
     return this.itemTimestamp;
@@ -85,7 +89,7 @@ public class FlowItem<E> {
     return itemNodeId;
   }
 
-  public E value() {
+  public T value() {
     return itemValue;
   }
 

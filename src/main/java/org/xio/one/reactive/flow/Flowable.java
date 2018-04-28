@@ -4,6 +4,7 @@ import org.xio.one.reactive.flow.service.FlowContents;
 import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
 import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -12,9 +13,7 @@ public interface Flowable<T, R> {
 
   String name();
 
-  Flowable<T,R> addSingleSubscriber(SingleItemSubscriber<R, T> subscriber);
-
-  Flowable<T,R> addMultiplexSubscriber(MultiplexItemSubscriber<R, T> subscriber);
+  Flowable<T,R> addSubscriber(SubscriberInterface<R, T> subscriber);
 
   Flowable<T, R> enableImmediateFlushing();
 
@@ -28,9 +27,9 @@ public interface Flowable<T, R> {
 
   long[] putItemWithTTL(long ttlSeconds, T... values);
 
-  Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber);
+  Future<R> submitItemWithTTL(long ttlSeconds, T value);
 
-  Future<R> putItem(T value, FutureSubscriber<R, T> subscriber);
+  Future<R> submitItem(T value);
 
   FlowContents contents();
 

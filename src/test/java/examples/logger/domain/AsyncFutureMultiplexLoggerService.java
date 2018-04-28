@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.CompletionHandler;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,8 +28,7 @@ public class AsyncFutureMultiplexLoggerService {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     logEntryFlow = Flow.aFlowable(UUID.randomUUID().toString(), 0);
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
-
-    futureMultiplexItemSubscriber = new FutureMultiplexItemSubscriber<Integer, String>() {
+    logEntryFlow.addSubscriber(new FutureMultiplexItemSubscriber<Integer, String>() {
 
       final AsynchronousFileChannel fileChannel = AsynchronousFileChannel.open(logFilePath, WRITE);
       long position = 0;
@@ -39,8 +39,25 @@ public class AsyncFutureMultiplexLoggerService {
 
       @Override
       public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String>> entries) {
+
+
         Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
         List<Long> itemIds = new ArrayList<>();
+
+
+        CompletionHandler<Integer, Object> completionHandler =
+            new CompletionHandler<Integer, Object>() {
+
+              @Override
+              public void completed(Integer result, Object attachment) {
+
+              }
+
+              @Override
+              public void failed(Throwable exc, Object attachment) {
+
+              }
+            };
 
         entries.forEach(entry -> {
           buffer.put((entry.value() + "\r\n").getBytes());
@@ -74,10 +91,14 @@ public class AsyncFutureMultiplexLoggerService {
       }
 
       @Override
-      protected void finalize() throws Throwable {
-        fileChannel.close();
+      public void finalise() {
+        try {
+          fileChannel.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
-    };
+    });
 
   }
 
@@ -90,7 +111,8 @@ public class AsyncFutureMultiplexLoggerService {
   }
 
   public Future<Integer> logAsync(LogLevel logLevel, String entry) {
-    return logEntryFlow.putItem(logLevel + ":" + entry, futureMultiplexItemSubscriber);
+
+    return logEntryFlow.submitItem(logLevel + ":" + entry);
   }
 
   public Path getLogFilePath() {

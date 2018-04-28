@@ -2,7 +2,7 @@ package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.subscriber.internal.Callback;
-import org.xio.one.reactive.flow.subscriber.internal.SubscriberOperations;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -11,7 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, E> {
+public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E> {
 
 
   private final String id = UUID.randomUUID().toString();
@@ -98,7 +98,7 @@ public abstract class FutureSubscriber<R, E> implements SubscriberOperations<R, 
   }
 
   @Override
-  public final SubscriberOperations<R, E> getSubscriber() {
+  public final SubscriberInterface<R, E> getSubscriber() {
     return this;
   }
 

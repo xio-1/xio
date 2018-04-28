@@ -5,16 +5,18 @@
  */
 package org.xio.one.reactive.flow;
 
+import org.xio.one.reactive.flow.domain.CompletableFlowItem;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.ItemIdSequence;
 import org.xio.one.reactive.flow.service.FlowContents;
 import org.xio.one.reactive.flow.service.FlowService;
 import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
-import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.Subscriber;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
+import java.nio.channels.CompletionHandler;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +29,7 @@ import java.util.concurrent.locks.LockSupport;
  * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
  * json etc can be put into the aFlowable and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
- * subscriber
+ * futureSubscriber
  */
 public final class Flow<T, R> implements Flowable<T, R> {
 
@@ -99,34 +101,31 @@ public final class Flow<T, R> implements Flowable<T, R> {
 
   }
 
-  /**
-   * Add a single subscriber
-   *
-   * @param subscriber
-   * @return
-   */
-  public Flowable<T, R> addSingleSubscriber(SingleItemSubscriber<R, T> subscriber) {
-    if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-      streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
-      subscriberSubscriptions.put(subscriber.getId(), subscription);
-    }
+  public Flowable<T, R> addSubscriber(SubscriberInterface<R, T> subscriber) {
+    if (subscriber instanceof Subscriber)
+      registerSubscriber((Subscriber<R, T>) subscriber);
+    if (subscriber instanceof FutureSubscriber)
+      registerFutureSubscriber((FutureSubscriber<R, T>) subscriber);
     return this;
   }
 
-  /**
-   * Add a multiplex subscriber
-   *
-   * @param subscriber
-   * @return
-   */
-  public Flowable<T, R> addMultiplexSubscriber(MultiplexItemSubscriber<R, T> subscriber) {
-    if (subscriber != null && streamSubscriberFutureResultMap.get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<R, T>(this, subscriber);
-      streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
-      subscriberSubscriptions.put(subscriber.getId(), subscription);
-    }
-    return this;
+  private void registerSubscriber(Subscriber<R, T> subscriber) {
+    Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+    streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
+    subscriberSubscriptions.put(subscriber.getId(), subscription);
+  }
+
+  private FutureSubscriber<R, T> futureSubscriber = null;
+
+  private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
+    if (futureSubscriber==null) {
+      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+      Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
+      subscription.subscribe();
+      this.futureSubscriber = subscriber;
+    } else
+      throw new IllegalStateException("Only one futureSubscriber may be added");
+
   }
 
   /**
@@ -201,7 +200,7 @@ public final class Flow<T, R> implements Flowable<T, R> {
       for (int i = 0; i < values.length; i++) {
         FlowItem<T> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
-        addToStreamWithBlock(item, flushImmediately);
+        addToStreamWithNoBlock(item, flushImmediately);
         if (slowDownNanos > 0)
           LockSupport.parkNanos(slowDownNanos);
       }
@@ -209,44 +208,66 @@ public final class Flow<T, R> implements Flowable<T, R> {
     return ids;
   }
 
+
   /**
-   * Each putItem is processed as a Future<R> using the given a single flow or multiplexed flow future subscriber
-   * A future result will be made available immediately the domain is processed by the subscriber
+   * Put's an item with the given futureSubscriber and completion handler
+   *
+   * @param value
+   * @param subscriber
+   * @param completionHandler
+   */
+  public void putItem(T value, FutureSubscriber<R, T> subscriber,
+      CompletionHandler<R, T> completionHandler) {
+    putItemWithTTL(this.defaultTTLSeconds, value, subscriber, completionHandler);
+  }
+
+  /**
+   * Put's an item with the given futureSubscriber and completion handler
+   *
+   * @param value
+   * @param subscriber
+   * @param completionHandler
+   */
+  public void putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber,
+      CompletionHandler<R, T> completionHandler) {
+    FlowItem<T> item =
+        new CompletableFlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+    addToStreamWithNoBlock(item, flushImmediately);
+  }
+
+  /**
+   * Each putItem is processed as a Future<R> using the given single or multiplex future futureSubscriber
+   * A future result will be made available immediately the domain is processed by the futureSubscriber
    *
    * @return
    */
   @Override
-  public Future<R> putItemWithTTL(long ttlSeconds, T value, FutureSubscriber<R, T> subscriber) {
-    if (subscriberSubscriptions.get(subscriber.getId()) == null)
-      generateSubscription(subscriber);
-    return putAndReturnAsCompletableFuture(ttlSeconds, value, subscriber);
+  public Future<R> submitItem(T value) {
+    return submitItemWithTTL(defaultTTLSeconds, value);
   }
 
-  private synchronized void generateSubscription(FutureSubscriber<R, T> subscriber) {
-    if (Collections.synchronizedMap(subscriberSubscriptions).get(subscriber.getId()) == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-      Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
-      subscription.subscribe();
-    }
+  /**
+   * Each putItem is processed as a Future<R> using the given a single flow or multiplexed flow future futureSubscriber
+   * A future result will be made available immediately the domain is processed by the futureSubscriber
+   *
+   * @return
+   */
+  @Override
+  public Future<R> submitItemWithTTL(long ttlSeconds, T value) {
+    if (futureSubscriber != null)
+      return putAndReturnAsCompletableFuture(ttlSeconds, value);
+    throw new IllegalStateException(
+        "Cannot submit item without future subscriber being registered");
   }
 
-  private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value,
-      FutureSubscriber<R, T> subscriber) {
+
+  private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value) {
     long itemId = putItemWithTTL(ttlSeconds, value)[0];
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
-    return subscriber.register(itemId, completableFuture);
+    return futureSubscriber.register(itemId, completableFuture);
   }
 
-  /**
-   * Each putItem is processed as a Future<R> using the given single or multiplex future subscriber
-   * A future result will be made available immediately the domain is processed by the subscriber
-   *
-   * @return
-   */
-  @Override
-  public Future<R> putItem(T value, FutureSubscriber<R, T> subscriber) {
-    return putItemWithTTL(defaultTTLSeconds, value, subscriber);
-  }
+
 
   /**
    * Return a queryable facade for Flow's contents
