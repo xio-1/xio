@@ -12,7 +12,7 @@ public abstract class CompletableResultItemSubscriber<R, T> extends CompletableS
     e.forEach(item -> accept((CompletableFlowItem<R, T>) item));
   }
 
-  public abstract R onNext(FlowItem<T> itemValue) throws Throwable;
+  public abstract void onNext(CompletableFlowItem<R,T> itemValue) throws Throwable;
 
   public abstract void onError(Throwable error, FlowItem<T> itemValue);
 
@@ -26,10 +26,9 @@ public abstract class CompletableResultItemSubscriber<R, T> extends CompletableS
 
   private void accept(CompletableFlowItem<R, T> item) {
     try {
-      item.callback().completed(onNext(item), item.value());
+      onNext(item);
     } catch (Throwable e) {
       onError(e, item);
-      item.callback().failed(e, item.value());
     }
   }
 }

@@ -154,12 +154,15 @@ public final class Flow<T, R>
 
   private void addAppropriateSubscriber(SubscriberInterface<R, T> subscriber) {
     if (subscriber instanceof Subscriber)
-      registerSubscriber((Subscriber<R, T>) subscriber);
+      registerSubscriber(subscriber);
     if (subscriber instanceof FutureResultSubscriber)
       registerFutureSubscriber((FutureResultSubscriber<R, T>) subscriber);
+    if (subscriber instanceof  CompletableSubscriber)
+      registerSubscriber(subscriber);
+
   }
 
-  private void registerSubscriber(Subscriber<R, T> subscriber) {
+  private void registerSubscriber(SubscriberInterface<R, T> subscriber) {
     Subscription<R, T> subscription = new Subscription<>(this, subscriber);
     streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
     subscriberSubscriptions.put(subscriber.getId(), subscription);

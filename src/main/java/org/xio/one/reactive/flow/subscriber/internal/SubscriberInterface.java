@@ -14,6 +14,8 @@ public interface SubscriberInterface<R,E> {
 
   R peek();
 
+  String getId();
+
   R getNext();
 
   SubscriberInterface<R,E> getSubscriber();

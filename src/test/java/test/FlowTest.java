@@ -5,15 +5,17 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.*;
+import org.xio.one.reactive.flow.subscriber.CompletableResultItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureResultItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureResultMultiplexItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.CompletableResultItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.ItemSubscriber;
+import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -339,13 +341,17 @@ public class FlowTest {
   }
 
   @Test
-  public void testCallbackOnCompletion() {
+  public void testCallbackOnCompletion() throws InterruptedException {
     CompletableResultFlowable<String, String> asyncFlow =
         Flow.aCompletableResultFlowable(HELLO_WORLD_FLOW, new CompletableResultItemSubscriber<>() {
 
           @Override
-          public String onNext(FlowItem<String> itemValue) throws Throwable {
-            return itemValue.value() + "World";
+          public void onNext(CompletableFlowItem<String, String> itemValue) throws Throwable {
+            System.out.println(Thread.currentThread() + ":OnNext"+itemValue.value());
+            InternalExecutors.computeThreadPoolInstance().submit(new FutureTask<Void>(() -> {
+              itemValue.callback().completed(itemValue.value() + "World", itemValue.value());
+              return null;
+            }));
           }
 
           @Override
@@ -354,11 +360,11 @@ public class FlowTest {
           }
         });
 
-    asyncFlow.submitItem("Hello", new CompletionHandler<>() {
+    CompletionHandler<String, String> myHandler = new CompletionHandler<>() {
       @Override
       public void completed(String result, String attachment) {
-        System.out.println(result);
-        assertThat(result, is("HelloWorld"));
+        System.out.println(Thread.currentThread() + ":OnCallbackCompletion:"+result);
+
       }
 
       @Override
@@ -366,7 +372,11 @@ public class FlowTest {
         exc.printStackTrace();
       }
 
-    });
+    };
+
+    System.out.println(Thread.currentThread() + ":OnSubmit");
+    for (int i = 0; i < 10; i++)
+      asyncFlow.submitItem("Hello" + i, myHandler);
     asyncFlow.end(true);
   }
 
