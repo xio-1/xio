@@ -1,22 +1,17 @@
 package org.xio.one.reactive.flow.domain;
 
-import java.nio.channels.CompletionHandler;
-
 public class CompletableFlowItem<R, T> extends FlowItem<T> {
 
-  private CompletionHandler<R, T> completionHandler;
+  private CompletionHandler<R, T> callback;
 
   public CompletableFlowItem(T value, long itemId, long itemTTLSeconds,
-      CompletionHandler<R, T> completionHandler) {
+      CompletionHandler<R, T> callback) {
     super(value, itemId, itemTTLSeconds);
-    this.completionHandler = completionHandler;
+    this.callback = callback;
   }
 
-
-  public CompletionHandler<R, T> completionHandler() {
-    return completionHandler;
+  public CompletionHandler<R, T> callback() {
+    return callback;
   }
-
-
 
 }

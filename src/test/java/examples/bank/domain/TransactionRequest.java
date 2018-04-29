@@ -1,5 +1,7 @@
 package examples.bank.domain;
 
+import java.util.Objects;
+
 public class TransactionRequest {
 
   final Long timestamp;
@@ -54,5 +56,24 @@ public class TransactionRequest {
     sb.append(", amount=").append(amount);
     sb.append('}');
     return sb.toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    TransactionRequest that = (TransactionRequest) o;
+    return Double.compare(that.amount, amount) == 0 && Objects.equals(timestamp, that.timestamp)
+        && Objects.equals(reference, that.reference) && Objects
+        .equals(fromAccount, that.fromAccount) && Objects.equals(toAccount, that.toAccount)
+        && transactionType == that.transactionType;
+  }
+
+  @Override
+  public int hashCode() {
+
+    return Objects.hash(timestamp, reference, fromAccount, toAccount, transactionType, amount);
   }
 }

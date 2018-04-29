@@ -33,8 +33,7 @@ public final class Subscription<R, E> {
             .executorService()
             .submit(
                 () -> {
-                  while ((!itemStream.hasEnded() || !itemStream.contents().hasEnded())
-                      && !subscriber.isDone()) {
+                  while ((!itemStream.hasEnded() || !itemStream.contents().hasEnded())) {
                     processResults(subscriber);
                   }
                   processFinalResults(subscriber);

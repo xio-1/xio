@@ -1,37 +1,45 @@
 package examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.Flowable;
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.SingleItemSubscriber;
+import org.xio.one.reactive.flow.domain.FutureResultFlowable;
+import org.xio.one.reactive.flow.domain.SimpleFlowable;
+import org.xio.one.reactive.flow.subscriber.FutureResultMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.ItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
-  Flowable<TransactionRequest, Boolean> transactionEventLoop;
-  List<TransactionRequest> bankTransactionLedger = new ArrayList<>();
+  SimpleFlowable<TransactionRequest, Boolean> transactionEventLoop;
+  SimpleFlowable<TransactionRequest, Boolean> transactionLedger;
+
+  List<TransactionRequest> bankTransactionLedger = Collections.synchronizedList(new ArrayList<>());
   Logger logger = Logger.getLogger(Bank.class.getCanonicalName());
-  FutureMultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
+  MultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    transactionEventLoop = Flow.aFlowable();
+    transactionEventLoop = Flow.aSimpleFlowable();
   }
 
   public void open() {
     //Subscriber for every transaction request
-    transactionEventLoop.addSubscriber(new SingleItemSubscriber<>() {
+    transactionEventLoop.addSubscriber(new ItemSubscriber<>() {
 
       @Override
       public void onNext(FlowItem<TransactionRequest> transaction)
-          throws InsufficientFundsException {
-        this.processTransaction(transaction.value());
+          throws InsufficientFundsException, ExecutionException, InterruptedException {
+        if (this.processTransaction(transaction.value()))
+          recordInLedger(transaction.value());
+        else throw new RuntimeException("Error processing payment");
       }
 
       @Override
@@ -39,7 +47,12 @@ public class Bank {
         error.printStackTrace();
       }
 
-      private void processTransaction(TransactionRequest transaction)
+      private void recordInLedger(TransactionRequest transaction)
+      {
+        transactionLedger.putItem(transaction);
+      }
+
+      private boolean processTransaction(TransactionRequest transaction)
           throws InsufficientFundsException {
         if (transaction.transactionType == TransactionType.CREDIT)
           creditAccount(transaction.toAccount, transaction);
@@ -49,6 +62,7 @@ public class Bank {
           debitAccount(transaction.fromAccount, transaction);
           creditAccount(transaction.toAccount, transaction);
         }
+        return true;
       }
 
       private void creditAccount(String accountNumber, TransactionRequest transaction) {
@@ -64,35 +78,29 @@ public class Bank {
 
     });
 
-    transactionEventLoop.addSubscriber(new FutureMultiplexItemSubscriber<>() {
-      HashMap<Long, Future<Boolean>> toReturn = new HashMap<>();
-
+    transactionLedger = Flow.aSimpleFlowable("ledger");
+    transactionLedger.addSubscriber(new MultiplexItemSubscriber<Boolean, TransactionRequest>() {
       @Override
-      public Map<Long, Future<Boolean>> onNext(Stream<FlowItem<TransactionRequest>> e) {
+      public void onNext(Stream<FlowItem<TransactionRequest>> e) {
+
         String multiplexGroupID = UUID.randomUUID().toString();
-        e.parallel().forEach(item -> {
+        e.forEach(item -> {
           logger.info(
               "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|" + item
                   .value().toString());
-          toReturn.put(item.itemId(),
-              CompletableFuture.completedFuture(bankTransactionLedger.add(item.value())));
+          bankTransactionLedger.add(item.value());
         });
-
-        return toReturn;
       }
 
       @Override
-      public void onFutureCompletionError(Throwable error, TransactionRequest itemValue) {
+      public void finalise() {
+        super.finalise();
       }
-
     });
-
-    transactionEventLoop.addSubscriber(ledgerMultiplexFutureSubscriber);
-
   }
 
-  public Future<Boolean> submitTransactionRequest(TransactionRequest transaction) {
-    return transactionEventLoop.submitItem(transaction);
+  public void submitTransactionRequest(TransactionRequest transaction) {
+    transactionEventLoop.putItem(transaction);
   }
 
   public Account newAccount(String name) {
@@ -107,13 +115,15 @@ public class Bank {
 
   public void close() {
     this.transactionEventLoop.end(true);
+    this.transactionLedger.end(true);
   }
 
-  public Double getLiquidity() {
-    Double creditTotal = this.bankTransactionLedger.stream()
+  public Double getLiquidity() throws Exception {
+    TransactionRequest[] transactionRequests = this.bankTransactionLedger.toArray(new TransactionRequest[0]);
+    Double creditTotal = Arrays.asList(transactionRequests).stream()
         .filter(t -> t.transactionType.equals(TransactionType.CREDIT))
         .mapToDouble(TransactionRequest::getAmount).sum();
-    Double debitTotal = this.bankTransactionLedger.stream()
+    Double debitTotal =  Arrays.asList(transactionRequests).stream()
         .filter(t -> t.transactionType.equals(TransactionType.DEBIT))
         .mapToDouble(TransactionRequest::getAmount).sum();
     return creditTotal - debitTotal;

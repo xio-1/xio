@@ -61,7 +61,7 @@ public final class FlowContents<T> {
             if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
               // if last domain is in correct sequence then
               if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
-                // if the size aFlowable the domain to return is correct i.e. all in sequence
+                // if the size aSimpleFlowable the domain to return is correct i.e. all in sequence
                 if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
                   return items;
                 }

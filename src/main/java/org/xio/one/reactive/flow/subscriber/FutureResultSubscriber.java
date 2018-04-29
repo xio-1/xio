@@ -1,48 +1,29 @@
 package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.subscriber.internal.Callback;
+
 import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
-public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E> {
 
+public abstract class FutureResultSubscriber<R, E> implements SubscriberInterface<R, E> {
 
+  private final ForkJoinPool pool = new ForkJoinPool(10);
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
-  private List<Callback<R>> callbacks = new ArrayList<>();
   private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
 
-  public FutureSubscriber() {
+  public FutureResultSubscriber() {
     initialise();
   }
 
-  public FutureSubscriber(Callback<R> callback) {
-    initialise();
-    addCallback(callback);
-  }
 
   public abstract void initialise();
-
-  void addCallback(Callback<R> callback) {
-    callbacks.add(callback);
-  }
-
-  void callCallbacks(R result) {
-    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
-  }
-
-  void callCallbacks(Throwable e, Object source) {
-    callbacks.stream().parallel().forEach(callback -> callback.handleResult(result));
-  }
 
   @Override
   public final boolean isDone() {
@@ -121,12 +102,49 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
     return completableFuture;
   }
 
+  private R handleResult(Future<R> result, E value) {
+    try {
+      return result.get();
+    } catch (InterruptedException | ExecutionException e) {
+      onFutureCompletionError(e, value);
+    }
+    return null;
+  }
+
   final void completeFuture(FlowItem<E> item, Future<R> result) {
-    while (futures.get(item.itemId())==null) {
+    while (futures.get(item.itemId()) == null) {
       LockSupport.parkNanos(100000);
     }
     CompletableFuture<R> future = futures.get(item.itemId());
-    CompletableFuture.supplyAsync(() -> {
+    future.complete(handleResult(result, item.value()));
+
+
+    /*ForkJoinTask<R> forkJoinTask = new ForkJoinTask<R>() {
+      R rawResult;
+
+      @Override
+      public R getRawResult() {
+        return rawResult;
+      }
+
+      @Override
+      protected void setRawResult(R value) {
+        rawResult = value;
+      }
+
+      @Override
+      protected boolean exec() {
+        try {
+          setRawResult(result.get());
+        } catch (InterruptedException | ExecutionException e) {
+          e.printStackTrace();
+        }
+        return true;
+      }
+    };
+    future.complete(pool.invoke(forkJoinTask));*/
+
+    /*CompletableFuture.supplyAsync(() -> {
       try {
         future.complete(result.get());
       } catch (Exception e1) {
@@ -134,7 +152,7 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
         onFutureCompletionError(e1, item.value());
       }
       return null;
-    });
+    });*/
   }
 
 

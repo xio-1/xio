@@ -1,9 +1,10 @@
 package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.Flowable;
+import org.xio.one.reactive.flow.domain.Flowable;
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.domain.FutureResultFlowable;
+import org.xio.one.reactive.flow.subscriber.FutureResultMultiplexItemSubscriber;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,33 +21,33 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 public class AsyncFutureMultiplexLoggerService {
 
-  private Flowable<String, Integer> logEntryFlow;
+  private FutureResultFlowable<String, Integer> logEntryFlow;
   private Path logFilePath;
-  private FutureMultiplexItemSubscriber<Integer, String> futureMultiplexItemSubscriber;
+  private FutureResultMultiplexItemSubscriber<Integer, String> futureMultiplexItemSubscriber;
 
   public AsyncFutureMultiplexLoggerService(String canonicalName) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
-    logEntryFlow = Flow.aFlowable(UUID.randomUUID().toString(), 0);
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
-    logEntryFlow.addSubscriber(new FutureMultiplexItemSubscriber<Integer, String>() {
+    logEntryFlow = Flow.aFutureResultFlowable(UUID.randomUUID().toString(),
+        new FutureResultMultiplexItemSubscriber<>() {
 
-      final AsynchronousFileChannel fileChannel = AsynchronousFileChannel.open(logFilePath, WRITE);
-      long position = 0;
+          final AsynchronousFileChannel fileChannel =
+              AsynchronousFileChannel.open(logFilePath, WRITE);
+          long position = 0;
 
-      @Override
-      public void initialise() {
-      }
+          @Override
+          public void initialise() {
+          }
 
-      @Override
-      public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String>> entries) {
-
-
-        Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
-        List<Long> itemIds = new ArrayList<>();
+          @Override
+          public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String>> entries) {
 
 
-        CompletionHandler<Integer, Object> completionHandler =
-            new CompletionHandler<Integer, Object>() {
+            Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
+            List<Long> itemIds = new ArrayList<>();
+
+
+            CompletionHandler<Integer, Object> completionHandler = new CompletionHandler<Integer, Object>() {
 
               @Override
               public void completed(Integer result, Object attachment) {
@@ -59,46 +60,46 @@ public class AsyncFutureMultiplexLoggerService {
               }
             };
 
-        entries.forEach(entry -> {
-          buffer.put((entry.value() + "\r\n").getBytes());
-          itemIds.add(entry.itemId());
-        });
-        buffer.flip();
-        ByteBuffer toWrite = ByteBuffer.wrap(Arrays.copyOf(buffer.array(), buffer.limit()));
-
-        try {
-          //fileChannel.lock(position, toWrite.limit(), true);
-          Future<Integer> bytesWrittenFuture = fileChannel.write(toWrite, position);
-          if (bytesWrittenFuture != null) {
-            position = position + buffer.limit();
-            itemIds.stream().forEach(i -> {
-              futureMap.put(i, bytesWrittenFuture);
+            entries.forEach(entry -> {
+              buffer.put((entry.value() + "\r\n").getBytes());
+              itemIds.add(entry.itemId());
             });
-          } else
-            System.currentTimeMillis();
-        } catch (Exception e) {
-          e.printStackTrace();
-        } finally {
-          buffer.clear();
-        }
-        return futureMap;
-      }
+            buffer.flip();
+            ByteBuffer toWrite = ByteBuffer.wrap(Arrays.copyOf(buffer.array(), buffer.limit()));
 
-      @Override
-      public void onFutureCompletionError(Throwable error, String itemValue) {
-        System.out.println("ERROR " + itemValue);
-        error.printStackTrace();
-      }
+            try {
+              //fileChannel.lock(position, toWrite.limit(), true);
+              Future<Integer> bytesWrittenFuture = fileChannel.write(toWrite, position);
+              if (bytesWrittenFuture != null) {
+                position = position + buffer.limit();
+                itemIds.stream().forEach(i -> {
+                  futureMap.put(i, bytesWrittenFuture);
+                });
+              } else
+                System.currentTimeMillis();
+            } catch (Exception e) {
+              e.printStackTrace();
+            } finally {
+              buffer.clear();
+            }
+            return futureMap;
+          }
 
-      @Override
-      public void finalise() {
-        try {
-          fileChannel.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }
-    });
+          @Override
+          public void onFutureCompletionError(Throwable error, String itemValue) {
+            System.out.println("ERROR " + itemValue);
+            error.printStackTrace();
+          }
+
+          @Override
+          public void finalise() {
+            try {
+              fileChannel.close();
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+          }
+        });
 
   }
 

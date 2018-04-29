@@ -7,8 +7,8 @@ import java.util.NavigableSet;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
-public abstract class FutureMultiplexItemSubscriber<R, E>
-    extends FutureSubscriber<R, E> {
+public abstract class FutureResultMultiplexItemSubscriber<R, E>
+    extends FutureResultSubscriber<R, E> {
 
   @Override
   public void initialise() {
@@ -24,7 +24,8 @@ public abstract class FutureMultiplexItemSubscriber<R, E>
     if (e != null) {
       try {
         streamResults = onNext(e.stream());
-        e.stream().forEach(i -> completeFuture(i, streamResults.get(i.itemId())));
+        e.stream().parallel().forEach(i ->
+            completeFuture(i, streamResults.get(i.itemId())));
       }
       catch (Exception ex) {
         ex.printStackTrace();

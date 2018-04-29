@@ -6,7 +6,10 @@ import org.xio.one.reactive.flow.domain.ItemSequenceComparator;
 import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
@@ -14,7 +17,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * The Xio.contents.domain itemQueryStore where the putAll domain are persisted in memory
  */
-public final class FlowService<T,R> {
+public final class FlowService<T, R> {
 
   protected volatile ConcurrentSkipListSet<FlowItem<T>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, FlowItem<T>> itemStoreIndexContents;
@@ -29,7 +32,7 @@ public final class FlowService<T,R> {
    * Items will be retained until consumed to by all subscriber and whilst they are alive
    * i.e. before they expire their/stream TTL
    */
-  public FlowService(Flow<T,R> itemStream) {
+  public FlowService(Flow<T, R> itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreOperations = new FlowContents<FlowItem<T>>(this, itemStream);
@@ -115,9 +118,11 @@ public final class FlowService<T,R> {
         if (next_last != null)
           last = next_last;*/
 
-        while (!itemRepositoryContents.isEmpty() && itemRepositoryContents.last().itemId()
-           > getMinimumLastSeenProcessed(itemStream))
+        while (itemRepositoryContents.size() != itemStream.size() || (itemStream.size() > 0
+            && itemRepositoryContents.last().itemId() > getMinimumLastSeenProcessed(itemStream))
+            )
           LockSupport.parkNanos(100000);
+
         itemStore.isEnd = true;
       } catch (Exception e) {
         e.printStackTrace();
