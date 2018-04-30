@@ -2,17 +2,12 @@ package examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.FutureResultFlowable;
 import org.xio.one.reactive.flow.domain.SimpleFlowable;
-import org.xio.one.reactive.flow.subscriber.FutureResultMultiplexItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.ItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.MultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.StreamMultiplexItemSubscriber;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -24,7 +19,7 @@ public class Bank {
 
   List<TransactionRequest> bankTransactionLedger = Collections.synchronizedList(new ArrayList<>());
   Logger logger = Logger.getLogger(Bank.class.getCanonicalName());
-  MultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
+  StreamMultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
     transactionEventLoop = Flow.aSimpleFlowable();
@@ -32,7 +27,7 @@ public class Bank {
 
   public void open() {
     //Subscriber for every transaction request
-    transactionEventLoop.addSubscriber(new ItemSubscriber<>() {
+    transactionEventLoop.addSubscriber(new StreamItemSubscriber<>() {
 
       @Override
       public void onNext(FlowItem<TransactionRequest> transaction)
@@ -79,7 +74,7 @@ public class Bank {
     });
 
     transactionLedger = Flow.aSimpleFlowable("ledger");
-    transactionLedger.addSubscriber(new MultiplexItemSubscriber<Boolean, TransactionRequest>() {
+    transactionLedger.addSubscriber(new StreamMultiplexItemSubscriber<Boolean, TransactionRequest>() {
       @Override
       public void onNext(Stream<FlowItem<TransactionRequest>> e) {
 

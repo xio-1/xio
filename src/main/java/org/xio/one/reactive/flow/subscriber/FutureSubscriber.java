@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 
-public abstract class FutureResultSubscriber<R, E> implements SubscriberInterface<R, E> {
+public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E> {
 
   private final ForkJoinPool pool = new ForkJoinPool(10);
   private final String id = UUID.randomUUID().toString();
@@ -18,7 +18,7 @@ public abstract class FutureResultSubscriber<R, E> implements SubscriberInterfac
   private boolean done = false;
   private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
 
-  public FutureResultSubscriber() {
+  public FutureSubscriber() {
     initialise();
   }
 

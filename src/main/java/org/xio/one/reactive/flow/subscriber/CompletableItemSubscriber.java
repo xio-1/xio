@@ -5,7 +5,7 @@ import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.NavigableSet;
 
-public abstract class CompletableResultItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
+public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
   @Override
   public final void process(NavigableSet<FlowItem<T>> e) {

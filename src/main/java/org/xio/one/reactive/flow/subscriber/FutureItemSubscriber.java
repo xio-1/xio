@@ -5,7 +5,7 @@ import org.xio.one.reactive.flow.domain.FlowItem;
 import java.util.NavigableSet;
 import java.util.concurrent.Future;
 
-public abstract class FutureResultItemSubscriber<R, E> extends FutureResultSubscriber<R, E> {
+public abstract class FutureItemSubscriber<R, E> extends FutureSubscriber<R, E> {
 
   @Override
   public void initialise() {

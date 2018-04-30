@@ -1,10 +1,9 @@
 package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.Flowable;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.FutureResultFlowable;
-import org.xio.one.reactive.flow.subscriber.FutureResultMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,13 +22,13 @@ public class AsyncFutureMultiplexLoggerService {
 
   private FutureResultFlowable<String, Integer> logEntryFlow;
   private Path logFilePath;
-  private FutureResultMultiplexItemSubscriber<Integer, String> futureMultiplexItemSubscriber;
+  private FutureMultiplexItemSubscriber<Integer, String> futureMultiplexItemSubscriber;
 
   public AsyncFutureMultiplexLoggerService(String canonicalName) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow = Flow.aFutureResultFlowable(UUID.randomUUID().toString(),
-        new FutureResultMultiplexItemSubscriber<>() {
+        new FutureMultiplexItemSubscriber<>() {
 
           final AsynchronousFileChannel fileChannel =
               AsynchronousFileChannel.open(logFilePath, WRITE);
@@ -42,23 +41,23 @@ public class AsyncFutureMultiplexLoggerService {
           @Override
           public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String>> entries) {
 
-
             Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
             List<Long> itemIds = new ArrayList<>();
 
 
-            CompletionHandler<Integer, Object> completionHandler = new CompletionHandler<Integer, Object>() {
+            CompletionHandler<Integer, Object> completionHandler =
+                new CompletionHandler<Integer, Object>() {
 
-              @Override
-              public void completed(Integer result, Object attachment) {
+                  @Override
+                  public void completed(Integer result, Object attachment) {
 
-              }
+                  }
 
-              @Override
-              public void failed(Throwable exc, Object attachment) {
+                  @Override
+                  public void failed(Throwable exc, Object attachment) {
 
-              }
-            };
+                  }
+                };
 
             entries.forEach(entry -> {
               buffer.put((entry.value() + "\r\n").getBytes());

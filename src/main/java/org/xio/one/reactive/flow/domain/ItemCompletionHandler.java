@@ -42,7 +42,7 @@ package org.xio.one.reactive.flow.domain;
  * @since 1.7
  */
 
-public interface CompletionHandler<V,A> {
+public interface ItemCompletionHandler<V,A> {
 
     /**
      * Invoked when an operation has completed.

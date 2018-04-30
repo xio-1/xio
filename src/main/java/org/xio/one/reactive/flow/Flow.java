@@ -9,7 +9,7 @@ import org.xio.one.reactive.flow.domain.*;
 import org.xio.one.reactive.flow.service.FlowContents;
 import org.xio.one.reactive.flow.service.FlowService;
 import org.xio.one.reactive.flow.subscriber.CompletableSubscriber;
-import org.xio.one.reactive.flow.subscriber.FutureResultSubscriber;
+import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
 import org.xio.one.reactive.flow.subscriber.Subscriber;
 import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.subscriber.internal.Subscription;
@@ -32,7 +32,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public final class Flow<T, R>
     implements Flowable<T, R>, SimpleFlowable<T, R>, FutureResultFlowable<T, R>,
-    CompletableResultFlowable<T, R> {
+    CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
   // streamContents variables
@@ -90,7 +90,7 @@ public final class Flow<T, R>
   }
 
   public static <T, R> FutureResultFlowable<T, R> aFutureResultFlowable(
-      FutureResultSubscriber<R, T> futureSubscriber) {
+      FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable =
         new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
@@ -98,20 +98,20 @@ public final class Flow<T, R>
   }
 
   public static <T, R> FutureResultFlowable<T, R> aFutureResultFlowable(String name,
-      FutureResultSubscriber<R, T> futureSubscriber) {
+      FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
   }
 
   public static <T, R> FutureResultFlowable<T, R> aFutureResultFlowable(String name, long ttlSeconds,
-      FutureResultSubscriber<R, T> futureSubscriber) {
+      FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
   }
 
-  public static <T, R> CompletableResultFlowable<T, R> aCompletableResultFlowable(
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableResultFlowable(
       CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable =
         new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
@@ -119,14 +119,14 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  public static <T, R> CompletableResultFlowable<T, R> aCompletableResultFlowable(String name,
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableResultFlowable(String name,
       CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
     return resultFlowable;
   }
 
-  public static <T, R> CompletableResultFlowable<T, R> aCompletableResultFlowable(String name, long ttlSeconds,
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableResultFlowable(String name, long ttlSeconds,
       CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
@@ -155,8 +155,8 @@ public final class Flow<T, R>
   private void addAppropriateSubscriber(SubscriberInterface<R, T> subscriber) {
     if (subscriber instanceof Subscriber)
       registerSubscriber(subscriber);
-    if (subscriber instanceof FutureResultSubscriber)
-      registerFutureSubscriber((FutureResultSubscriber<R, T>) subscriber);
+    if (subscriber instanceof FutureSubscriber)
+      registerFutureSubscriber((FutureSubscriber<R, T>) subscriber);
     if (subscriber instanceof  CompletableSubscriber)
       registerSubscriber(subscriber);
 
@@ -168,9 +168,9 @@ public final class Flow<T, R>
     subscriberSubscriptions.put(subscriber.getId(), subscription);
   }
 
-  private FutureResultSubscriber<R, T> futureSubscriber = null;
+  private FutureSubscriber<R, T> futureSubscriber = null;
 
-  private void registerFutureSubscriber(FutureResultSubscriber<R, T> subscriber) {
+  private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
     if (futureSubscriber == null) {
       Subscription<R, T> subscription = new Subscription<>(this, subscriber);
       Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
@@ -264,26 +264,26 @@ public final class Flow<T, R>
 
 
   /**
-   * Submit an item to be processed by the FutureSubscriber and callback to the completion handler
+   * Submit an item to be processed by the FutureSubscriber and completionHandler to the completion handler
    *
    * @param value
-   * @param callbackHandler
+   * @param completionHandler
    */
   @Override
-  public void submitItem(T value, CompletionHandler<R, T> callbackHandler) {
-    submitItemWithTTL(this.defaultTTLSeconds, value, callbackHandler);
+  public void submitItem(T value, ItemCompletionHandler<R, T> completionHandler) {
+    submitItemWithTTL(this.defaultTTLSeconds, value, completionHandler);
   }
 
   /**
    * Put's an item with the given futureSubscriber and completion handler
    *
    * @param value
-   * @param callbackHandler
+   * @param completionHandler
    */
   @Override
-  public void submitItemWithTTL(long ttlSeconds, T value, CompletionHandler<R, T> callbackHandler) {
+  public void submitItemWithTTL(long ttlSeconds, T value, ItemCompletionHandler<R, T> completionHandler) {
     FlowItem<T> item =
-        new CompletableFlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, callbackHandler);
+        new CompletableFlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithNoBlock(item, flushImmediately);
   }
 

@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class MultiplexItemSubscriber<R, E> extends Subscriber<R, E> {
+public abstract class StreamMultiplexItemSubscriber<R, E> extends Subscriber<R, E> {
 
   @Override
   public final void process(NavigableSet<FlowItem<E>> e) {

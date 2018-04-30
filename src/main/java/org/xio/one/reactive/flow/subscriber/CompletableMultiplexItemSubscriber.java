@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class CompletableResultMultiplexItemSubscriber<R, E> extends CompletableSubscriber<R, E> {
+public abstract class CompletableMultiplexItemSubscriber<R, E> extends CompletableSubscriber<R, E> {
 
   @Override
   public final void process(NavigableSet<FlowItem<E>> e) {

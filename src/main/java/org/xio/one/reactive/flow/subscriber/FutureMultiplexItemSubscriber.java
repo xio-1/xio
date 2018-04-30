@@ -7,8 +7,8 @@ import java.util.NavigableSet;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
-public abstract class FutureResultMultiplexItemSubscriber<R, E>
-    extends FutureResultSubscriber<R, E> {
+public abstract class FutureMultiplexItemSubscriber<R, E>
+    extends FutureSubscriber<R, E> {
 
   @Override
   public void initialise() {
