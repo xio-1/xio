@@ -23,15 +23,15 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * An Flow - a aSimpleFlowable stream of items
+ * An Flow - a anItemFlow stream of items
  *
  * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
- * json etc can be put into the aSimpleFlowable and are then asynchronously loaded in memory to a
+ * json etc can be put into the anItemFlow and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
  * futureSubscriber
  */
 public final class Flow<T, R>
-    implements Flowable<T, R>, SimpleFlowable<T, R>, FutureResultFlowable<T, R>,
+    implements Flowable<T, R>, ItemFlowable<T,R>, FutureItemResultFlowable<T, R>,
     CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
@@ -55,7 +55,7 @@ public final class Flow<T, R>
 
   // Queue control
   private FlowItem[] itemqueue_out;
-  private BlockingQueue<FlowItem<T>> item_queue;
+  private BlockingQueue<FlowItem<T,R>> item_queue;
   private int last_queue_size = 0;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
@@ -68,28 +68,28 @@ public final class Flow<T, R>
   private ExecutorService executorService = InternalExecutors.subscriberCachedThreadPoolInstance();
 
   //bad use of erasure need too find a better way
-  public static <T, R> SimpleFlowable<T, R> aSimpleFlowable() {
+  public static <T, R> ItemFlowable<T, R> anItemFlow() {
     return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> SimpleFlowable<T, R> aSimpleFlowable(String name) {
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name) {
     return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> SimpleFlowable<T, R> aSimpleFlowable(String name, long ttlSeconds) {
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long ttlSeconds) {
     return new Flow<>(name, null, ttlSeconds);
   }
 
-  public static <T, R> SimpleFlowable<T, R> aSimpleFlowable(String name, String indexFieldName) {
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName) {
     return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> SimpleFlowable<T, R> aSimpleFlowable(String name, String indexFieldName,
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName,
       long ttlSeconds) {
     return new Flow<>(name, indexFieldName, ttlSeconds);
   }
 
-  public static <T, R> FutureResultFlowable<T, R> aFutureResultFlowable(
+  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(
       FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable =
         new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
@@ -97,21 +97,21 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  public static <T, R> FutureResultFlowable<T, R> aFutureResultFlowable(String name,
+  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name,
       FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
   }
 
-  public static <T, R> FutureResultFlowable<T, R> aFutureResultFlowable(String name, long ttlSeconds,
+  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name, long ttlSeconds,
       FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
   }
 
-  public static <T, R> CompletableItemFlowable<T, R> aCompletableResultFlowable(
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(
       CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable =
         new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
@@ -119,14 +119,14 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  public static <T, R> CompletableItemFlowable<T, R> aCompletableResultFlowable(String name,
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name,
       CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
     return resultFlowable;
   }
 
-  public static <T, R> CompletableItemFlowable<T, R> aCompletableResultFlowable(String name, long ttlSeconds,
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name, long ttlSeconds,
       CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
@@ -228,7 +228,7 @@ public final class Flow<T, R>
   }
 
   /**
-   * Puts list aSimpleFlowable values into the contents
+   * Puts list anItemFlow values into the contents
    *
    * @param values
    * @return
@@ -240,7 +240,7 @@ public final class Flow<T, R>
   }
 
   /**
-   * Puts list aSimpleFlowable values into the contents with ttlSeconds
+   * Puts list anItemFlow values into the contents with ttlSeconds
    *
    * @param values
    * @return
@@ -251,7 +251,7 @@ public final class Flow<T, R>
     long[] ids = new long[values.length];
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
-        FlowItem<T> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
+        FlowItem<T,R> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
         addToStreamWithBlock(item, flushImmediately);
         if (slowDownNanos > 0)
@@ -270,7 +270,7 @@ public final class Flow<T, R>
    * @param completionHandler
    */
   @Override
-  public void submitItem(T value, ItemCompletionHandler<R, T> completionHandler) {
+  public void submitItem(T value, FlowItemCompletionHandler<R, T> completionHandler) {
     submitItemWithTTL(this.defaultTTLSeconds, value, completionHandler);
   }
 
@@ -281,9 +281,9 @@ public final class Flow<T, R>
    * @param completionHandler
    */
   @Override
-  public void submitItemWithTTL(long ttlSeconds, T value, ItemCompletionHandler<R, T> completionHandler) {
-    FlowItem<T> item =
-        new CompletableFlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+  public void submitItemWithTTL(long ttlSeconds, T value, FlowItemCompletionHandler<R, T> completionHandler) {
+    FlowItem<T,R> item =
+        new FlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithNoBlock(item, flushImmediately);
   }
 
@@ -436,7 +436,7 @@ public final class Flow<T, R>
     return put_ok;
   }
 
-  private boolean addToStreamWithBlock(FlowItem<T> item, boolean immediately) {
+  private boolean addToStreamWithBlock(FlowItem<T,R> item, boolean immediately) {
     try {
       if (!this.item_queue.offer(item)) {
         this.flush = immediately;
@@ -459,7 +459,7 @@ public final class Flow<T, R>
 
   private void waitForInput() {
     int ticks = count_down_latch;
-    FlowItem<T> head;
+    FlowItem<T,R> head;
     while (!hasEnded()) {
       if (ticks == 0 || flush) {
         this.item_queue.drainTo(this.contentsControl.getItemRepositoryContents());

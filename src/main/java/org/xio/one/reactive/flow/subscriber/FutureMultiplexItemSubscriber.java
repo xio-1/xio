@@ -7,8 +7,8 @@ import java.util.NavigableSet;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
-public abstract class FutureMultiplexItemSubscriber<R, E>
-    extends FutureSubscriber<R, E> {
+public abstract class FutureMultiplexItemSubscriber<R, T>
+    extends FutureSubscriber<R, T> {
 
   @Override
   public void initialise() {
@@ -19,7 +19,7 @@ public abstract class FutureMultiplexItemSubscriber<R, E>
   }
 
   @Override
-  public final void process(NavigableSet<FlowItem<E>> e) {
+  public final void process(NavigableSet<FlowItem<T,R>> e) {
     Map<Long, Future<R>> streamResults;
     if (e != null) {
       try {
@@ -34,6 +34,6 @@ public abstract class FutureMultiplexItemSubscriber<R, E>
     }
   }
 
-  public abstract Map<Long, Future<R>> onNext(Stream<FlowItem<E>> e);
+  public abstract Map<Long, Future<R>> onNext(Stream<FlowItem<T,R>> e);
 
 }

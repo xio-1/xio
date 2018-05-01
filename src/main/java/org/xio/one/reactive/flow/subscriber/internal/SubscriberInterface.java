@@ -4,9 +4,9 @@ import org.xio.one.reactive.flow.domain.FlowItem;
 
 import java.util.NavigableSet;
 
-public interface SubscriberInterface<R,E> {
+public interface SubscriberInterface<R, T> {
 
-  void emit(NavigableSet<FlowItem<E>> e);
+  void emit(NavigableSet<FlowItem<T,R>> e);
 
   boolean stop();
 
@@ -18,7 +18,7 @@ public interface SubscriberInterface<R,E> {
 
   R getNext();
 
-  SubscriberInterface<R,E> getSubscriber();
+  SubscriberInterface<R, T> getSubscriber();
 
   void initialise();
 
@@ -28,5 +28,5 @@ public interface SubscriberInterface<R,E> {
 
   void finalise();
 
-  void process(NavigableSet<FlowItem<E>> e);
+  void process(NavigableSet<FlowItem<T,R>> e);
 }

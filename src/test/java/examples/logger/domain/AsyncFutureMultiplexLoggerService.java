@@ -2,7 +2,7 @@ package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.FutureResultFlowable;
+import org.xio.one.reactive.flow.domain.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
 
 import java.io.File;
@@ -20,14 +20,14 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 public class AsyncFutureMultiplexLoggerService {
 
-  private FutureResultFlowable<String, Integer> logEntryFlow;
+  private FutureItemResultFlowable<String, Integer> logEntryFlow;
   private Path logFilePath;
   private FutureMultiplexItemSubscriber<Integer, String> futureMultiplexItemSubscriber;
 
   public AsyncFutureMultiplexLoggerService(String canonicalName) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
-    logEntryFlow = Flow.aFutureResultFlowable(UUID.randomUUID().toString(),
+    logEntryFlow = Flow.aFutureResultItemFlow(UUID.randomUUID().toString(),
         new FutureMultiplexItemSubscriber<>() {
 
           final AsynchronousFileChannel fileChannel =
@@ -39,7 +39,7 @@ public class AsyncFutureMultiplexLoggerService {
           }
 
           @Override
-          public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String>> entries) {
+          public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String,Integer>> entries) {
 
             Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
             List<Long> itemIds = new ArrayList<>();

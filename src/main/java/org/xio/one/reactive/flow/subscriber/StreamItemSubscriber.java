@@ -7,13 +7,13 @@ import java.util.NavigableSet;
 public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> {
 
   @Override
-  public final void process(NavigableSet<FlowItem<T>> e) {
+  public final void process(NavigableSet<FlowItem<T,R>> e) {
     e.forEach(this::accept);
   }
 
-  public abstract void onNext(FlowItem<T> itemValue) throws Throwable;
+  public abstract void onNext(FlowItem<T,R> itemValue) throws Throwable;
 
-  public void onError(Throwable error, FlowItem<T> itemValue) {
+  public void onError(Throwable error, FlowItem<T,R> itemValue) {
     return;
   }
 
@@ -25,7 +25,7 @@ public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> {
   public void finalise() {
   }
 
-  private void accept(FlowItem<T> item) {
+  private void accept(FlowItem<T,R> item) {
     try {
       onNext(item);
     } catch (Throwable e) {

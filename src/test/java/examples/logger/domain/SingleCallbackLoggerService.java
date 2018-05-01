@@ -22,7 +22,7 @@ public class SingleCallbackLoggerService {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow =
-        Flow.aCompletableResultFlowable(new CompletableItemSubscriber<>() {
+        Flow.aCompletableItemFlow(new CompletableItemSubscriber<>() {
 
           final AsynchronousFileChannel fileChannel =
               AsynchronousFileChannel.open(logFilePath, WRITE);
@@ -33,7 +33,7 @@ public class SingleCallbackLoggerService {
           }
 
           @Override
-          public void onNext(CompletableFlowItem<Integer, String> entry) {
+          public void onNext(FlowItem<String,Integer> entry) {
 
             try {
               CompletionHandler<Integer, String> completionHandler =
@@ -48,7 +48,7 @@ public class SingleCallbackLoggerService {
           }
 
           @Override
-          public void onError(Throwable error, FlowItem<String> itemValue) {
+          public void onError(Throwable error, FlowItem<String,Integer> itemValue) {
 
           }
 
@@ -73,7 +73,7 @@ public class SingleCallbackLoggerService {
   }
 
   public void logAsync(LogLevel logLevel, String entry,
-      ItemCompletionHandler<Integer, String> completionHandler) {
+      FlowItemCompletionHandler<Integer, String> completionHandler) {
     logEntryFlow.submitItem(logLevel + ":" + entry, completionHandler);
   }
 

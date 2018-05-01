@@ -2,13 +2,13 @@ package org.xio.one.reactive.flow.domain;
 
 public class IOCompletionHandler<R,T> implements java.nio.channels.CompletionHandler<R,T> {
 
-  ItemCompletionHandler<R,T> ioCompletionHandler;
+  FlowItemCompletionHandler<R,T> ioCompletionHandler;
 
-  public static final <R,T> IOCompletionHandler <R,T> aIOCompletionHandler(ItemCompletionHandler<R,T> completionHandler) {
+  public static final <R,T> IOCompletionHandler <R,T> aIOCompletionHandler(FlowItemCompletionHandler<?, String> completionHandler) {
     return new IOCompletionHandler<>(completionHandler);
   }
 
-  protected IOCompletionHandler(ItemCompletionHandler completionHandler) {
+  protected IOCompletionHandler(FlowItemCompletionHandler completionHandler) {
     ioCompletionHandler = completionHandler;
   }
 

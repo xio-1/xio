@@ -13,24 +13,24 @@ import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
 /**
  * ItemStoreOperations @Author Xio @Copyright Xio
  */
-public final class FlowContents<T> {
+public final class FlowContents<T,R> {
 
-  public final NavigableSet<FlowItem<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
+  public final NavigableSet<FlowItem<T,R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   private FlowService itemStore;
   private Flow itemStream;
-  private NavigableSet<FlowItem<T>> itemStoreContents = null;
+  private NavigableSet<FlowItem<T,R>> itemStoreContents = null;
 
-  public NavigableSet<FlowItem<T>> getItemStoreContents() {
+  public NavigableSet<FlowItem<T,R>> getItemStoreContents() {
     return itemStoreContents;
   }
 
   FlowContents(FlowService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
-    this.itemStoreContents = (NavigableSet<FlowItem<T>>) itemStore.itemRepositoryContents;
+    this.itemStoreContents = (NavigableSet<FlowItem<T,R>>) itemStore.itemRepositoryContents;
   }
 
-  public FlowItem<T> item(long id) {
+  public FlowItem<T,R> item(long id) {
     return itemStoreContents.higher(new ItemComparator(id - 1));
   }
 
@@ -38,30 +38,26 @@ public final class FlowContents<T> {
     return (FlowItem) itemStore.getItemStoreIndexContents().get(index);
   }
 
-  public long count() {
-    return itemStoreContents.size();
-  }
-
   public FlowItem[] all() {
     List<FlowItem> items = new ArrayList<>(itemStoreContents);
     return items.toArray(new FlowItem[items.size()]);
   }
 
-  public final NavigableSet<FlowItem<T>> allAfter(FlowItem lastItem) {
+  public final NavigableSet<FlowItem<T,R>> allAfter(FlowItem lastItem) {
     try {
-      NavigableSet<FlowItem<T>> querystorecontents =
+      NavigableSet<FlowItem<T,R>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (querystorecontents.size() > 0)
         if (lastItem != null) {
           FlowItem newLastItem = querystorecontents.last();
-          NavigableSet<FlowItem<T>> items = Collections.unmodifiableNavigableSet(
+          NavigableSet<FlowItem<T,R>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));
           if (items.size() > 0) {
             FlowItem newFirstItem = items.first();
             if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
               // if last domain is in correct sequence then
               if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
-                // if the size aSimpleFlowable the domain to return is correct i.e. all in sequence
+                // if the size anItemFlow the domain to return is correct i.e. all in sequence
                 if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
                   return items;
                 }
@@ -79,8 +75,8 @@ public final class FlowContents<T> {
     return EMPTY_ITEM_SET;
   }
 
-  private NavigableSet<FlowItem<T>> extractItemsThatAreInSequence(FlowItem lastItem,
-      NavigableSet<FlowItem<T>> items, FlowItem newFirstItem) {
+  private NavigableSet<FlowItem<T,R>> extractItemsThatAreInSequence(FlowItem lastItem,
+      NavigableSet<FlowItem<T,R>> items, FlowItem newFirstItem) {
     FlowItem[] items1 = items.toArray(new FlowItem[items.size()]);
     int index = 0;
     FlowItem last = lastItem;
@@ -94,8 +90,8 @@ public final class FlowContents<T> {
     return items.subSet(newFirstItem, true, last, true);
   }
 
-  public FlowItem<T> last() {
-    NavigableSet<FlowItem<T>> querystorecontents =
+  public FlowItem<T,R> last() {
+    NavigableSet<FlowItem<T,R>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
     if (querystorecontents.isEmpty())
       return EMPTY_ITEM;
@@ -203,7 +199,7 @@ public final class FlowContents<T> {
 
   */
 
-  public NavigableSet<FlowItem<T>> getTimeWindowSet(long from, long to) throws FlowException {
+  public NavigableSet<FlowItem<T,R>> getTimeWindowSet(long from, long to) throws FlowException {
     // Get first and last domain in the window
     // otherwise return empty set as nothing found in the window
     return EMPTY_ITEM_SET;

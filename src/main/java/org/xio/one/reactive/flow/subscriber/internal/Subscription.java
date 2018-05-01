@@ -9,14 +9,14 @@ import java.util.NavigableSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public final class Subscription<R, E> {
+public final class Subscription<R, T> {
 
   private FlowItem lastSeenItem = null;
-  private Flow<E,R> itemStream;
+  private Flow<T,R> itemStream;
   private Future subscription;
-  private SubscriberInterface<R, E> subscriber;
+  private SubscriberInterface<R, T> subscriber;
 
-  public Subscription(Flow<E, R> itemStream, SubscriberInterface<R, E> subscriber) {
+  public Subscription(Flow<T, R> itemStream, SubscriberInterface<R, T> subscriber) {
     this.itemStream = itemStream;
     this.subscriber = subscriber;
   }
@@ -43,16 +43,16 @@ public final class Subscription<R, E> {
     return completableFuture;
   }
 
-  private void processFinalResults(SubscriberInterface<R, E> subscriber) {
-    NavigableSet<FlowItem<E>> streamContents = streamContents();
+  private void processFinalResults(SubscriberInterface<R, T> subscriber) {
+    NavigableSet<FlowItem<T,R>> streamContents = streamContents();
     while (streamContents.size() > 0) {
       subscriber.emit(streamContents);
       streamContents = streamContents();
     }
   }
 
-  private void processResults(SubscriberInterface<R, E> subscriber) {
-    NavigableSet<FlowItem<E>> streamContents = streamContents();
+  private void processResults(SubscriberInterface<R, T> subscriber) {
+    NavigableSet<FlowItem<T,R>> streamContents = streamContents();
     if (streamContents.size() > 0) subscriber.emit(streamContents);
   }
 
@@ -60,14 +60,14 @@ public final class Subscription<R, E> {
     this.subscriber.stop();
   }
 
-  private NavigableSet<FlowItem<E>> streamContents() {
-    NavigableSet<FlowItem<E>> streamContents =
+  private NavigableSet<FlowItem<T,R>> streamContents() {
+    NavigableSet<FlowItem<T,R>> streamContents =
         Collections.unmodifiableNavigableSet(itemStream.contents().allAfter(lastSeenItem));
     if (streamContents.size() > 0) lastSeenItem = streamContents.last();
     return streamContents;
   }
 
-  public SubscriberInterface<R, E> getSubscriber() {
+  public SubscriberInterface<R, T> getSubscriber() {
     return subscriber;
   }
 

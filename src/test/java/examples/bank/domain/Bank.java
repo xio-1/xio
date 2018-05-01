@@ -2,7 +2,7 @@ package examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.SimpleFlowable;
+import org.xio.one.reactive.flow.domain.ItemFlowable;
 import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.StreamMultiplexItemSubscriber;
 
@@ -14,15 +14,15 @@ import java.util.stream.Stream;
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
-  SimpleFlowable<TransactionRequest, Boolean> transactionEventLoop;
-  SimpleFlowable<TransactionRequest, Boolean> transactionLedger;
+  ItemFlowable<TransactionRequest, Boolean> transactionEventLoop;
+  ItemFlowable<TransactionRequest, Boolean> transactionLedger;
 
   List<TransactionRequest> bankTransactionLedger = Collections.synchronizedList(new ArrayList<>());
   Logger logger = Logger.getLogger(Bank.class.getCanonicalName());
   StreamMultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    transactionEventLoop = Flow.aSimpleFlowable();
+    transactionEventLoop = Flow.anItemFlow();
   }
 
   public void open() {
@@ -30,7 +30,7 @@ public class Bank {
     transactionEventLoop.addSubscriber(new StreamItemSubscriber<>() {
 
       @Override
-      public void onNext(FlowItem<TransactionRequest> transaction)
+      public void onNext(FlowItem<TransactionRequest,Boolean> transaction)
           throws InsufficientFundsException, ExecutionException, InterruptedException {
         if (this.processTransaction(transaction.value()))
           recordInLedger(transaction.value());
@@ -38,7 +38,7 @@ public class Bank {
       }
 
       @Override
-      public void onError(Throwable error, FlowItem<TransactionRequest> itemValue) {
+      public void onError(Throwable error, FlowItem<TransactionRequest,Boolean> itemValue) {
         error.printStackTrace();
       }
 
@@ -73,10 +73,10 @@ public class Bank {
 
     });
 
-    transactionLedger = Flow.aSimpleFlowable("ledger");
+    transactionLedger = Flow.anItemFlow("ledger");
     transactionLedger.addSubscriber(new StreamMultiplexItemSubscriber<Boolean, TransactionRequest>() {
       @Override
-      public void onNext(Stream<FlowItem<TransactionRequest>> e) {
+      public void onNext(Stream<FlowItem<TransactionRequest,Boolean>> e) {
 
         String multiplexGroupID = UUID.randomUUID().toString();
         e.forEach(item -> {

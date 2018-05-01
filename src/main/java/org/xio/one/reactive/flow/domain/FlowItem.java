@@ -10,14 +10,13 @@ package org.xio.one.reactive.flow.domain;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.channels.CompletionHandler;
 
 /**
  * Abstract Item to be extended by user defined Items
  *
  * @author Xio
  */
-public class FlowItem<T> {
+public class FlowItem<T,R> {
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;
@@ -56,6 +55,18 @@ public class FlowItem<T> {
     this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
+  }
+
+  private FlowItemCompletionHandler<R, T> callback;
+
+  public FlowItem(T value, long itemId, long itemTTLSeconds,
+      FlowItemCompletionHandler<R, T> callback) {
+    this(value, itemId, itemTTLSeconds);
+    this.callback = callback;
+  }
+
+  public FlowItemCompletionHandler<R, T> completionHandler() {
+    return callback;
   }
 
 

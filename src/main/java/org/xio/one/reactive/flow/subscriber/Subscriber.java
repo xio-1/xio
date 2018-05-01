@@ -7,7 +7,7 @@ import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public abstract class Subscriber<R, E> implements SubscriberInterface<R, E> {
+public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
@@ -35,14 +35,14 @@ public abstract class Subscriber<R, E> implements SubscriberInterface<R, E> {
   }
 
   @Override
-  public final void emit(NavigableSet<FlowItem<E>> e) {
+  public final void emit(NavigableSet<FlowItem<T,R>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<FlowItem<E>> e);
+  public abstract void process(NavigableSet<FlowItem<T,R>> e);
 
   @Override
   public final R peek() {
@@ -73,7 +73,7 @@ public abstract class Subscriber<R, E> implements SubscriberInterface<R, E> {
   }
 
   @Override
-  public final SubscriberInterface<R, E> getSubscriber() {
+  public final SubscriberInterface<R, T> getSubscriber() {
     return this;
   }
 

@@ -22,7 +22,7 @@ public class InternalExecutors {
   private static ExecutorService ioThreadPoolexec;
 
   /**
-   * Gets an instance aSimpleFlowable ExecutorService for the application JETI threadpool
+   * Gets an instance anItemFlow ExecutorService for the application JETI threadpool
    *
    * @return
    */

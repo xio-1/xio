@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class CompletableMultiplexItemSubscriber<R, E> extends CompletableSubscriber<R, E> {
+public abstract class CompletableMultiplexItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
   @Override
-  public final void process(NavigableSet<FlowItem<E>> e) {
+  public final void process(NavigableSet<FlowItem<T,R>> e) {
     try {
       onNext(e.stream());
     } catch (Throwable ex) {
@@ -17,9 +17,9 @@ public abstract class CompletableMultiplexItemSubscriber<R, E> extends Completab
     }
   }
 
-  public abstract void onNext(Stream<FlowItem<E>> items);
+  public abstract void onNext(Stream<FlowItem<T,R>> items);
 
-  public void onError(Throwable ex, Iterator<FlowItem<E>> flowItems) {
+  public void onError(Throwable ex, Iterator<FlowItem<T,R>> flowItems) {
   }
 
   @Override

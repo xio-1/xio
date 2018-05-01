@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 
-public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E> {
+public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T> {
 
   private final ForkJoinPool pool = new ForkJoinPool(10);
   private final String id = UUID.randomUUID().toString();
@@ -40,14 +40,14 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
   }
 
   @Override
-  public final void emit(NavigableSet<FlowItem<E>> e) {
+  public final void emit(NavigableSet<FlowItem<T,R>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<FlowItem<E>> e);
+  public abstract void process(NavigableSet<FlowItem<T,R>> e);
 
   @Override
   public final R peek() {
@@ -79,7 +79,7 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
   }
 
   @Override
-  public final SubscriberInterface<R, E> getSubscriber() {
+  public final SubscriberInterface<R, T> getSubscriber() {
     return this;
   }
 
@@ -102,7 +102,7 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
     return completableFuture;
   }
 
-  private R handleResult(Future<R> result, E value) {
+  private R handleResult(Future<R> result, T value) {
     try {
       return result.get();
     } catch (InterruptedException | ExecutionException e) {
@@ -111,7 +111,7 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
     return null;
   }
 
-  final void completeFuture(FlowItem<E> item, Future<R> result) {
+  final void completeFuture(FlowItem<T,R> item, Future<R> result) {
     while (futures.get(item.itemId()) == null) {
       LockSupport.parkNanos(100000);
     }
@@ -156,6 +156,6 @@ public abstract class FutureSubscriber<R, E> implements SubscriberInterface<R, E
   }
 
 
-  public abstract void onFutureCompletionError(Throwable error, E itemValue);
+  public abstract void onFutureCompletionError(Throwable error, T itemValue);
 
 }
