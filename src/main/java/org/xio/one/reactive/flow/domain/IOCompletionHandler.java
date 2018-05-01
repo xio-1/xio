@@ -4,11 +4,11 @@ public class IOCompletionHandler<R,T> implements java.nio.channels.CompletionHan
 
   FlowItemCompletionHandler<R,T> ioCompletionHandler;
 
-  public static final <R,T> IOCompletionHandler <R,T> aIOCompletionHandler(FlowItemCompletionHandler<?, String> completionHandler) {
+  public static final <R,T> IOCompletionHandler <R,T> aIOCompletionHandler(FlowItemCompletionHandler<R, T> completionHandler) {
     return new IOCompletionHandler<>(completionHandler);
   }
 
-  protected IOCompletionHandler(FlowItemCompletionHandler completionHandler) {
+  private IOCompletionHandler(FlowItemCompletionHandler<R,T> completionHandler) {
     ioCompletionHandler = completionHandler;
   }
 
