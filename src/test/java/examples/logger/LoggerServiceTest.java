@@ -22,6 +22,7 @@ public class LoggerServiceTest {
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
   private static int ONE_MILLION = 1000000;
 
+
   @Test
   public void createEmptyLogFileOnCreation() {
     AsyncFutureMultiplexLoggerService loggerService =
@@ -181,7 +182,7 @@ public class LoggerServiceTest {
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
     System.out
-        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis() - start) / 1000));
+        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start) / 1000));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();

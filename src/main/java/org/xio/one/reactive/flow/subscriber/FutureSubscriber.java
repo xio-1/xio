@@ -17,12 +17,18 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   private volatile R result = null;
   private boolean done = false;
   private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
+  protected int delayMS = 0;
 
   public FutureSubscriber() {
     initialise();
   }
 
+  @Override
+  public final int delayMS() {
+    return delayMS;
+  }
 
+  @Override
   public abstract void initialise();
 
   @Override
@@ -49,11 +55,6 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
 
   public abstract void process(NavigableSet<FlowItem<T,R>> e);
 
-  @Override
-  public final R peek() {
-    R toreturn = result;
-    return toreturn;
-  }
 
   @Override
   public final R getNext() {
@@ -76,11 +77,6 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
         this.initialise();
       return toreturn;
     }
-  }
-
-  @Override
-  public final SubscriberInterface<R, T> getSubscriber() {
-    return this;
   }
 
   public final String getId() {

@@ -31,7 +31,7 @@ public class AsyncMultiplexCallbackLoggerService {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
-        new CompletableMultiplexItemSubscriber<>() {
+        new CompletableMultiplexItemSubscriber<>(20) {
 
           final AsynchronousFileChannel fileChannel =
               AsynchronousFileChannel.open(logFilePath, WRITE);

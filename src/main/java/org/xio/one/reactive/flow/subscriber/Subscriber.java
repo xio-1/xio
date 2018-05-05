@@ -13,16 +13,23 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
+  protected int delayMS = 0;
 
   public Subscriber() {
     initialise();
   }
 
+  @Override
   public abstract void initialise();
 
   @Override
   public final boolean isDone() {
     return this.done;
+  }
+
+  @Override
+  public final int delayMS() {
+    return delayMS;
   }
 
   @Override
@@ -45,12 +52,6 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   public abstract void process(NavigableSet<FlowItem<T,R>> e);
 
   @Override
-  public final R peek() {
-    R toreturn = result;
-    return toreturn;
-  }
-
-  @Override
   public final R getNext() {
     return getWithReset(0, TimeUnit.MILLISECONDS, false);
   }
@@ -70,11 +71,6 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
         this.initialise();
       return toreturn;
     }
-  }
-
-  @Override
-  public final SubscriberInterface<R, T> getSubscriber() {
-    return this;
   }
 
   public final String getId() {

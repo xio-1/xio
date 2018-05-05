@@ -8,8 +8,17 @@ import java.util.stream.Stream;
 
 public abstract class StreamMultiplexItemSubscriber<R, T> extends Subscriber<R, T> {
 
+  public StreamMultiplexItemSubscriber() {
+    super();
+  }
+
+  public StreamMultiplexItemSubscriber(int delayMS) {
+    super();
+    this.delayMS = delayMS;
+  }
+
   @Override
-  public final void process(NavigableSet<FlowItem<T,R>> e) {
+  public final void process(NavigableSet<FlowItem<T, R>> e) {
     try {
       onNext(e.stream());
     } catch (Throwable ex) {
@@ -17,9 +26,9 @@ public abstract class StreamMultiplexItemSubscriber<R, T> extends Subscriber<R, 
     }
   }
 
-  public abstract void onNext(Stream<FlowItem<T,R>> items);
+  public abstract void onNext(Stream<FlowItem<T, R>> items);
 
-  public void onError(Throwable ex, Iterator<FlowItem<T,R>> flowItems) {
+  public void onError(Throwable ex, Iterator<FlowItem<T, R>> flowItems) {
   }
 
   @Override

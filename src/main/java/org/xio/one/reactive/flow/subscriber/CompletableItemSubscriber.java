@@ -6,6 +6,10 @@ import java.util.NavigableSet;
 
 public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
+  public CompletableItemSubscriber() {
+    super();
+  }
+
   @Override
   public final void process(NavigableSet<FlowItem<T,R>> e) {
     e.forEach(this::accept);

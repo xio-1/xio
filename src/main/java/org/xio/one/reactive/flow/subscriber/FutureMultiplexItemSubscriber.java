@@ -10,6 +10,15 @@ import java.util.stream.Stream;
 public abstract class FutureMultiplexItemSubscriber<R, T>
     extends FutureSubscriber<R, T> {
 
+  public FutureMultiplexItemSubscriber() {
+    super();
+  }
+
+  public FutureMultiplexItemSubscriber(int delayMS) {
+    super();
+    this.delayMS = delayMS;
+  }
+
   @Override
   public void initialise() {
   }

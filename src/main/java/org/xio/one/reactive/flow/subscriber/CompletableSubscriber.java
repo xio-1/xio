@@ -13,9 +13,15 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
   private final Object lock = new Object();
   private volatile R result = null;
   private boolean done = false;
+  protected int delayMS = 0;
 
   public CompletableSubscriber() {
     initialise();
+  }
+
+  @Override
+  public final int delayMS() {
+    return delayMS;
   }
 
   public abstract void initialise();
@@ -35,20 +41,15 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
   }
 
   @Override
-  public final void emit(NavigableSet<FlowItem<T,R>> e) {
+  public final void emit(NavigableSet<FlowItem<T, R>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<FlowItem<T,R>> e);
+  public abstract void process(NavigableSet<FlowItem<T, R>> e);
 
-  @Override
-  public final R peek() {
-    R toreturn = result;
-    return toreturn;
-  }
 
   @Override
   public final R getNext() {
@@ -70,11 +71,6 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
         this.initialise();
       return toreturn;
     }
-  }
-
-  @Override
-  public final SubscriberInterface<R, T> getSubscriber() {
-    return this;
   }
 
   public final String getId() {

@@ -8,6 +8,14 @@ import java.util.stream.Stream;
 
 public abstract class CompletableMultiplexItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
+  public CompletableMultiplexItemSubscriber() {
+    super();
+  }
+
+  public CompletableMultiplexItemSubscriber(int delayMS) {
+    this.delayMS = delayMS;
+  }
+
   @Override
   public final void process(NavigableSet<FlowItem<T,R>> e) {
     try {

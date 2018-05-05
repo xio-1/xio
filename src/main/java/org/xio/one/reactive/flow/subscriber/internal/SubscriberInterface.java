@@ -12,13 +12,11 @@ public interface SubscriberInterface<R, T> {
 
   boolean isDone();
 
-  R peek();
-
   String getId();
 
-  R getNext();
+  int delayMS();
 
-  SubscriberInterface<R, T> getSubscriber();
+  R getNext();
 
   void initialise();
 

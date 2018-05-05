@@ -40,7 +40,7 @@ public final class Flow<T, R>
 
   // constants
   private int count_down_latch = 10;
-  private final int queue_max_size = 100000;
+  private final int queue_max_size = 16384;
 
   // input parameters
   private String name;

@@ -56,7 +56,7 @@ public class InternalExecutors {
     if (ioThreadPoolexec == null || ioThreadPoolexec.isShutdown() || ioThreadPoolexec
         .isTerminated())
       ioThreadPoolexec =
-          Executors.newFixedThreadPool(1024);
+          Executors.newFixedThreadPool(200);
     return ioThreadPoolexec;
   }
 
