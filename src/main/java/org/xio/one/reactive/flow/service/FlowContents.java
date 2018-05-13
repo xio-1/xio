@@ -47,18 +47,19 @@ public final class FlowContents<T, R> {
     try {
       NavigableSet<FlowItem<T, R>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
-      if (querystorecontents.size() > 0)
+      if (!querystorecontents.isEmpty())
         if (lastItem != null) {
           FlowItem newLastItem = querystorecontents.last();
           NavigableSet<FlowItem<T, R>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));
-          if (items.size() > 0) {
+          if (!items.isEmpty()) {
             FlowItem newFirstItem = items.first();
             if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
               // if last domain is in correct sequence then
-              if (newLastItem.itemId() == newFirstItem.itemId() + items.size() - 1)
+              final int size = items.size();
+              if (newLastItem.itemId() == newFirstItem.itemId() + size - 1)
                 // if the size anItemFlow the domain to return is correct i.e. all in sequence
-                if (items.size() == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
+                if (size == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
                   return items;
                 }
               return extractItemsThatAreInSequence(lastItem, items, newFirstItem);

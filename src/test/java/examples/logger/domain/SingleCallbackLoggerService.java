@@ -18,11 +18,11 @@ public class SingleCallbackLoggerService {
   private Path logFilePath;
   private CompletableItemFlowable<String, Integer> logEntryFlow;
 
-  public SingleCallbackLoggerService(String canonicalName) throws IOException {
+  public SingleCallbackLoggerService(String canonicalName, boolean parallel) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow =
-        Flow.aCompletableItemFlow(new CompletableItemSubscriber<>() {
+        Flow.aCompletableItemFlow(new CompletableItemSubscriber<>(parallel) {
 
           final AsynchronousFileChannel fileChannel =
               AsynchronousFileChannel.open(logFilePath, WRITE);
@@ -64,9 +64,9 @@ public class SingleCallbackLoggerService {
 
   }
 
-  public static SingleCallbackLoggerService logger(Class clazz) {
+  public static SingleCallbackLoggerService logger(Class clazz, boolean parallel) {
     try {
-      return new SingleCallbackLoggerService(clazz.getCanonicalName());
+      return new SingleCallbackLoggerService(clazz.getCanonicalName(),parallel);
     } catch (IOException e) {
     }
     return null;

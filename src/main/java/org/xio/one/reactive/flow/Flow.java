@@ -457,6 +457,10 @@ public final class Flow<T, R>
     return this.item_queue.size() + this.contents().getItemStoreContents().size(); // - last_queue_size;
   }
 
+  public boolean isEmpty() {
+    return this.item_queue.isEmpty() && this.contents().getItemStoreContents().isEmpty();
+  }
+
   private void waitForInput() {
     int ticks = count_down_latch;
     FlowItem<T,R> head;

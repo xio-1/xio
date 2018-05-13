@@ -19,8 +19,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 public final class FlowService<T, R> {
 
-  protected volatile ConcurrentSkipListSet<FlowItem<T,R>> itemRepositoryContents;
-  protected volatile ConcurrentHashMap<Object, FlowItem<T,R>> itemStoreIndexContents;
+  protected volatile ConcurrentSkipListSet<FlowItem<T, R>> itemRepositoryContents;
+  protected volatile ConcurrentHashMap<Object, FlowItem<T, R>> itemStoreIndexContents;
   private Flow itemStream = null;
   private boolean isEnd = false;
   private FlowContents itemStoreOperations = null;
@@ -35,7 +35,7 @@ public final class FlowService<T, R> {
   public FlowService(Flow<T, R> itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
-    itemStoreOperations = new FlowContents<T,R>(this, itemStream);
+    itemStoreOperations = new FlowContents<T, R>(this, itemStream);
     itemStoreIndexContents = new ConcurrentHashMap<>();
     if (itemStream.indexFieldName() != null) {
       itemStoreIndexFieldName = itemStream.indexFieldName();
@@ -53,7 +53,7 @@ public final class FlowService<T, R> {
    *
    * @return
    */
-  public FlowContents<T,R> query() {
+  public FlowContents<T, R> query() {
     return itemStoreOperations;
   }
 
@@ -78,7 +78,7 @@ public final class FlowService<T, R> {
     return this.isEnd;
   }
 
-  public Collection<FlowItem<T,R>> getItemRepositoryContents() {
+  public Collection<FlowItem<T, R>> getItemRepositoryContents() {
     return itemRepositoryContents;
   }
 
@@ -86,7 +86,7 @@ public final class FlowService<T, R> {
     return itemStoreIndexFieldName;
   }
 
-  public ConcurrentHashMap<Object, FlowItem<T,R>> getItemStoreIndexContents() {
+  public ConcurrentHashMap<Object, FlowItem<T, R>> getItemStoreIndexContents() {
     return itemStoreIndexContents;
   }
 
@@ -118,9 +118,9 @@ public final class FlowService<T, R> {
         if (next_last != null)
           last = next_last;*/
 
-        while (itemRepositoryContents.size() != itemStream.size() || (itemStream.size() > 0
+        while ((!itemStream.isEmpty()
             && itemRepositoryContents.last().itemId() > getMinimumLastSeenProcessed(itemStream))
-            )
+            || itemRepositoryContents.size() != itemStream.size())
           LockSupport.parkNanos(100000);
 
         itemStore.isEnd = true;

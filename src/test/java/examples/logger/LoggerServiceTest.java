@@ -108,16 +108,24 @@ public class LoggerServiceTest {
 
   @Test
   public void logs1MillionEntriesToFileAndSingleWithCallback() throws InterruptedException {
+    testSingleWithCallback(false);
+  }
 
+  @Test
+  public void logs1MillionEntriesInParallelToFileAndSingleWithCallback() throws InterruptedException {
+    testSingleWithCallback(true);
+  }
+
+  private void testSingleWithCallback(boolean parallel) throws InterruptedException {
     long start = System.currentTimeMillis();
     ArrayList<Future<Integer>> results = new ArrayList<>();
     SingleCallbackLoggerService loggerService =
-       SingleCallbackLoggerService.logger(this.getClass());
+       SingleCallbackLoggerService.logger(this.getClass(),parallel);
 
     AtomicLong count = new AtomicLong();
 
     FlowItemCompletionHandler<Integer, String>
-        itemCompletionHandler = new FlowItemCompletionHandler<Integer, String>() {
+        itemCompletionHandler = new FlowItemCompletionHandler<>() {
 
       @Override
       public void completed(Integer result, String attachment) {

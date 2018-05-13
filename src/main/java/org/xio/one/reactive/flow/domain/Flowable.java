@@ -21,4 +21,6 @@ public interface Flowable<T, R> {
 
   int size();
 
+  boolean isEmpty();
+
 }
