@@ -7,8 +7,7 @@ import java.util.NavigableSet;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
-public abstract class FutureMultiplexItemSubscriber<R, T>
-    extends FutureSubscriber<R, T> {
+public abstract class FutureMultiplexItemSubscriber<R, T> extends FutureSubscriber<R, T> {
 
   public FutureMultiplexItemSubscriber() {
     super();
@@ -28,21 +27,19 @@ public abstract class FutureMultiplexItemSubscriber<R, T>
   }
 
   @Override
-  public final void process(NavigableSet<FlowItem<T,R>> e) {
+  public final void process(NavigableSet<FlowItem<T, R>> e) {
     Map<Long, Future<R>> streamResults;
     if (e != null) {
       try {
         streamResults = onNext(e.stream());
-        e.stream().parallel().forEach(i ->
-            completeFuture(i, streamResults.get(i.itemId())));
-      }
-      catch (Exception ex) {
+        e.stream().parallel().forEach(i -> completeFuture(i, streamResults.get(i.itemId())));
+      } catch (Exception ex) {
         ex.printStackTrace();
       }
 
     }
   }
 
-  public abstract Map<Long, Future<R>> onNext(Stream<FlowItem<T,R>> e);
+  public abstract Map<Long, Future<R>> onNext(Stream<FlowItem<T, R>> e);
 
 }

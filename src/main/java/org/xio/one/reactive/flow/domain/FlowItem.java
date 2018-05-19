@@ -16,7 +16,7 @@ import java.lang.reflect.Method;
  *
  * @author Xio
  */
-public class FlowItem<T,R> {
+public class FlowItem<T, R> {
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;

@@ -10,7 +10,7 @@ public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscri
 
   public CompletableItemSubscriber() {
     super();
-    this.parallel=false;
+    this.parallel = false;
   }
 
   public CompletableItemSubscriber(boolean parallel) {

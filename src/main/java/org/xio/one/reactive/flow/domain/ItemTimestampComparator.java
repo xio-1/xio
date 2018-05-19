@@ -14,8 +14,7 @@ public class ItemTimestampComparator implements Comparator<FlowItem> {
       return 1;
     else if (o1.itemTimestamp() < o2.itemTimestamp())
       return -1;
-    else if (o1.itemTimestamp() == o2.itemTimestamp() && o1.itemId() == (o2
-        .itemId()))
+    else if (o1.itemTimestamp() == o2.itemTimestamp() && o1.itemId() == (o2.itemId()))
       return 0;
     else if (o1.itemId() > o2.itemId())
       return 1;

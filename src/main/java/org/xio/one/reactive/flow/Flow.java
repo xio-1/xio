@@ -7,7 +7,7 @@ package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.domain.*;
 import org.xio.one.reactive.flow.service.FlowContents;
-import org.xio.one.reactive.flow.service.FlowService;
+import org.xio.one.reactive.flow.service.FlowDaemonService;
 import org.xio.one.reactive.flow.subscriber.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
 import org.xio.one.reactive.flow.subscriber.Subscriber;
@@ -31,12 +31,12 @@ import java.util.concurrent.locks.LockSupport;
  * futureSubscriber
  */
 public final class Flow<T, R>
-    implements Flowable<T, R>, ItemFlowable<T,R>, FutureItemResultFlowable<T, R>,
+    implements Flowable<T, R>, ItemFlowable<T, R>, FutureItemResultFlowable<T, R>,
     CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
   // streamContents variables
-  private FlowService<T, R> contentsControl;
+  private FlowDaemonService<T, R> contentsControl;
 
   // constants
   private int count_down_latch = 10;
@@ -55,16 +55,12 @@ public final class Flow<T, R>
 
   // Queue control
   private FlowItem[] itemqueue_out;
-  private BlockingQueue<FlowItem<T,R>> item_queue;
-  private int last_queue_size = 0;
+  private BlockingQueue<FlowItem<T, R>> item_queue;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
   private ItemIdSequence itemIDSequence;
-
-  // locks
-  private final Object lock = new Object();
   private long slowDownNanos = 0;
-  private boolean flushImmediately = false;
+  private boolean flushImmediately;
   private ExecutorService executorService = InternalExecutors.subscriberCachedThreadPoolInstance();
 
   //bad use of erasure need too find a better way
@@ -104,8 +100,8 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name, long ttlSeconds,
-      FutureSubscriber<R, T> futureSubscriber) {
+  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name,
+      long ttlSeconds, FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
@@ -126,13 +122,12 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name, long ttlSeconds,
-      CompletableSubscriber<R, T> completableSubscriber) {
+  public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name,
+      long ttlSeconds, CompletableSubscriber<R, T> completableSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
     return resultFlowable;
   }
-
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
@@ -141,7 +136,7 @@ public final class Flow<T, R>
     this.indexFieldName = indexFieldName;
     if (ttlSeconds >= 0)
       this.defaultTTLSeconds = ttlSeconds;
-    this.contentsControl = new FlowService<>(this);
+    this.contentsControl = new FlowDaemonService<>(this);
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
 
@@ -157,9 +152,8 @@ public final class Flow<T, R>
       registerSubscriber(subscriber);
     if (subscriber instanceof FutureSubscriber)
       registerFutureSubscriber((FutureSubscriber<R, T>) subscriber);
-    if (subscriber instanceof  CompletableSubscriber)
+    if (subscriber instanceof CompletableSubscriber)
       registerSubscriber(subscriber);
-
   }
 
   private void registerSubscriber(SubscriberInterface<R, T> subscriber) {
@@ -169,17 +163,6 @@ public final class Flow<T, R>
   }
 
   private FutureSubscriber<R, T> futureSubscriber = null;
-
-  private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
-    if (futureSubscriber == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-      Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
-      subscription.subscribe();
-      this.futureSubscriber = subscriber;
-    } else
-      throw new IllegalStateException("Only one futureSubscriber may be added");
-
-  }
 
   /**
    * Indicate that each item place should be flushed immediately
@@ -251,7 +234,7 @@ public final class Flow<T, R>
     long[] ids = new long[values.length];
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
-        FlowItem<T,R> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
+        FlowItem<T, R> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
         addToStreamWithBlock(item, flushImmediately);
         if (slowDownNanos > 0)
@@ -260,8 +243,6 @@ public final class Flow<T, R>
     }
     return ids;
   }
-
-
 
   /**
    * Submit an item to be processed by the FutureSubscriber and completionHandler to the completion handler
@@ -281,10 +262,11 @@ public final class Flow<T, R>
    * @param completionHandler
    */
   @Override
-  public void submitItemWithTTL(long ttlSeconds, T value, FlowItemCompletionHandler<R, T> completionHandler) {
-    FlowItem<T,R> item =
+  public void submitItemWithTTL(long ttlSeconds, T value,
+      FlowItemCompletionHandler<R, T> completionHandler) {
+    FlowItem<T, R> item =
         new FlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
-    addToStreamWithNoBlock(item, flushImmediately);
+    addToStreamWithBlock(item, flushImmediately);
   }
 
   /**
@@ -312,7 +294,29 @@ public final class Flow<T, R>
         "Cannot submit item without future subscriber being registered");
   }
 
+  @Override
+  public FlowContents contents() {
+    return contentsControl.query();
+  }
 
+  @Override
+  public void end(boolean waitForEnd) {
+    this.isEnd = true;
+    try {
+      if (waitForEnd)
+        while (!this.hasEnded() || activeSubscriptions()) {
+          Thread.sleep(100);
+        }
+
+    } catch (InterruptedException e) {
+    }
+  }
+
+  @Override
+  public Flowable<T, R> countDownLatch(int count_down_latch) {
+    this.count_down_latch = count_down_latch;
+    return this;
+  }
 
   private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value) {
     long itemId = putItemWithTTL(ttlSeconds, value)[0];
@@ -320,56 +324,17 @@ public final class Flow<T, R>
     return futureSubscriber.register(itemId, completableFuture);
   }
 
-
-
-  /**
-   * Return a queryable facade for Flow's contents
-   *
-   * @return
-   */
-  @Override
-  public FlowContents contents() {
-    return contentsControl.query();
-  }
-
-  /**
-   * End the Flow :(
-   * waitForEnd waits until all core have consumed all items
-   */
-  @Override
-  public void end(boolean waitForEnd) {
-    this.isEnd = true;
-    try {
-      if (waitForEnd)
-        while (!this.hasEnded() || activeSubscriptions()) {
-          Thread.currentThread().sleep(100);
-        }
-
-    } catch (InterruptedException e) {
-    }
-    return;
-  }
-
   private boolean activeSubscriptions() {
-    Optional<Subscription<R,T>> any = this.getSubscriberSubscriptions().values().stream().filter(s->!s.getSubscriber().isDone()).findAny();
+    Optional<Subscription<R, T>> any =
+        this.getSubscriberSubscriptions().values().stream().filter(s -> !s.getSubscriber().isDone())
+            .findAny();
     return any.isPresent();
   }
 
-  /**
-   * Has the Flow ended
-   *
-   * @return
-   */
-  @Override
   public boolean hasEnded() {
     return this.isEnd && this.buffer_size() == 0;
   }
 
-  /**
-   * Return the index field name
-   *
-   * @return
-   */
   public String indexFieldName() {
     return this.indexFieldName;
   }
@@ -391,58 +356,36 @@ public final class Flow<T, R>
     return slowDownNanos;
   }
 
-  public FlowItem[] takeAll() {
-    FlowItem[] result;
-    waitForInput();
-    /*int mmsize = this.item_queue.size();
-    if ((getNumberOfNewItems(mmsize, last_queue_size)) > 0) {
-      result = Arrays
-          .copyOfRange(this.item_queue.toArray(this.itemqueue_out), this.last_queue_size, mmsize);
-      this.last_queue_size = mmsize;
-      clearStreamWhenFull();
-    } else { // no domain
-      result = EmptyItemArray.EMPTY_ITEM_ARRAY;
-    }*/
-
-    return null;
-  }
-
-  private boolean addToStreamWithNoBlock(FlowItem item, boolean immediately) {
-    boolean put_ok;
-    this.flush = false;
-    if (put_ok = this.item_queue.offer(item)) {
-      if (immediately) {
-        this.flush = true;
-        synchronized (lock) {
-          lock.notify();
-        }
+  public void acceptAll() {
+    int ticks = count_down_latch;
+    while (!hasEnded()) {
+      if (ticks == 0 || flush) {
+        this.item_queue.drainTo(this.contentsControl.getItemRepositoryContents());
+        ticks = count_down_latch;
       }
-    } else {
-      while (!put_ok && !hasEnded()) {
-        try {
-          put_ok = this.item_queue.offer(item, 1, TimeUnit.MILLISECONDS);
-          if (!put_ok) {
-            this.flush = true;
-            synchronized (lock) {
-              lock.notify();
-            }
-            LockSupport.parkNanos(LOCK_PARK_NANOS);
-          }
-        } catch (InterruptedException e) {
-          LockSupport.parkNanos(LOCK_PARK_NANOS);
-        }
-      }
+      ticks--;
+      LockSupport.parkNanos(100000);
     }
-    return put_ok;
   }
 
-  private boolean addToStreamWithBlock(FlowItem<T,R> item, boolean immediately) {
+  private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
+    if (futureSubscriber == null) {
+      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+      Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
+      subscription.subscribe();
+      this.futureSubscriber = subscriber;
+    } else
+      throw new IllegalStateException("Only one futureSubscriber may be added");
+
+  }
+
+
+  private boolean addToStreamWithBlock(FlowItem<T, R> item, boolean immediately) {
     try {
       if (!this.item_queue.offer(item)) {
         this.flush = immediately;
         this.item_queue.put(item);
       }
-
     } catch (InterruptedException e) {
       return false;
     }
@@ -454,40 +397,11 @@ public final class Flow<T, R>
   }
 
   public int size() {
-    return this.item_queue.size() + this.contents().getItemStoreContents().size(); // - last_queue_size;
+    return this.item_queue.size() + this.contents().getItemStoreContents().size();
   }
 
   public boolean isEmpty() {
     return this.item_queue.isEmpty() && this.contents().getItemStoreContents().isEmpty();
   }
 
-  private void waitForInput() {
-    int ticks = count_down_latch;
-    FlowItem<T,R> head;
-    while (!hasEnded()) {
-      if (ticks == 0 || flush) {
-        this.item_queue.drainTo(this.contentsControl.getItemRepositoryContents());
-        ticks = count_down_latch;
-      }
-      ticks--;
-      LockSupport.parkNanos(100000);
-    }
-  }
-
-  private int getNumberOfNewItems(int mmsize, int lastsize) {
-    return mmsize - lastsize;
-  }
-
-  private void clearStreamWhenFull() {
-    if (this.last_queue_size == this.queue_max_size) {
-      this.last_queue_size = 0;
-      this.item_queue.clear();
-    }
-  }
-
-  @Override
-  public Flowable<T, R> countDownLatch(int count_down_latch) {
-    this.count_down_latch = count_down_latch;
-    return this;
-  }
 }

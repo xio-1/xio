@@ -55,8 +55,7 @@ public class InternalExecutors {
   public static synchronized ExecutorService ioThreadPoolInstance() {
     if (ioThreadPoolexec == null || ioThreadPoolexec.isShutdown() || ioThreadPoolexec
         .isTerminated())
-      ioThreadPoolexec =
-          Executors.newFixedThreadPool(200);
+      ioThreadPoolexec = Executors.newFixedThreadPool(200);
     return ioThreadPoolexec;
   }
 

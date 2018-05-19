@@ -13,8 +13,8 @@ public class ItemKey {
   }
 
   public ItemKey(String fieldname, Object value) {
-    this.fieldName=fieldname;
-    this.value=value;
+    this.fieldName = fieldname;
+    this.value = value;
   }
 
 

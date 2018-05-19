@@ -1,10 +1,11 @@
 package org.xio.one.reactive.flow.subscriber;
 
 import org.xio.one.reactive.flow.domain.FlowItem;
-
 import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 
-import java.util.*;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
@@ -46,14 +47,14 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   }
 
   @Override
-  public final void emit(NavigableSet<FlowItem<T,R>> e) {
+  public final void emit(NavigableSet<FlowItem<T, R>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<FlowItem<T,R>> e);
+  public abstract void process(NavigableSet<FlowItem<T, R>> e);
 
 
   @Override
@@ -107,7 +108,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
     return null;
   }
 
-  final void completeFuture(FlowItem<T,R> item, Future<R> result) {
+  final void completeFuture(FlowItem<T, R> item, Future<R> result) {
     while (futures.get(item.itemId()) == null) {
       LockSupport.parkNanos(100000);
     }

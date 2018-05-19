@@ -22,10 +22,6 @@ public final class Subscription<R, T> {
     this.subscriber = subscriber;
   }
 
-  public Flow getItemStream() {
-    return itemStream;
-  }
-
   public Future<R> subscribe() {
     subscriber.initialise();
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
@@ -59,10 +55,10 @@ public final class Subscription<R, T> {
   }
 
   private NavigableSet<FlowItem<T, R>> streamContents() {
-    if (this.subscriber.delayMS()>0)
-      LockSupport.parkUntil(System.currentTimeMillis()+this.subscriber.delayMS());
-    NavigableSet<FlowItem<T, R>> streamContents =
-        Collections.unmodifiableNavigableSet(this.itemStream.contents().allAfter( this.lastSeenItem));
+    if (this.subscriber.delayMS() > 0)
+      LockSupport.parkUntil(System.currentTimeMillis() + this.subscriber.delayMS());
+    NavigableSet<FlowItem<T, R>> streamContents = Collections
+        .unmodifiableNavigableSet(this.itemStream.contents().allAfter(this.lastSeenItem));
     if (streamContents.size() > 0)
       lastSeenItem = streamContents.last();
     return streamContents;

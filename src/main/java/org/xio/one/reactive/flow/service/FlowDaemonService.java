@@ -17,7 +17,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * The Xio.contents.domain itemQueryStore where the putAll domain are persisted in memory
  */
-public final class FlowService<T, R> {
+public final class FlowDaemonService<T, R> {
 
   protected volatile ConcurrentSkipListSet<FlowItem<T, R>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, FlowItem<T, R>> itemStoreIndexContents;
@@ -32,7 +32,7 @@ public final class FlowService<T, R> {
    * Items will be retained until consumed to by all subscriber and whilst they are alive
    * i.e. before they expire their/stream TTL
    */
-  public FlowService(Flow<T, R> itemStream) {
+  public FlowDaemonService(Flow<T, R> itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreOperations = new FlowContents<T, R>(this, itemStream);
@@ -41,7 +41,7 @@ public final class FlowService<T, R> {
       itemStoreIndexFieldName = itemStream.indexFieldName();
     }
     InternalExecutors.itemLoopThreadPoolInstance().submit(new ExpiredItemsCollector());
-    InternalExecutors.itemLoopThreadPoolInstance().submit(new WorkerInput(this));
+    InternalExecutors.itemLoopThreadPoolInstance().submit(new FlowInput(this));
   }
 
   public void setItemStoreIndexFieldName(String itemStoreIndexFieldName) {
@@ -93,40 +93,28 @@ public final class FlowService<T, R> {
   /**
    * Gets all the input from the Xio.contents.domain itemStream and persists it to the contents store
    */
-  private class WorkerInput implements Runnable {
+  private class FlowInput implements Runnable {
 
-    FlowService itemStore;
+    FlowDaemonService daemon;
 
-    public WorkerInput(FlowService itemStore) {
-      this.itemStore = itemStore;
+    public FlowInput(FlowDaemonService daemon) {
+      this.daemon = daemon;
     }
 
     @Override
     public void run() {
       try {
-        FlowItem last = null;
-        boolean hasRunatLeastOnce = false;
-        while (!itemStream.hasEnded() || !hasRunatLeastOnce) {
-          itemStream.takeAll();
-          //FlowItem next_last = this.itemStore.work(itemStream.takeAll());
-          //if (next_last != null)
-          //  last = next_last;
-          hasRunatLeastOnce = true;
+        while (!itemStream.hasEnded()) {
+          itemStream.acceptAll();
         }
-        itemStream.takeAll();
-        /*FlowItem next_last = this.itemStore.work(itemStream.takeAll());
-        if (next_last != null)
-          last = next_last;*/
 
         while ((!itemStream.isEmpty()
             && itemRepositoryContents.last().itemId() > getMinimumLastSeenProcessed(itemStream))
             || itemRepositoryContents.size() != itemStream.size())
           LockSupport.parkNanos(100000);
-
-        itemStore.isEnd = true;
+        daemon.isEnd = true;
       } catch (Exception e) {
         e.printStackTrace();
-      } finally {
       }
     }
   }

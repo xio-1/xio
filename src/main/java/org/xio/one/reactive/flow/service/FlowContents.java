@@ -16,7 +16,7 @@ import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
 public final class FlowContents<T, R> {
 
   public final NavigableSet<FlowItem<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  private FlowService itemStore;
+  private FlowDaemonService itemStore;
   private Flow itemStream;
   private NavigableSet<FlowItem<T, R>> itemStoreContents = null;
 
@@ -24,7 +24,7 @@ public final class FlowContents<T, R> {
     return itemStoreContents;
   }
 
-  FlowContents(FlowService itemStore, Flow itemStream) {
+  FlowContents(FlowDaemonService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
     this.itemStoreContents = (NavigableSet<FlowItem<T, R>>) itemStore.itemRepositoryContents;
@@ -128,7 +128,7 @@ public final class FlowContents<T, R> {
   }
 
   /*public Item getLastSeenItemByFieldnameValue(String fieldname, Object value) {
-    Item toReturn = itemStore.itemStoreIndexContents.get(new ItemKey(fieldname, value));
+    Item toReturn = daemon.itemStoreIndexContents.get(new ItemKey(fieldname, value));
     if (toReturn == null) {
       List<Item> domain =
           itemRepositoryContents.parallelStream().filter(u -> u.isAlive(itemTTLSeconds))

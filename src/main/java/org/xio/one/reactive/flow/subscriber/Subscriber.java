@@ -42,14 +42,14 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   }
 
   @Override
-  public final void emit(NavigableSet<FlowItem<T,R>> e) {
+  public final void emit(NavigableSet<FlowItem<T, R>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<FlowItem<T,R>> e);
+  public abstract void process(NavigableSet<FlowItem<T, R>> e);
 
   @Override
   public final R getNext() {
