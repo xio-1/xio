@@ -3,6 +3,7 @@ package examples.logger.domain;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.*;
 import org.xio.one.reactive.flow.subscriber.CompletableItemSubscriber;
+import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.file.Path;
+import java.util.Set;
 
 import static java.nio.file.StandardOpenOption.WRITE;
 
@@ -25,7 +27,7 @@ public class SingleCallbackLoggerService {
         Flow.aCompletableItemFlow(new CompletableItemSubscriber<>(parallel) {
 
           final AsynchronousFileChannel fileChannel =
-              AsynchronousFileChannel.open(logFilePath, WRITE);
+              AsynchronousFileChannel.open(logFilePath, Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
           long position = 0;
 
           @Override

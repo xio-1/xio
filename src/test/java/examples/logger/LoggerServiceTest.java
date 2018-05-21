@@ -144,7 +144,7 @@ public class LoggerServiceTest {
     System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < ONE_MILLION) {
-      Thread.currentThread().sleep(100);
+      Thread.sleep(100);
     }
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
@@ -185,7 +185,7 @@ public class LoggerServiceTest {
     System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < ONE_MILLION) {
-      Thread.currentThread().sleep(100);
+      Thread.sleep(100);
     }
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);

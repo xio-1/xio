@@ -4,6 +4,7 @@ import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +32,7 @@ public class AsyncFutureMultiplexLoggerService {
         new FutureMultiplexItemSubscriber<>() {
 
           final AsynchronousFileChannel fileChannel =
-              AsynchronousFileChannel.open(logFilePath, WRITE);
+              AsynchronousFileChannel.open(logFilePath, Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
           long position = 0;
 
           @Override

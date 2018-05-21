@@ -5,6 +5,7 @@ import org.xio.one.reactive.flow.domain.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.subscriber.CompletableMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,10 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
@@ -34,7 +32,7 @@ public class AsyncMultiplexCallbackLoggerService {
         new CompletableMultiplexItemSubscriber<>(20) {
 
           final AsynchronousFileChannel fileChannel =
-              AsynchronousFileChannel.open(logFilePath, WRITE);
+              AsynchronousFileChannel.open(logFilePath, Set.of(WRITE),InternalExecutors.ioThreadPoolInstance());
           long position = 0;
 
           @Override
