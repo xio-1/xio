@@ -25,7 +25,7 @@ hs_err_pid*
 *.DS_STORE
 *.idea
 *.iml
-/target
+target/
 *.hprof
 
 

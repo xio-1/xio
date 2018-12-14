@@ -243,7 +243,7 @@ public class FlowTest {
     asyncFlow.putItemWithTTL(1, "test2");
     asyncFlow.putItemWithTTL(1, "test3");
     asyncFlow.end(true);
-    Thread.currentThread().sleep(1001);
+    Thread.currentThread().sleep(1999);
     assertThat(asyncFlow.size(), is(1));
     assertThat(asyncFlow.contents().last().value(), is("test10"));
   }
