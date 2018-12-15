@@ -1,13 +1,12 @@
 package org.xio.one.reactive.http.wee;
 
 import io.undertow.Undertow;
-import io.undertow.server.handlers.resource.ClassPathResourceManager;
+import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.core.*;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowItem;
 import org.xio.one.reactive.flow.domain.ItemFlowable;
 import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
@@ -15,11 +14,13 @@ import org.xio.one.reactive.http.wee.event.platform.api.ApiBootstrap;
 import org.xio.one.reactive.http.wee.event.platform.api.JSONUtil;
 import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 import org.xio.one.reactive.http.wee.event.platform.domain.EventNodeID;
+import org.xio.one.reactive.http.wee.event.platform.service.EventChannel;
 import org.xnio.OptionMap;
 import org.xnio.Options;
 import org.xnio.Xnio;
 import org.xnio.XnioWorker;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -47,7 +48,7 @@ public class WEEServer {
     try {
       List<String> argList = Arrays.asList(args);
       WEEServer eventServer = new WEEServer();
-      final String streamName;
+      final String channelName;
 
       if (argList.contains("--h") || argList.contains("--help")) {
         logger.info("Usage Help");
@@ -62,30 +63,32 @@ public class WEEServer {
       }
 
       if (argList.contains("-n")) {
-        streamName = argList.get((argList.indexOf("-n") + 1));
+        channelName = argList.get((argList.indexOf("-n") + 1));
       } else {
-        streamName = "events";
+        channelName = "events";
       }
 
-      int ttl = 0;
+      int ttl = 60;
       if (argList.contains("-ttl")) {
         ttl = Integer.parseInt(argList.get((argList.indexOf("-ttl") + 1)));
       }
 
-      logger.info("**** starting stream:" + streamName + " with ttl seconds " + ttl);
+      EventChannel.channel(channelName);
+
+      logger.info("**** created channel" + channelName + " with ttl seconds " + ttl);
 
       if (argList.contains("-s")) {
         int serverPort;
         serverPort = Integer.parseInt(argList.get((argList.indexOf("-s") + 1)));
-        eventServer.withWebSocketEventServer(streamName, serverPort,ttl);
+        eventServer.withWebSocketEventServer(channelName, serverPort, ttl);
         logger.info(
-            "**** started master server socket @ http://0.0.0.0:" + serverPort + "/" + streamName
+            "**** started master server socket @ http://0.0.0.0:" + serverPort + "/" + channelName
                 + "/subscribe");
       }
 
       /*if (argList.contains("-c")) {
         final String clientURL =
-            "http://" + argList.get(argList.indexOf("-c") + 1) + "/" + streamName + "/subscribe";
+            "http://" + argList.get(argList.indexOf("-c") + 1) + "/" + channelName + "/subscribe";
 
         logger.info("Trying to connect to master node " + clientURL);
         new Thread(() -> {
@@ -102,7 +105,7 @@ public class WEEServer {
             while (!connected) {
               try {
                 WebSocketChannel webSocketChannel =
-                    eventServer.withWebSocketEventClient(clientURL, streamName, worker);
+                    eventServer.withWebSocketEventClient(clientURL, channelName, worker);
                 if (webSocketChannel != null && webSocketChannel.isOpen())
                   connected = true;
                 else
@@ -122,8 +125,8 @@ public class WEEServer {
       if (argList.contains("-a")) {
         apiport = Integer.parseInt(argList.get((argList.indexOf("-a") + 1)));
         eventServer.withAPI(ApiBootstrap.class, apiport);
-        System.out
-            .println("**** starting web api @ http://0.0.0.0:" + apiport + "/channel/" + streamName);
+        System.out.println(
+            "**** starting web api @ http://0.0.0.0:" + apiport + "/channel/" + channelName);
       }
 
       logger.info("**** All services are started");
@@ -168,7 +171,7 @@ public class WEEServer {
     server = new UndertowJaxrsServer().start(serverBuilder);
     DeploymentInfo di = server.undertowDeployment(application);
     di.setContextPath("/");
-    di.setDeploymentName("weeio");
+    di.setDeploymentName("org.xio.one.reactive.http.wee");
     server.deploy(di);
     return this;
   }
@@ -240,7 +243,7 @@ public class WEEServer {
   public WEEServer withWebSocketEventServer(String eventStreamName, final int port, int ttl)
       throws IOException {
 
-    ItemFlowable<Event, String> eventStream = Flow.anItemFlow(eventStreamName,ttl);
+
 
     final Xnio xnio = Xnio.getInstance("nio", WEEServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
@@ -258,13 +261,14 @@ public class WEEServer {
               @Override
               public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
 
-                eventStream.addSubscriber(new StreamItemSubscriber<String, Event>() {
-                  @Override
-                  public void onNext(FlowItem<Event, String> flowItem) throws Throwable {
-                    if (channel.isOpen())
-                      WebSockets.sendText("data:" + flowItem.value().toString(), channel, null);
-                  }
-                });
+                EventChannel.channel(eventStreamName).flow()
+                    .addSubscriber(new StreamItemSubscriber<String, Event>() {
+                      @Override
+                      public void onNext(FlowItem<Event, String> flowItem) throws Throwable {
+                        if (channel.isOpen())
+                          WebSockets.sendText("data:" + flowItem.value().toString(), channel, null);
+                      }
+                    });
 
 
                 channel.getReceiveSetter().set(new AbstractReceiveListener() {
@@ -288,15 +292,14 @@ public class WEEServer {
                   //On Ping Send Events To Web Subscriber
                   protected void onFullTextMessage(WebSocketChannel channel,
                       BufferedTextMessage message) {
-                    processMessageData(message, eventStream);
+                    processMessageData(message, EventChannel.channel(eventStreamName).flow());
                   }
                 });
                 channel.resumeReceives();
               }
 
-            })).addPrefixPath("/", resource(
-            new ClassPathResourceManager(WEEServer.class.getClassLoader(),
-                WEEServer.class.getPackage())).addWelcomeFiles("/web/index.html")
+            })).addPrefixPath("/web", resource(new FileResourceManager(
+            new File(WEEServer.class.getResource("/web/index.html").getFile())))
             .setDirectoryListingEnabled(true))).build();
     server.start();
 

@@ -35,7 +35,7 @@ public class ApiBootstrap extends Application {
     server = new UndertowJaxrsServer().start(serverBuilder);
     DeploymentInfo di = server.undertowDeployment(ApiBootstrap.class);
     di.setContextPath("/");
-    di.setDeploymentName("weeio");
+    di.setDeploymentName("org.xio.one.reactive.http.wee");
     server.deploy(di);
   }
 

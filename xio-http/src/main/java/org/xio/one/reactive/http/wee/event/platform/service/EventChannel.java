@@ -11,23 +11,14 @@ public class EventChannel {
   private static Map<String, EventChannel> channels = new HashMap<>();
   private ItemFlowable<Event, String> flow;
 
-  /**
-   * Create a new streamContents with given name and platform time to live
-   *
-   * @param name
-   * @return
-   */
-  public static EventChannel channel(String name) {
-    if (channels.containsKey(name))
-      return channels.get(name);
-    else {
-      return new EventChannel(name);
-    }
+  private EventChannel(ItemFlowable<Event, String> anItemFlow) {
+    this.flow=anItemFlow;
   }
 
-  private EventChannel(String name) {
-    this.flow = Flow.anItemFlow(name);
-    channels.put(name, this);
+  public static EventChannel channel(String name) {
+    if (!channels.containsKey(name))
+      channels.put(name, new EventChannel(Flow.anItemFlow(name,60)));
+    return channels.get(name);
   }
 
   public ItemFlowable<Event, String> flow() {
