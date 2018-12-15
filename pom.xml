@@ -5,30 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>xio</groupId>
     <artifactId>xio-stream</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.1-MAMBA</version>
     <modules>
+        <module>xio-core</module>
         <module>xio-http</module>
     </modules>
     <packaging>pom</packaging>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.8.2</version>
-        </dependency>
-    </dependencies>
 </project>
