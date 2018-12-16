@@ -27,6 +27,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Logger;
@@ -40,7 +41,7 @@ import static io.undertow.Handlers.*;
 public class WEEServer {
 
   UndertowJaxrsServer server;
-  private static String PING_CHAR_STRING = Character.toString('\u0000');
+  private static String PING_CHAR_STRING = Character.toString('�');
   private static Logger logger = Logger.getLogger(WEEServer.class.getCanonicalName());
 
   public static void main(final String[] args) {
@@ -266,7 +267,7 @@ public class WEEServer {
                       @Override
                       public void onNext(FlowItem<Event, String> flowItem) throws Throwable {
                         if (channel.isOpen())
-                          WebSockets.sendText("data:" + flowItem.value().toString(), channel, null);
+                          WebSockets.sendText("data: " + flowItem.value().toString(), channel, null);
                       }
                     });
 
@@ -314,11 +315,15 @@ public class WEEServer {
       if (messageData.isEmpty())
         ;
       else {
-        String[] events = messageData.split("events:");
+        String[] events = messageData.split("data: ");
         for (String event : events) {
           try {
             if (!event.isEmpty()) {
-              Event[] eventsToPut = JSONUtil.fromJSONString(event, Event[].class);
+              Event[] eventsToPut;
+              if (event.startsWith("["))
+                eventsToPut = JSONUtil.fromJSONString(event, Event[].class);
+              else
+                eventsToPut = (Event[]) List.of(JSONUtil.fromJSONString(event,Event.class)).toArray(new Event[0]);
               Arrays.stream(eventsToPut).filter(s -> s.getEventNodeId() != EventNodeID.getNodeID())
                   .forEach(eventStream::putItem);
               if (!message.isComplete())
