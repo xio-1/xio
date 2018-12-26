@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.xio.one.reactive.http.wee.event.platform.api.JSONUtil;
 
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
@@ -23,28 +22,26 @@ public class Event {
   private long eventId = -1;
   private long eventTimestamp = -1;
   private long eventNodeId;
-  private Map<String, Object> eventValues = null;
+  private Map<String, Object> eventValues = EMPTY_FIELD_VALUES;
 
   public Event() {
+    this.generateId();
     this.eventTimestamp = System.currentTimeMillis();
-    this.eventValues = EMPTY_FIELD_VALUES;
     this.eventNodeId = EventNodeID.getNodeID();
   }
 
   public Event(Map<String, Object> eventValues) {
-    this.eventTimestamp = System.currentTimeMillis();
+    this();
     this.eventValues = eventValues;
-    this.eventNodeId = EventNodeID.getNodeID();
   }
 
-  public Event(long eventid, long eventTimestamp) {
+  protected Event(long eventid, long eventTimestamp) {
     this.eventId = eventid;
     this.eventTimestamp = eventTimestamp;
-    this.eventValues = EMPTY_FIELD_VALUES;
     this.eventNodeId = EventNodeID.getNodeID();
   }
 
-  public Event(long eventid, long eventTimestamp, Map<String, Object> eventValues) {
+  protected Event(long eventid, long eventTimestamp, Map<String, Object> eventValues) {
     this.eventId = eventid;
     this.eventTimestamp = eventTimestamp;
     this.eventValues = eventValues;
@@ -52,7 +49,7 @@ public class Event {
   }
 
   @JsonIgnore
-  public void generateId() {
+  private void generateId() {
     this.eventId = EventIDSequence.INSTANCE.getNext();
   }
 
@@ -80,7 +77,7 @@ public class Event {
 
   @JsonIgnore
   public EventKey getEventKey() {
-    if (this.eventValues != null && this.eventValues.size()>0)
+    if (this.eventValues != null && this.eventValues.size() > 0)
       return new EventKey(this.eventValues.keySet().iterator().next(),
           this.eventValues.entrySet().iterator().next());
     else

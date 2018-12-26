@@ -244,8 +244,6 @@ public class WEEServer {
   public WEEServer withWebSocketEventServer(String eventStreamName, final int port, int ttl)
       throws IOException {
 
-
-
     final Xnio xnio = Xnio.getInstance("nio", WEEServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
         OptionMap.builder().set(Options.WORKER_IO_THREADS, 8)

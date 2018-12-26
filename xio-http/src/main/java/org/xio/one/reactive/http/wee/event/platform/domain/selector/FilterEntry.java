@@ -4,7 +4,7 @@ public class FilterEntry {
 
   private final String field;
   private final FilterOperations operator;
-  private final String value;
+  private final Object value;
 
   public FilterEntry() {
     super();
@@ -13,7 +13,7 @@ public class FilterEntry {
     value = null;
   }
 
-  public FilterEntry(String field, FilterOperations operator, String value) {
+  public FilterEntry(String field, FilterOperations operator, Object value) {
     this.field = field;
     this.operator = operator;
     this.value = value;
@@ -27,7 +27,7 @@ public class FilterEntry {
     return operator;
   }
 
-  public String getValue() {
+  public Object getValue() {
     return value;
   }
 
@@ -39,7 +39,7 @@ public class FilterEntry {
     if (field == null || field.isEmpty())
       throw new SelectorException("Field cannot be null or empty");
 
-    if (value == null || value.isEmpty())
+    if (value == null)
       throw new SelectorException("Value cannot be null or empty");
 
   }
