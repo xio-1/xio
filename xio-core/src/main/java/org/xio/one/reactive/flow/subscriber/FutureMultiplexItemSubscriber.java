@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.subscriber;
 
-import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.Map;
 import java.util.NavigableSet;
@@ -27,7 +27,7 @@ public abstract class FutureMultiplexItemSubscriber<R, T> extends FutureSubscrib
   }
 
   @Override
-  public final void process(NavigableSet<FlowItem<T, R>> e) {
+  public final void process(NavigableSet<Item<T, R>> e) {
     Map<Long, Future<R>> streamResults;
     if (e != null) {
       try {
@@ -40,6 +40,6 @@ public abstract class FutureMultiplexItemSubscriber<R, T> extends FutureSubscrib
     }
   }
 
-  public abstract Map<Long, Future<R>> onNext(Stream<FlowItem<T, R>> e);
+  public abstract Map<Long, Future<R>> onNext(Stream<Item<T, R>> e);
 
 }

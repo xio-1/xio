@@ -1,8 +1,8 @@
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.item;
 
-public final class EmptyItem extends FlowItem {
+public final class EmptyItem extends Item {
 
-  public static final FlowItem EMPTY_ITEM = new EmptyItem();
+  public static final Item EMPTY_ITEM = new EmptyItem();
 
   public EmptyItem() {
     super();

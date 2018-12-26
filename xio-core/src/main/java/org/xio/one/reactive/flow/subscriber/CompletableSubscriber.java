@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.subscriber;
 
-import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
 
 import java.util.NavigableSet;
@@ -41,14 +41,14 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
   }
 
   @Override
-  public final void emit(NavigableSet<FlowItem<T, R>> e) {
+  public final void emit(NavigableSet<Item<T, R>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<FlowItem<T, R>> e);
+  public abstract void process(NavigableSet<Item<T, R>> e);
 
 
   @Override

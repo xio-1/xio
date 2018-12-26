@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.subscriber;
 
-import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.Iterator;
 import java.util.NavigableSet;
@@ -18,7 +18,7 @@ public abstract class StreamMultiplexItemSubscriber<R, T> extends Subscriber<R, 
   }
 
   @Override
-  public final void process(NavigableSet<FlowItem<T, R>> e) {
+  public final void process(NavigableSet<Item<T, R>> e) {
     try {
       onNext(e.stream());
     } catch (Throwable ex) {
@@ -26,9 +26,9 @@ public abstract class StreamMultiplexItemSubscriber<R, T> extends Subscriber<R, 
     }
   }
 
-  public abstract void onNext(Stream<FlowItem<T, R>> items);
+  public abstract void onNext(Stream<Item<T, R>> items);
 
-  public void onError(Throwable ex, Iterator<FlowItem<T, R>> flowItems) {
+  public void onError(Throwable ex, Iterator<Item<T, R>> flowItems) {
   }
 
   @Override

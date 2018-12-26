@@ -1,47 +1,47 @@
 package org.xio.one.reactive.flow.service;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.ItemComparator;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.item.ItemComparator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
-import static org.xio.one.reactive.flow.domain.EmptyItem.EMPTY_ITEM;
+import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 
 /**
  * ItemStoreOperations @Author Xio @Copyright Xio
  */
 public final class FlowContents<T, R> {
 
-  public final NavigableSet<FlowItem<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
+  public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   private FlowDaemonService itemStore;
   private Flow itemStream;
-  private NavigableSet<FlowItem<T, R>> itemStoreContents = null;
+  private NavigableSet<Item<T, R>> itemStoreContents = null;
 
-  public NavigableSet<FlowItem<T, R>> getItemStoreContents() {
+  public NavigableSet<Item<T, R>> getItemStoreContents() {
     return itemStoreContents;
   }
 
   FlowContents(FlowDaemonService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
-    this.itemStoreContents = (NavigableSet<FlowItem<T, R>>) itemStore.itemRepositoryContents;
+    this.itemStoreContents = (NavigableSet<Item<T, R>>) itemStore.itemRepositoryContents;
   }
 
-  public FlowItem<T, R> item(long id) {
+  public Item<T, R> item(long id) {
     return itemStoreContents.higher(new ItemComparator(id - 1));
   }
 
-  public FlowItem item(Object index) {
-    return (FlowItem) itemStore.getItemStoreIndexContents().get(index);
+  public Item item(Object index) {
+    return (Item) itemStore.getItemStoreIndexContents().get(index);
   }
 
-  public FlowItem[] all() {
-    List<FlowItem> items = new ArrayList<>(itemStoreContents);
-    return items.toArray(new FlowItem[items.size()]);
+  public Item[] all() {
+    List<Item> items = new ArrayList<>(itemStoreContents);
+    return items.toArray(new Item[items.size()]);
   }
 
   public Object[] allValues() {
@@ -49,17 +49,17 @@ public final class FlowContents<T, R> {
   }
 
 
-  public final NavigableSet<FlowItem<T, R>> allAfter(FlowItem lastItem) {
+  public final NavigableSet<Item<T, R>> allAfter(Item lastItem) {
     try {
-      NavigableSet<FlowItem<T, R>> querystorecontents =
+      NavigableSet<Item<T, R>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (!querystorecontents.isEmpty())
         if (lastItem != null) {
-          FlowItem newLastItem = querystorecontents.last();
-          NavigableSet<FlowItem<T, R>> items = Collections.unmodifiableNavigableSet(
+          Item newLastItem = querystorecontents.last();
+          NavigableSet<Item<T, R>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));
           if (!items.isEmpty()) {
-            FlowItem newFirstItem = items.first();
+            Item newFirstItem = items.first();
             if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
               // if last domain is in correct sequence then
               final int size = items.size();
@@ -83,10 +83,10 @@ public final class FlowContents<T, R> {
     return EMPTY_ITEM_SET;
   }
 
-  public NavigableSet<FlowItem<T, R>> getAllAfterWithDelayMS(int delayMS, FlowItem lastseen) {
+  public NavigableSet<Item<T, R>> getAllAfterWithDelayMS(int delayMS, Item lastseen) {
     long startTime = System.currentTimeMillis();
-    NavigableSet<FlowItem<T, R>> toreturn = new ConcurrentSkipListSet<>();
-    NavigableSet<FlowItem<T, R>> contents = this.allAfter(lastseen);
+    NavigableSet<Item<T, R>> toreturn = new ConcurrentSkipListSet<>();
+    NavigableSet<Item<T, R>> contents = this.allAfter(lastseen);
     toreturn.addAll(contents);
     if (contents.size() > 0) {
       lastseen = contents.last();
@@ -104,12 +104,12 @@ public final class FlowContents<T, R> {
     return toreturn;
   }
 
-  private NavigableSet<FlowItem<T, R>> extractItemsThatAreInSequence(FlowItem lastItem,
-      NavigableSet<FlowItem<T, R>> items, FlowItem newFirstItem) {
-    FlowItem[] items1 = items.toArray(new FlowItem[items.size()]);
+  private NavigableSet<Item<T, R>> extractItemsThatAreInSequence(Item lastItem,
+      NavigableSet<Item<T, R>> items, Item newFirstItem) {
+    Item[] items1 = items.toArray(new Item[items.size()]);
     int index = 0;
-    FlowItem last = lastItem;
-    FlowItem current = items1[0];
+    Item last = lastItem;
+    Item current = items1[0];
     while (current.itemId() == last.itemId() + 1 && index <= items1.length) {
       last = current;
       index++;
@@ -119,8 +119,8 @@ public final class FlowContents<T, R> {
     return items.subSet(newFirstItem, true, last, true);
   }
 
-  public FlowItem<T, R> last() {
-    NavigableSet<FlowItem<T, R>> querystorecontents =
+  public Item<T, R> last() {
+    NavigableSet<Item<T, R>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
     if (querystorecontents.isEmpty())
       return EMPTY_ITEM;
@@ -147,11 +147,11 @@ public final class FlowContents<T, R> {
     return EMPTY_ITEM;
   }*/
 
-  public FlowItem first() {
+  public Item first() {
     return this.itemStoreContents.first();
   }
 
-  public Optional<FlowItem> nextFollowing(long itemid) {
+  public Optional<Item> nextFollowing(long itemid) {
     return Optional.ofNullable(this.itemStoreContents.higher(new ItemComparator(itemid)));
   }
 
@@ -228,7 +228,7 @@ public final class FlowContents<T, R> {
 
   */
 
-  public NavigableSet<FlowItem<T, R>> getTimeWindowSet(long from, long to) throws FlowException {
+  public NavigableSet<Item<T, R>> getTimeWindowSet(long from, long to) throws FlowException {
     // Get first and last domain in the window
     // otherwise return empty set as nothing found in the window
     return EMPTY_ITEM_SET;

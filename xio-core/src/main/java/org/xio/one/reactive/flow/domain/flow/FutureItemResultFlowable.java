@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.flow;
 
 import java.util.concurrent.Future;
 

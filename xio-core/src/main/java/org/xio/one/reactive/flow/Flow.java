@@ -5,7 +5,9 @@
  */
 package org.xio.one.reactive.flow;
 
-import org.xio.one.reactive.flow.domain.*;
+import org.xio.one.reactive.flow.domain.flow.*;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.service.FlowContents;
 import org.xio.one.reactive.flow.service.FlowDaemonService;
 import org.xio.one.reactive.flow.subscriber.CompletableSubscriber;
@@ -31,7 +33,7 @@ import java.util.concurrent.locks.LockSupport;
  * futureSubscriber
  */
 public final class Flow<T, R>
-    implements Flowable<T, R>, ItemFlowable<T, R>, FutureItemResultFlowable<T, R>,
+    implements Flowable<T, R>, ItemFlow<T, R>, FutureItemResultFlowable<T, R>,
     CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
@@ -54,8 +56,8 @@ public final class Flow<T, R>
   private Map<String, Subscription<R, T>> subscriberSubscriptions = new ConcurrentHashMap<>();
 
   // Queue control
-  private FlowItem[] itemqueue_out;
-  private BlockingQueue<FlowItem<T, R>> item_queue;
+  private Item[] itemqueue_out;
+  private BlockingQueue<Item<T, R>> item_queue;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
   private ItemIdSequence itemIDSequence;
@@ -64,23 +66,23 @@ public final class Flow<T, R>
   private ExecutorService executorService = InternalExecutors.subscriberCachedThreadPoolInstance();
 
   //bad use of erasure need too find a better way
-  public static <T, R> ItemFlowable<T, R> anItemFlow() {
+  public static <T, R> ItemFlow<T, R> anItemFlow() {
     return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlowable<T, R> anItemFlow(String name) {
+  public static <T, R> ItemFlow<T, R> anItemFlow(String name) {
     return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long ttlSeconds) {
+  public static <T, R> ItemFlow<T, R> anItemFlow(String name, long ttlSeconds) {
     return new Flow<>(name, null, ttlSeconds);
   }
 
-  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName) {
+  public static <T, R> ItemFlow<T, R> anItemFlow(String name, String indexFieldName) {
     return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName,
+  public static <T, R> ItemFlow<T, R> anItemFlow(String name, String indexFieldName,
       long ttlSeconds) {
     return new Flow<>(name, indexFieldName, ttlSeconds);
   }
@@ -131,7 +133,7 @@ public final class Flow<T, R>
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
-    this.itemqueue_out = new FlowItem[this.queue_max_size];
+    this.itemqueue_out = new Item[this.queue_max_size];
     this.name = name;
     this.indexFieldName = indexFieldName;
     if (ttlSeconds >= 0)
@@ -145,6 +147,11 @@ public final class Flow<T, R>
   @Override
   public void addSubscriber(Subscriber<R, T> subscriber) {
     addAppropriateSubscriber(subscriber);
+  }
+
+  @Override
+  public void removeSubscriber(String id) {
+
   }
 
   private void addAppropriateSubscriber(SubscriberInterface<R, T> subscriber) {
@@ -234,7 +241,7 @@ public final class Flow<T, R>
     long[] ids = new long[values.length];
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
-        FlowItem<T, R> item = new FlowItem<>(values[i], itemIDSequence.getNext(), ttlSeconds);
+        Item<T, R> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
         addToStreamWithBlock(item, flushImmediately);
         if (slowDownNanos > 0)
@@ -264,8 +271,8 @@ public final class Flow<T, R>
   @Override
   public void submitItemWithTTL(long ttlSeconds, T value,
       FlowItemCompletionHandler<R, T> completionHandler) {
-    FlowItem<T, R> item =
-        new FlowItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+    Item<T, R> item =
+        new Item<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithBlock(item, flushImmediately);
   }
 
@@ -359,7 +366,7 @@ public final class Flow<T, R>
   public void acceptAll() {
     int ticks = count_down_latch;
     while (!hasEnded()) {
-      if (ticks == 0 || flush || item_queue.size()==queue_max_size) {
+      if (ticks == 0 || flush || item_queue.size() == queue_max_size) {
         this.item_queue.drainTo(this.contentsControl.getItemRepositoryContents());
         ticks = count_down_latch;
       }
@@ -380,7 +387,7 @@ public final class Flow<T, R>
   }
 
 
-  private boolean addToStreamWithBlock(FlowItem<T, R> item, boolean immediately) {
+  private boolean addToStreamWithBlock(Item<T, R> item, boolean immediately) {
     try {
       if (!this.item_queue.offer(item)) {
         this.flush = immediately;

@@ -1,8 +1,8 @@
 package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.FutureItemResultFlowable;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.flow.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -40,7 +40,7 @@ public class AsyncFutureMultiplexLoggerService {
           }
 
           @Override
-          public Map<Long, Future<Integer>> onNext(Stream<FlowItem<String,Integer>> entries) {
+          public Map<Long, Future<Integer>> onNext(Stream<Item<String,Integer>> entries) {
 
             Map<Long, Future<Integer>> futureMap = new ConcurrentHashMap<>();
             List<Long> itemIds = new ArrayList<>();

@@ -23,7 +23,7 @@
  *
  */
 
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.flow;
 
 public interface FlowItemCompletionHandler<R, T> {
 

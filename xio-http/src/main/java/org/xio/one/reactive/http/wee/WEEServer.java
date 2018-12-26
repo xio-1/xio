@@ -7,8 +7,8 @@ import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.core.*;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.ItemFlowable;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
 import org.xio.one.reactive.http.wee.event.platform.api.ApiBootstrap;
 import org.xio.one.reactive.http.wee.event.platform.api.JSONUtil;
@@ -27,7 +27,6 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Logger;
@@ -263,7 +262,7 @@ public class WEEServer {
                 EventChannel.channel(eventStreamName).flow()
                     .addSubscriber(new StreamItemSubscriber<String, Event>() {
                       @Override
-                      public void onNext(FlowItem<Event, String> flowItem) throws Throwable {
+                      public void onNext(Item<Event, String> flowItem) throws Throwable {
                         if (channel.isOpen())
                           WebSockets.sendText("data: " + flowItem.value().toString(), channel, null);
                       }
@@ -277,7 +276,7 @@ public class WEEServer {
                   protected void onClose(WebSocketChannel webSocketChannel,
                       StreamSourceFrameChannel channel) throws IOException {
                     super.onClose(webSocketChannel, channel);
-                    //subscriptionFactory.unsubscribe(subscriberResult.getSubscriber());
+                    EventChannel.channel(eventStreamName).flow();
                   }
 
                   @Override
@@ -306,7 +305,7 @@ public class WEEServer {
   }
 
   private void processMessageData(BufferedTextMessage message,
-      ItemFlowable<Event, String> eventStream) {
+      ItemFlow<Event, String> eventStream) {
     String messageData = message.getData();
     messageData = messageData.replaceAll(PING_CHAR_STRING, "");
     {

@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.flow;
 
 public interface CompletableItemFlowable<T, R> extends Flowable<T, R> {
 

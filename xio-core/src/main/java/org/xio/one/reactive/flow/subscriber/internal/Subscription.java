@@ -1,8 +1,8 @@
 package org.xio.one.reactive.flow.subscriber.internal;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.EmptyItem;
-import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.item.EmptyItem;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.Collections;
 import java.util.NavigableSet;
@@ -12,7 +12,7 @@ import java.util.concurrent.locks.LockSupport;
 
 public final class Subscription<R, T> {
 
-  private FlowItem lastSeenItem = null;
+  private Item lastSeenItem = null;
   private Flow<T, R> itemStream;
 
   private SubscriberInterface<R, T> subscriber;
@@ -37,7 +37,7 @@ public final class Subscription<R, T> {
   }
 
   private void processFinalResults(SubscriberInterface<R, T> subscriber) {
-    NavigableSet<FlowItem<T, R>> streamContents = streamContents();
+    NavigableSet<Item<T, R>> streamContents = streamContents();
     while (streamContents.size() > 0) {
       subscriber.emit(streamContents);
       streamContents = streamContents();
@@ -45,7 +45,7 @@ public final class Subscription<R, T> {
   }
 
   private void processResults(SubscriberInterface<R, T> subscriber) {
-    NavigableSet<FlowItem<T, R>> streamContents = streamContents();
+    NavigableSet<Item<T, R>> streamContents = streamContents();
     if (streamContents.size() > 0)
       subscriber.emit(streamContents);
   }
@@ -54,10 +54,10 @@ public final class Subscription<R, T> {
     this.subscriber.stop();
   }
 
-  private NavigableSet<FlowItem<T, R>> streamContents() {
+  private NavigableSet<Item<T, R>> streamContents() {
     if (this.subscriber.delayMS() > 0)
       LockSupport.parkUntil(System.currentTimeMillis() + this.subscriber.delayMS());
-    NavigableSet<FlowItem<T, R>> streamContents = Collections
+    NavigableSet<Item<T, R>> streamContents = Collections
         .unmodifiableNavigableSet(this.itemStream.contents().allAfter(this.lastSeenItem));
     if (streamContents.size() > 0)
       lastSeenItem = streamContents.last();
@@ -68,7 +68,7 @@ public final class Subscription<R, T> {
     return subscriber;
   }
 
-  public FlowItem getLastSeenItem() {
+  public Item getLastSeenItem() {
     if (lastSeenItem != null)
       return lastSeenItem;
     else

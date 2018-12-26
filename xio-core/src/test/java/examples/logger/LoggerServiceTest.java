@@ -6,7 +6,7 @@ import examples.logger.domain.LogLevel;
 import examples.logger.domain.SingleCallbackLoggerService;
 import org.junit.Assert;
 import org.junit.Test;
-import org.xio.one.reactive.flow.domain.FlowItemCompletionHandler;
+import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;

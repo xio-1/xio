@@ -1,8 +1,8 @@
 package org.xio.one.reactive.flow.service;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.FlowItem;
-import org.xio.one.reactive.flow.domain.ItemSequenceComparator;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
 import org.xio.one.reactive.flow.subscriber.internal.Subscription;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -19,8 +19,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 public final class FlowDaemonService<T, R> {
 
-  protected volatile ConcurrentSkipListSet<FlowItem<T, R>> itemRepositoryContents;
-  protected volatile ConcurrentHashMap<Object, FlowItem<T, R>> itemStoreIndexContents;
+  protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
+  protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
   private Flow itemStream = null;
   private boolean isEnd = false;
   private FlowContents itemStoreOperations = null;
@@ -62,7 +62,7 @@ public final class FlowDaemonService<T, R> {
    *
    * @param items
    */
-  private FlowItem work(FlowItem[] items) {
+  private Item work(Item[] items) {
     Arrays.stream(items).forEach(item -> {
       itemRepositoryContents.add(item);
       if (getItemStoreIndexFieldName() != null)
@@ -78,7 +78,7 @@ public final class FlowDaemonService<T, R> {
     return this.isEnd;
   }
 
-  public Collection<FlowItem<T, R>> getItemRepositoryContents() {
+  public Collection<Item<T, R>> getItemRepositoryContents() {
     return itemRepositoryContents;
   }
 
@@ -86,7 +86,7 @@ public final class FlowDaemonService<T, R> {
     return itemStoreIndexFieldName;
   }
 
-  public ConcurrentHashMap<Object, FlowItem<T, R>> getItemStoreIndexContents() {
+  public ConcurrentHashMap<Object, Item<T, R>> getItemStoreIndexContents() {
     return itemStoreIndexContents;
   }
 

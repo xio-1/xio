@@ -4,7 +4,8 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.*;
+import org.xio.one.reactive.flow.domain.flow.*;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscriber.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
@@ -43,7 +44,7 @@ public class FlowTest {
 
   @Test
   public void shouldReturnHelloWorldItemFromFlowContents() {
-    ItemFlowable<String, String> asyncFlow = Flow.anItemFlow(HELLO_WORLD_FLOW);
+    ItemFlow<String, String> asyncFlow = Flow.anItemFlow(HELLO_WORLD_FLOW);
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
     asyncFlow.end(true);
@@ -53,12 +54,12 @@ public class FlowTest {
   @Test
   public void simpleExample() throws Exception {
 
-    ItemFlowable<String, String> toUPPERcaseFlow = Flow.anItemFlow();
+    ItemFlow<String, String> toUPPERcaseFlow = Flow.anItemFlow();
 
     toUPPERcaseFlow.addSubscriber(new StreamItemSubscriber<>() {
 
       @Override
-      public void onNext(FlowItem<String, String> itemValue) {
+      public void onNext(Item<String, String> itemValue) {
         System.out.println(itemValue.value().toUpperCase());
       }
 
@@ -70,14 +71,14 @@ public class FlowTest {
 
   @Test
   public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
-    ItemFlowable<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
+    ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
 
     StreamItemSubscriber<List<Integer>, Integer> subscriber = new StreamItemSubscriber<>() {
 
       List<Integer> output = new ArrayList<>();
 
       @Override
-      public void onNext(FlowItem<Integer, List<Integer>> flowItem) {
+      public void onNext(Item<Integer, List<Integer>> flowItem) {
         output.add(flowItem.value() * 10);
       }
 
@@ -116,8 +117,8 @@ public class FlowTest {
 
   @Test
   public void shouldPingAndPong() {
-    ItemFlowable<String, Long> ping_stream = Flow.anItemFlow("ping_stream");
-    ItemFlowable<String, Long> pong_stream = Flow.anItemFlow("pong_stream");
+    ItemFlow<String, Long> ping_stream = Flow.anItemFlow("ping_stream");
+    ItemFlow<String, Long> pong_stream = Flow.anItemFlow("pong_stream");
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
 
@@ -128,7 +129,7 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(FlowItem<String,Long> itemValue) {
+      public void onNext(Item<String,Long> itemValue) {
         if (count < 4) {
           setResult(System.currentTimeMillis());
           System.out.println("got ping");
@@ -145,7 +146,7 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(FlowItem<String,Long> itemValue) {
+      public void onNext(Item<String,Long> itemValue) {
         if (count < 4) {
           setResult(System.currentTimeMillis());
           System.out.println("got pong");
@@ -169,7 +170,7 @@ public class FlowTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    ItemFlowable<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest");
+    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest");
     final StreamItemSubscriber<Long, String> subscriber = new StreamItemSubscriber<Long, String>() {
       long count;
 
@@ -179,7 +180,7 @@ public class FlowTest {
       }
 
       @Override
-      public void onNext(FlowItem<String,Long> itemValue) {
+      public void onNext(Item<String,Long> itemValue) {
         this.count++;
       }
 
@@ -213,7 +214,7 @@ public class FlowTest {
         Flow.aFutureResultItemFlow("micro_stream", new FutureMultiplexItemSubscriber<>() {
 
           @Override
-          public Map<Long, Future<String>> onNext(Stream<FlowItem<String,String>> e) {
+          public Map<Long, Future<String>> onNext(Stream<Item<String,String>> e) {
             Map<Long, Future<String>> results = new HashMap<>();
             e.forEach(stringItem -> results.put(stringItem.itemId(),
                 CompletableFuture.completedFuture(stringItem.value().toUpperCase())));
@@ -236,7 +237,7 @@ public class FlowTest {
 
   @Test
   public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
-    ItemFlowable<String, String> asyncFlow = Flow.anItemFlow("test_ttl");
+    ItemFlow<String, String> asyncFlow = Flow.anItemFlow("test_ttl");
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItemWithTTL(10, "test10");
     asyncFlow.putItemWithTTL(1, "test1");
@@ -250,7 +251,7 @@ public class FlowTest {
 
   @Ignore
   public void shouldReturnItemUsingIndexField() {
-    ItemFlowable<TestObject, TestObject> asyncFlow = Flow.anItemFlow("test_index", "testField");
+    ItemFlow<TestObject, TestObject> asyncFlow = Flow.anItemFlow("test_index", "testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
@@ -261,7 +262,7 @@ public class FlowTest {
 
   @Test
   public void shouldReturnItemUsingItemId() {
-    ItemFlowable<TestObject, TestObject> asyncFlow;
+    ItemFlow<TestObject, TestObject> asyncFlow;
     asyncFlow = Flow.<TestObject, TestObject>anItemFlow("test_item_id");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
@@ -311,20 +312,20 @@ public class FlowTest {
   public void shouldHandleErrorForFlowSubscriber() throws Exception {
 
     ArrayList<String> errors = new ArrayList<>();
-    ItemFlowable<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
+    ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
     asyncFlow.addSubscriber(new StreamItemSubscriber<>() {
 
       int count = 0;
 
       @Override
-      public void onNext(FlowItem<Integer,List<Integer>> itemValue) {
+      public void onNext(Item<Integer,List<Integer>> itemValue) {
         count++;
         if (count == 2)
           throw new RuntimeException("hello");
       }
 
       @Override
-      public void onError(Throwable error, FlowItem<Integer,List<Integer>> itemValue) {
+      public void onError(Throwable error, Item<Integer,List<Integer>> itemValue) {
         errors.add(error.getMessage());
       }
 
@@ -346,7 +347,7 @@ public class FlowTest {
         Flow.aCompletableItemFlow(HELLO_WORLD_FLOW, new CompletableItemSubscriber<>() {
 
           @Override
-          public void onNext(FlowItem<String, String> itemValue) throws Throwable {
+          public void onNext(Item<String, String> itemValue) throws Throwable {
             System.out.println(Thread.currentThread() + ":OnNext" + itemValue.value());
             InternalExecutors.computeThreadPoolInstance().submit(new FutureTask<Void>(() -> {
               itemValue.completionHandler()
@@ -356,7 +357,7 @@ public class FlowTest {
           }
 
           @Override
-          public void onError(Throwable error, FlowItem<String, String> itemValue) {
+          public void onError(Throwable error, Item<String, String> itemValue) {
 
           }
         });

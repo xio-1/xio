@@ -6,7 +6,10 @@
  * To change this template, choose Tools | Template Manager
  * and open the template in the editor.
  */
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.item;
+
+import org.xio.one.reactive.flow.domain.NodeID;
+import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -16,7 +19,7 @@ import java.lang.reflect.Method;
  *
  * @author Xio
  */
-public class FlowItem<T, R> {
+public class Item<T, R> {
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;
@@ -25,21 +28,21 @@ public class FlowItem<T, R> {
   protected T itemValue;
 
 
-  public FlowItem() {
+  public Item() {
     this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = System.currentTimeMillis();
     this.itemId = 0;
     this.itemTTLSeconds = 0;
   }
 
-  public FlowItem(long itemId) {
+  public Item(long itemId) {
     this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = Long.MAX_VALUE;
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
   }
 
-  public FlowItem(T value, long itemId) {
+  public Item(T value, long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -48,7 +51,7 @@ public class FlowItem<T, R> {
     this.itemTTLSeconds = 0;
   }
 
-  public FlowItem(T value, long itemId, long itemTTLSeconds) {
+  public Item(T value, long itemId, long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -59,7 +62,7 @@ public class FlowItem<T, R> {
 
   private FlowItemCompletionHandler<R, T> callback;
 
-  public FlowItem(T value, long itemId, long itemTTLSeconds,
+  public Item(T value, long itemId, long itemTTLSeconds,
       FlowItemCompletionHandler<R, T> callback) {
     this(value, itemId, itemTTLSeconds);
     this.callback = callback;
@@ -129,7 +132,7 @@ public class FlowItem<T, R> {
     if (this == item)
       return true;
     else
-      return this.itemId() == (((FlowItem) item).itemId());
+      return this.itemId() == (((Item) item).itemId());
   }
 
   @Override

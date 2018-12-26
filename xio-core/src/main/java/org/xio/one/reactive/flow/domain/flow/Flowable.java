@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.flow;
 
 import org.xio.one.reactive.flow.service.FlowContents;
 

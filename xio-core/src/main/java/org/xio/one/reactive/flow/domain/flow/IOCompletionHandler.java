@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.domain;
+package org.xio.one.reactive.flow.domain.flow;
 
 public class IOCompletionHandler<R, T> implements java.nio.channels.CompletionHandler<R, T> {
 

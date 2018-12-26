@@ -1,7 +1,7 @@
 package org.xio.one.reactive.http.wee.event.platform.service;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.ItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 
 import java.util.HashMap;
@@ -9,9 +9,9 @@ import java.util.Map;
 
 public class EventChannel {
   private static Map<String, EventChannel> channels = new HashMap<>();
-  private ItemFlowable<Event, String> flow;
+  private ItemFlow<Event, String> flow;
 
-  private EventChannel(ItemFlowable<Event, String> anItemFlow) {
+  private EventChannel(ItemFlow<Event, String> anItemFlow) {
     this.flow=anItemFlow;
   }
 
@@ -21,7 +21,7 @@ public class EventChannel {
     return channels.get(name);
   }
 
-  public ItemFlowable<Event, String> flow() {
+  public ItemFlow<Event, String> flow() {
     return flow;
   }
 

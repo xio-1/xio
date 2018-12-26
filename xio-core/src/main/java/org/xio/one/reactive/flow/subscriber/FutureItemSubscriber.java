@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.subscriber;
 
-import org.xio.one.reactive.flow.domain.FlowItem;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.NavigableSet;
 import java.util.concurrent.Future;
@@ -24,7 +24,7 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
   }
 
   @Override
-  public final void process(NavigableSet<FlowItem<T, R>> e) {
+  public final void process(NavigableSet<Item<T, R>> e) {
     if (e != null) {
       if (parallel) {
         e.parallelStream().forEach(item -> {
