@@ -48,7 +48,7 @@ public final class Flow<T, R>
   private String name;
   private String indexFieldName;
 
-  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
+  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
   private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
 
 
@@ -145,13 +145,18 @@ public final class Flow<T, R>
   }
 
   @Override
-  public void addSubscriber(Subscriber<R, T> subscriber) {
+  public void addSubscriber(SubscriberInterface<R, T> subscriber) {
     addAppropriateSubscriber(subscriber);
   }
 
   @Override
-  public void removeSubscriber(String id) {
-
+  public void removeSubscriber(SubscriberInterface<R, T> subscriber) {
+    subscriber.stop();
+    if (subscriber==this.futureSubscriber) {
+      this.futureSubscriber.setResult(null);
+      this.futureSubscriber=null;
+    }
+    subscriberSubscriptions.remove(subscriber.getId());
   }
 
   private void addAppropriateSubscriber(SubscriberInterface<R, T> subscriber) {
@@ -165,7 +170,7 @@ public final class Flow<T, R>
 
   private void registerSubscriber(SubscriberInterface<R, T> subscriber) {
     Subscription<R, T> subscription = new Subscription<>(this, subscriber);
-    streamSubscriberFutureResultMap.put(subscriber.getId(), subscription.subscribe());
+    subscription.subscribe();
     subscriberSubscriptions.put(subscriber.getId(), subscription);
   }
 
@@ -404,11 +409,11 @@ public final class Flow<T, R>
   }
 
   public int size() {
-    return this.item_queue.size() + this.contents().getItemStoreContents().size();
+    return this.item_queue.size() + this.contents().allValues().length;
   }
 
   public boolean isEmpty() {
-    return this.item_queue.isEmpty() && this.contents().getItemStoreContents().isEmpty();
+    return this.size()==0;
   }
 
 }

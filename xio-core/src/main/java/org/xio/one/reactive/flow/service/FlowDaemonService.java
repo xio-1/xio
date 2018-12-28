@@ -108,9 +108,8 @@ public final class FlowDaemonService<T, R> {
           itemStream.acceptAll();
         }
 
-        while ((!itemStream.isEmpty()
-            && itemRepositoryContents.last().itemId() > getMinimumLastSeenProcessed(itemStream))
-            || itemRepositoryContents.size() != itemStream.size())
+        //itemRepositoryContents.last().itemId() > getMinimumLastSeenProcessed(itemStream)
+        while (!itemStream.isEmpty())
           LockSupport.parkNanos(100000);
         daemon.isEnd = true;
       } catch (Exception e) {
@@ -142,10 +141,12 @@ public final class FlowDaemonService<T, R> {
     public void run() {
       try {
         while (!itemStream.hasEnded()) {
-          Thread.currentThread().sleep(1000);
+          Thread.currentThread().sleep(999);
           if (!itemRepositoryContents.isEmpty()) {
-            long lastSeenItemId = getMinimumLastSeenProcessed(itemStream);
-            itemRepositoryContents.removeIf(item -> !item.alive(lastSeenItemId));
+            //long lastSeenItemId = getMinimumLastSeenProcessed(itemStream);
+            if (itemRepositoryContents.removeIf(item -> !item.alive()))
+              System.out.println("Removed");
+
           }
         }
       } catch (Exception e) {

@@ -65,7 +65,7 @@ public class LoggerServiceTest {
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
 
     System.out
-        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis() - start) / 1000));
+        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -100,7 +100,7 @@ public class LoggerServiceTest {
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
 
     System.out
-        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis() - start) / 1000));
+        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -149,7 +149,7 @@ public class LoggerServiceTest {
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
     System.out
-        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis() - start) / 1000));
+        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -190,7 +190,7 @@ public class LoggerServiceTest {
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
     System.out
-        .println("items per second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start) / 1000));
+        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();

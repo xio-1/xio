@@ -91,7 +91,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.addSubscriber(subscriber);
     asyncFlow.putItem(1, 2, 3, 4);
-    asyncFlow.end(true);
+    asyncFlow.end(false);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
     Assert.assertEquals(true, Arrays.equals(subscriber.getResult().toArray(), intList));
   }
@@ -170,7 +170,7 @@ public class FlowTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest");
+    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest",1);
     final StreamItemSubscriber<Long, String> subscriber = new StreamItemSubscriber<Long, String>() {
       long count;
 
@@ -244,7 +244,7 @@ public class FlowTest {
     asyncFlow.putItemWithTTL(1, "test2");
     asyncFlow.putItemWithTTL(1, "test3");
     asyncFlow.end(true);
-    Thread.currentThread().sleep(1999);
+    Thread.currentThread().sleep(1100);
     assertThat(asyncFlow.size(), is(1));
     assertThat(asyncFlow.contents().last().value(), is("test10"));
   }

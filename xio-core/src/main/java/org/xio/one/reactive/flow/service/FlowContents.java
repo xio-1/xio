@@ -45,7 +45,7 @@ public final class FlowContents<T, R> {
   }
 
   public Object[] allValues() {
-    return itemStoreContents.stream().filter(e->e.alive()).map(p->p.value()).collect(Collectors.toList()).toArray();
+    return itemStoreContents.stream().filter(Item::alive).map(Item::value).toArray();
   }
 
 
