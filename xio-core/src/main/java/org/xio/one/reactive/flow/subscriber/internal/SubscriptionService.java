@@ -29,14 +29,14 @@ public final class SubscriptionService<R, T> {
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
     itemStream.executorService().submit(() -> {
       logger.log(Level.INFO,
-          "Subscription " + subscriber.getId() + " started for stream : " + itemStream.name());
-      while ((!itemStream.hasEnded() || !itemStream.contents().hasEnded())) {
+          "Subscriber " + subscriber.getId() + " started for stream : " + itemStream.name());
+      while (!itemStream.hasEnded() && !subscriber.isDone()) {
         processResults(subscriber);
       }
       processFinalResults(subscriber);
       unsubscribe();
       logger.log(Level.INFO,
-          "Subscription" + subscriber.getId() + " stopped for stream : " + itemStream.name());
+          "Subscriber " + subscriber.getId() + " stopped for stream : " + itemStream.name());
       completableFuture.complete(subscriber.getNext());
     });
     return completableFuture;
@@ -57,7 +57,8 @@ public final class SubscriptionService<R, T> {
   }
 
   private void unsubscribe() {
-    this.subscriber.stop();
+    if (!this.subscriber.isDone())
+      this.subscriber.stop();
   }
 
   private NavigableSet<Item<T, R>> streamContents() {
