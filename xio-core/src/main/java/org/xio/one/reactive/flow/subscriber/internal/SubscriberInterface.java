@@ -20,9 +20,9 @@ public interface SubscriberInterface<R, T> {
 
   void initialise();
 
-  void setResult(R result);
-
   R getResult();
+
+  void setResult(R result);
 
   void finalise();
 

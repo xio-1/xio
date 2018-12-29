@@ -2,8 +2,8 @@ package examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
-import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscriber.CompletableMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -30,8 +30,8 @@ public class AsyncMultiplexCallbackLoggerService {
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
         new CompletableMultiplexItemSubscriber<>(20) {
 
-          final AsynchronousFileChannel fileChannel =
-              AsynchronousFileChannel.open(logFilePath, Set.of(WRITE),InternalExecutors.ioThreadPoolInstance());
+          final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
+              .open(logFilePath, Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
           long position = 0;
 
           @Override
@@ -39,9 +39,9 @@ public class AsyncMultiplexCallbackLoggerService {
           }
 
           @Override
-          public void onNext(Stream<Item<String,Integer>> entries) {
+          public void onNext(Stream<Item<String, Integer>> entries) {
 
-            List<FlowItemCompletionHandler<Integer,String>> callbacks = new ArrayList<>();
+            List<FlowItemCompletionHandler<Integer, String>> callbacks = new ArrayList<>();
 
             entries.forEach(entry -> {
               buffer.put((entry.value() + "\r\n").getBytes());
@@ -54,20 +54,19 @@ public class AsyncMultiplexCallbackLoggerService {
 
               @Override
               public void completed(Integer result, Object attachment) {
-                callbacks.stream().forEach(c->c.completed(result,null));
+                callbacks.stream().forEach(c -> c.completed(result, null));
               }
 
               @Override
               public void failed(Throwable exc, Object attachment) {
-                callbacks.stream().forEach(c->c.failed(exc,null));
+                callbacks.stream().forEach(c -> c.failed(exc, null));
               }
             };
 
             try {
               fileChannel.write(toWrite, position, null, completionHandler);
               position = position + buffer.limit();
-            }
-             catch (Exception e) {
+            } catch (Exception e) {
               e.printStackTrace();
             } finally {
               buffer.clear();
@@ -96,7 +95,8 @@ public class AsyncMultiplexCallbackLoggerService {
     return null;
   }
 
-  public void logAsync(LogLevel logLevel, String entry,FlowItemCompletionHandler<Integer,String> flowItemCompletionHandler) {
+  public void logAsync(LogLevel logLevel, String entry,
+      FlowItemCompletionHandler<Integer, String> flowItemCompletionHandler) {
     logEntryFlow.submitItem(logLevel + ":" + entry, flowItemCompletionHandler);
   }
 

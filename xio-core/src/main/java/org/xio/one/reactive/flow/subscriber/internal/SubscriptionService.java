@@ -9,15 +9,17 @@ import java.util.NavigableSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public final class Subscription<R, T> {
+public final class SubscriptionService<R, T> {
 
+  Logger logger = Logger.getLogger(SubscriptionService.class.getCanonicalName());
   private Item lastSeenItem = null;
   private Flow<T, R> itemStream;
-
   private SubscriberInterface<R, T> subscriber;
 
-  public Subscription(Flow<T, R> itemStream, SubscriberInterface<R, T> subscriber) {
+  public SubscriptionService(Flow<T, R> itemStream, SubscriberInterface<R, T> subscriber) {
     this.itemStream = itemStream;
     this.subscriber = subscriber;
   }
@@ -26,11 +28,15 @@ public final class Subscription<R, T> {
     subscriber.initialise();
     CompletableFuture<R> completableFuture = new CompletableFuture<>();
     itemStream.executorService().submit(() -> {
+      logger.log(Level.INFO,
+          "Subscription " + subscriber.getId() + " started for stream : " + itemStream.name());
       while ((!itemStream.hasEnded() || !itemStream.contents().hasEnded())) {
         processResults(subscriber);
       }
       processFinalResults(subscriber);
       unsubscribe();
+      logger.log(Level.INFO,
+          "Subscription" + subscriber.getId() + " stopped for stream : " + itemStream.name());
       completableFuture.complete(subscriber.getNext());
     });
     return completableFuture;

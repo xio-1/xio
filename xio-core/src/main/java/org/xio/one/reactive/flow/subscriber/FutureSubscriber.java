@@ -15,10 +15,10 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   private final ForkJoinPool pool = new ForkJoinPool(10);
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
+  protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
   private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
-  protected int delayMS = 0;
 
   public FutureSubscriber() {
     initialise();
@@ -85,13 +85,13 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   }
 
   @Override
-  public final void setResult(R result) {
-    this.result = result;
+  public R getResult() {
+    return result;
   }
 
   @Override
-  public R getResult() {
-    return result;
+  public final void setResult(R result) {
+    this.result = result;
   }
 
   public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {

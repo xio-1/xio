@@ -33,8 +33,9 @@ public class Account {
   }
 
   public void debitBalance(double amount) throws InsufficientFundsException {
-    if (amount>balance)
-      throw new InsufficientFundsException("Insufficient funds available for debit amount " + amount);
+    if (amount > balance)
+      throw new InsufficientFundsException(
+          "Insufficient funds available for debit amount " + amount);
     balance -= amount;
   }
 }

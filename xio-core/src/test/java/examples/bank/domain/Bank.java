@@ -1,8 +1,8 @@
 package examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.StreamMultiplexItemSubscriber;
 
@@ -30,20 +30,20 @@ public class Bank {
     transactionEventLoop.addSubscriber(new StreamItemSubscriber<>() {
 
       @Override
-      public void onNext(Item<TransactionRequest,Boolean> transaction)
+      public void onNext(Item<TransactionRequest, Boolean> transaction)
           throws InsufficientFundsException, ExecutionException, InterruptedException {
         if (this.processTransaction(transaction.value()))
           recordInLedger(transaction.value());
-        else throw new RuntimeException("Error processing payment");
+        else
+          throw new RuntimeException("Error processing payment");
       }
 
       @Override
-      public void onError(Throwable error, Item<TransactionRequest,Boolean> itemValue) {
+      public void onError(Throwable error, Item<TransactionRequest, Boolean> itemValue) {
         error.printStackTrace();
       }
 
-      private void recordInLedger(TransactionRequest transaction)
-      {
+      private void recordInLedger(TransactionRequest transaction) {
         transactionLedger.putItem(transaction);
       }
 
@@ -74,24 +74,25 @@ public class Bank {
     });
 
     transactionLedger = Flow.anItemFlow("ledger");
-    transactionLedger.addSubscriber(new StreamMultiplexItemSubscriber<Boolean, TransactionRequest>() {
-      @Override
-      public void onNext(Stream<Item<TransactionRequest,Boolean>> e) {
+    transactionLedger
+        .addSubscriber(new StreamMultiplexItemSubscriber<Boolean, TransactionRequest>() {
+          @Override
+          public void onNext(Stream<Item<TransactionRequest, Boolean>> e) {
 
-        String multiplexGroupID = UUID.randomUUID().toString();
-        e.forEach(item -> {
-          logger.info(
-              "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|" + item
-                  .value().toString());
-          bankTransactionLedger.add(item.value());
+            String multiplexGroupID = UUID.randomUUID().toString();
+            e.forEach(item -> {
+              logger.info(
+                  "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|"
+                      + item.value().toString());
+              bankTransactionLedger.add(item.value());
+            });
+          }
+
+          @Override
+          public void finalise() {
+            super.finalise();
+          }
         });
-      }
-
-      @Override
-      public void finalise() {
-        super.finalise();
-      }
-    });
   }
 
   public void submitTransactionRequest(TransactionRequest transaction) {
@@ -114,11 +115,12 @@ public class Bank {
   }
 
   public Double getLiquidity() throws Exception {
-    TransactionRequest[] transactionRequests = this.bankTransactionLedger.toArray(new TransactionRequest[0]);
+    TransactionRequest[] transactionRequests =
+        this.bankTransactionLedger.toArray(new TransactionRequest[0]);
     Double creditTotal = Arrays.asList(transactionRequests).stream()
         .filter(t -> t.transactionType.equals(TransactionType.CREDIT))
         .mapToDouble(TransactionRequest::getAmount).sum();
-    Double debitTotal =  Arrays.asList(transactionRequests).stream()
+    Double debitTotal = Arrays.asList(transactionRequests).stream()
         .filter(t -> t.transactionType.equals(TransactionType.DEBIT))
         .mapToDouble(TransactionRequest::getAmount).sum();
     return creditTotal - debitTotal;

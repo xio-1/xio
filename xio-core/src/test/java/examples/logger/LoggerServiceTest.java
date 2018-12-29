@@ -64,8 +64,8 @@ public class LoggerServiceTest {
     });
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
 
-    System.out
-        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start)));
+    System.out.println(
+        "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -112,7 +112,8 @@ public class LoggerServiceTest {
   }
 
   @Test
-  public void logs1MillionEntriesInParallelToFileAndSingleWithCallback() throws InterruptedException {
+  public void logs1MillionEntriesInParallelToFileAndSingleWithCallback()
+      throws InterruptedException {
     testSingleWithCallback(true);
   }
 
@@ -120,27 +121,27 @@ public class LoggerServiceTest {
     long start = System.currentTimeMillis();
     ArrayList<Future<Integer>> results = new ArrayList<>();
     SingleCallbackLoggerService loggerService =
-       SingleCallbackLoggerService.logger(this.getClass(),parallel);
+        SingleCallbackLoggerService.logger(this.getClass(), parallel);
 
     AtomicLong count = new AtomicLong();
 
-    FlowItemCompletionHandler<Integer, String>
-        itemCompletionHandler = new FlowItemCompletionHandler<>() {
+    FlowItemCompletionHandler<Integer, String> itemCompletionHandler =
+        new FlowItemCompletionHandler<>() {
 
-      @Override
-      public void completed(Integer result, String attachment) {
-        count.incrementAndGet();
-      }
+          @Override
+          public void completed(Integer result, String attachment) {
+            count.incrementAndGet();
+          }
 
-      @Override
-      public void failed(Throwable exc, String attachment) {
+          @Override
+          public void failed(Throwable exc, String attachment) {
 
-      }
+          }
 
-    };
+        };
 
     for (int i = 0; i < ONE_MILLION; i++)
-      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i,itemCompletionHandler);
+      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
     System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < ONE_MILLION) {
@@ -148,8 +149,8 @@ public class LoggerServiceTest {
     }
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    System.out
-        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start)));
+    System.out.println(
+        "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -165,23 +166,23 @@ public class LoggerServiceTest {
 
     AtomicLong count = new AtomicLong();
 
-    FlowItemCompletionHandler<Integer, String>
-        itemCompletionHandler = new FlowItemCompletionHandler<Integer, String>() {
+    FlowItemCompletionHandler<Integer, String> itemCompletionHandler =
+        new FlowItemCompletionHandler<Integer, String>() {
 
-      @Override
-      public void completed(Integer result, String attachment) {
-        count.incrementAndGet();
-      }
+          @Override
+          public void completed(Integer result, String attachment) {
+            count.incrementAndGet();
+          }
 
-      @Override
-      public void failed(Throwable exc, String attachment) {
+          @Override
+          public void failed(Throwable exc, String attachment) {
 
-      }
+          }
 
-    };
+        };
 
     for (int i = 0; i < ONE_MILLION; i++)
-      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i,itemCompletionHandler);
+      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
     System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < ONE_MILLION) {
@@ -189,8 +190,8 @@ public class LoggerServiceTest {
     }
 
     System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    System.out
-        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis()+1 - start)));
+    System.out.println(
+        "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
     System.out.println(loggerService.getLogFilePath().toString());
     loggerService.close();

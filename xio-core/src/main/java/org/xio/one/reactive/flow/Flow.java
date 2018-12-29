@@ -8,13 +8,13 @@ package org.xio.one.reactive.flow;
 import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
-import org.xio.one.reactive.flow.service.FlowContents;
-import org.xio.one.reactive.flow.service.FlowDaemonService;
+import org.xio.one.reactive.flow.internal.FlowContents;
+import org.xio.one.reactive.flow.internal.FlowDaemonService;
 import org.xio.one.reactive.flow.subscriber.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
 import org.xio.one.reactive.flow.subscriber.Subscriber;
 import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
-import org.xio.one.reactive.flow.subscriber.internal.Subscription;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriptionService;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.Collections;
@@ -37,23 +37,21 @@ public final class Flow<T, R>
     CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
+  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
+  private final int queue_max_size = 16384;
   // streamContents variables
   private FlowDaemonService<T, R> contentsControl;
-
   // constants
   private int count_down_latch = 10;
-  private final int queue_max_size = 16384;
-
   // input parameters
   private String name;
   private String indexFieldName;
-
-  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
   private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
 
 
   private Map<String, Future> streamSubscriberFutureResultMap = new ConcurrentHashMap<>();
-  private Map<String, Subscription<R, T>> subscriberSubscriptions = new ConcurrentHashMap<>();
+  private Map<String, SubscriptionService<R, T>> subscriberSubscriptions =
+      new ConcurrentHashMap<>();
 
   // Queue control
   private Item[] itemqueue_out;
@@ -64,6 +62,20 @@ public final class Flow<T, R>
   private long slowDownNanos = 0;
   private boolean flushImmediately;
   private ExecutorService executorService = InternalExecutors.subscriberCachedThreadPoolInstance();
+  private FutureSubscriber<R, T> futureSubscriber = null;
+
+  private Flow(String name, String indexFieldName, long ttlSeconds) {
+    this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
+    this.itemqueue_out = new Item[this.queue_max_size];
+    this.name = name;
+    this.indexFieldName = indexFieldName;
+    if (ttlSeconds >= 0)
+      this.defaultTTLSeconds = ttlSeconds;
+    this.contentsControl = new FlowDaemonService<>(this);
+    this.itemIDSequence = new ItemIdSequence();
+    this.flushImmediately = false;
+
+  }
 
   //bad use of erasure need too find a better way
   public static <T, R> ItemFlow<T, R> anItemFlow() {
@@ -131,19 +143,6 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  private Flow(String name, String indexFieldName, long ttlSeconds) {
-    this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
-    this.itemqueue_out = new Item[this.queue_max_size];
-    this.name = name;
-    this.indexFieldName = indexFieldName;
-    if (ttlSeconds >= 0)
-      this.defaultTTLSeconds = ttlSeconds;
-    this.contentsControl = new FlowDaemonService<>(this);
-    this.itemIDSequence = new ItemIdSequence();
-    this.flushImmediately = false;
-
-  }
-
   @Override
   public void addSubscriber(SubscriberInterface<R, T> subscriber) {
     addAppropriateSubscriber(subscriber);
@@ -152,9 +151,9 @@ public final class Flow<T, R>
   @Override
   public void removeSubscriber(SubscriberInterface<R, T> subscriber) {
     subscriber.stop();
-    if (subscriber==this.futureSubscriber) {
+    if (subscriber == this.futureSubscriber) {
       this.futureSubscriber.setResult(null);
-      this.futureSubscriber=null;
+      this.futureSubscriber = null;
     }
     subscriberSubscriptions.remove(subscriber.getId());
   }
@@ -169,12 +168,10 @@ public final class Flow<T, R>
   }
 
   private void registerSubscriber(SubscriberInterface<R, T> subscriber) {
-    Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+    SubscriptionService<R, T> subscription = new SubscriptionService<>(this, subscriber);
     subscription.subscribe();
     subscriberSubscriptions.put(subscriber.getId(), subscription);
   }
-
-  private FutureSubscriber<R, T> futureSubscriber = null;
 
   /**
    * Indicate that each item place should be flushed immediately
@@ -188,7 +185,7 @@ public final class Flow<T, R>
   }
 
   /**
-   * Indicate that core should be create using the given executor service
+   * Indicate that core should be create using the given executor internal
    * Use when low latency < 2ms is required for core
    *
    * @return
@@ -276,8 +273,7 @@ public final class Flow<T, R>
   @Override
   public void submitItemWithTTL(long ttlSeconds, T value,
       FlowItemCompletionHandler<R, T> completionHandler) {
-    Item<T, R> item =
-        new Item<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+    Item<T, R> item = new Item<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithBlock(item, flushImmediately);
   }
 
@@ -337,7 +333,7 @@ public final class Flow<T, R>
   }
 
   private boolean activeSubscriptions() {
-    Optional<Subscription<R, T>> any =
+    Optional<SubscriptionService<R, T>> any =
         this.getSubscriberSubscriptions().values().stream().filter(s -> !s.getSubscriber().isDone())
             .findAny();
     return any.isPresent();
@@ -351,7 +347,7 @@ public final class Flow<T, R>
     return this.indexFieldName;
   }
 
-  public Map<String, Subscription<R, T>> getSubscriberSubscriptions() {
+  public Map<String, SubscriptionService<R, T>> getSubscriberSubscriptions() {
     return this.subscriberSubscriptions;
   }
 
@@ -382,7 +378,7 @@ public final class Flow<T, R>
 
   private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
     if (futureSubscriber == null) {
-      Subscription<R, T> subscription = new Subscription<>(this, subscriber);
+      SubscriptionService<R, T> subscription = new SubscriptionService<>(this, subscriber);
       Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
       subscription.subscribe();
       this.futureSubscriber = subscriber;
@@ -413,7 +409,11 @@ public final class Flow<T, R>
   }
 
   public boolean isEmpty() {
-    return this.size()==0;
+    return this.size() == 0;
   }
 
+  @Override
+  public long ttl() {
+    return this.defaultTTLSeconds;
+  }
 }

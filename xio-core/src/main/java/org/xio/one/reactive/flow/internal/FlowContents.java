@@ -1,4 +1,4 @@
-package org.xio.one.reactive.flow.service;
+package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.item.Item;
@@ -7,7 +7,6 @@ import org.xio.one.reactive.flow.domain.item.ItemComparator;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
-import java.util.stream.Collectors;
 
 import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 
@@ -21,14 +20,14 @@ public final class FlowContents<T, R> {
   private Flow itemStream;
   private NavigableSet<Item<T, R>> itemStoreContents = null;
 
-  public NavigableSet<Item<T, R>> getItemStoreContents() {
-    return itemStoreContents;
-  }
-
   FlowContents(FlowDaemonService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
     this.itemStoreContents = (NavigableSet<Item<T, R>>) itemStore.itemRepositoryContents;
+  }
+
+  public NavigableSet<Item<T, R>> getItemStoreContents() {
+    return itemStoreContents;
   }
 
   public Item<T, R> item(long id) {

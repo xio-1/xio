@@ -11,9 +11,9 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
+  protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
-  protected int delayMS = 0;
 
   public Subscriber() {
     initialise();
@@ -78,12 +78,12 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   }
 
   @Override
-  public final void setResult(R result) {
-    this.result = result;
+  public final R getResult() {
+    return getNext();
   }
 
   @Override
-  public final R getResult() {
-    return getNext();
+  public final void setResult(R result) {
+    this.result = result;
   }
 }

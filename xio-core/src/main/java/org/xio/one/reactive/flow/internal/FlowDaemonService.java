@@ -1,18 +1,19 @@
-package org.xio.one.reactive.flow.service;
+package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
-import org.xio.one.reactive.flow.subscriber.internal.Subscription;
+import org.xio.one.reactive.flow.subscriber.internal.SubscriptionService;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The Xio.contents.domain itemQueryStore where the putAll domain are persisted in memory
@@ -21,6 +22,7 @@ public final class FlowDaemonService<T, R> {
 
   protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
+  Logger logger = Logger.getLogger(FlowDaemonService.class.getCanonicalName());
   private Flow itemStream = null;
   private boolean isEnd = false;
   private FlowContents itemStoreOperations = null;
@@ -57,23 +59,6 @@ public final class FlowDaemonService<T, R> {
     return itemStoreOperations;
   }
 
-  /**
-   * Do work
-   *
-   * @param items
-   */
-  private Item work(Item[] items) {
-    Arrays.stream(items).forEach(item -> {
-      itemRepositoryContents.add(item);
-      if (getItemStoreIndexFieldName() != null)
-        itemStoreIndexContents.put(item.getFieldValue(getItemStoreIndexFieldName()), item);
-    });
-    if (items.length > 0)
-      return items[items.length - 1];
-    else
-      return null;
-  }
-
   public boolean hasEnded() {
     return this.isEnd;
   }
@@ -82,13 +67,23 @@ public final class FlowDaemonService<T, R> {
     return itemRepositoryContents;
   }
 
-  public String getItemStoreIndexFieldName() {
-    return itemStoreIndexFieldName;
-  }
-
   public ConcurrentHashMap<Object, Item<T, R>> getItemStoreIndexContents() {
     return itemStoreIndexContents;
   }
+
+  private long getMinimumLastSeenProcessed(Flow itemStream) {
+    Map<String, SubscriptionService> subscriptionMap = itemStream.getSubscriberSubscriptions();
+    if (subscriptionMap.size() > 0) {
+      OptionalLong lastSeenItemId = subscriptionMap.entrySet().stream()
+          .mapToLong(e -> e.getValue().getLastSeenItem().itemId()).min();
+      if (lastSeenItemId.isPresent())
+        return lastSeenItemId.getAsLong();
+      else
+        return Long.MAX_VALUE;
+    } else
+      return Long.MAX_VALUE;
+  }
+
 
   /**
    * Gets all the input from the Xio.contents.domain itemStream and persists it to the contents store
@@ -103,34 +98,22 @@ public final class FlowDaemonService<T, R> {
 
     @Override
     public void run() {
+      logger.log(Level.INFO, "Flow input thread started for stream : " + itemStream.name());
       try {
         while (!itemStream.hasEnded()) {
           itemStream.acceptAll();
         }
-
         //itemRepositoryContents.last().itemId() > getMinimumLastSeenProcessed(itemStream)
         while (!itemStream.isEmpty())
           LockSupport.parkNanos(100000);
         daemon.isEnd = true;
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE, "Housekeeping thread ended unexpectedly", e);
       }
+      logger.log(Level.INFO, "Flow input stopped for stream : " + itemStream.name());
     }
   }
 
-
-  private long getMinimumLastSeenProcessed(Flow itemStream) {
-    Map<String, Subscription> subscriptionMap = itemStream.getSubscriberSubscriptions();
-    if (subscriptionMap.size() > 0) {
-      OptionalLong lastSeenItemId = subscriptionMap.entrySet().stream()
-          .mapToLong(e -> e.getValue().getLastSeenItem().itemId()).min();
-      if (lastSeenItemId.isPresent())
-        return lastSeenItemId.getAsLong();
-      else
-        return Long.MAX_VALUE;
-    } else
-      return Long.MAX_VALUE;
-  }
 
   /**
    * Removes seen dead domain from the contents store
@@ -140,19 +123,21 @@ public final class FlowDaemonService<T, R> {
     @Override
     public void run() {
       try {
+        logger.log(Level.INFO,
+            "House keeping thread started for stream : " + itemStream.name() + " every :" + (
+                (itemStream.ttl() * 1000) / 2) + " ms");
         while (!itemStream.hasEnded()) {
-          Thread.currentThread().sleep(999);
+          Thread.sleep(itemStream.ttl());
           if (!itemRepositoryContents.isEmpty()) {
             //long lastSeenItemId = getMinimumLastSeenProcessed(itemStream);
             if (itemRepositoryContents.removeIf(item -> !item.alive()))
-              System.out.println("Removed");
-
+              logger.log(Level.INFO, "House kept stream : " + itemStream.name());
           }
         }
       } catch (Exception e) {
-        e.printStackTrace();
-
+        logger.log(Level.SEVERE, "Housekeeping thread ended unexpectedly", e);
       }
+      logger.log(Level.INFO, "Housekeeping stopped for stream : " + itemStream.name());
     }
 
   }

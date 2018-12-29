@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.domain.flow;
 
-import org.xio.one.reactive.flow.service.FlowContents;
+import org.xio.one.reactive.flow.internal.FlowContents;
 
 import java.util.concurrent.ExecutorService;
 
@@ -23,5 +23,7 @@ public interface Flowable<T, R> {
   int size();
 
   boolean isEmpty();
+
+  long ttl();
 
 }

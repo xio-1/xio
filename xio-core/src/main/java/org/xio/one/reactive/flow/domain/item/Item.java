@@ -20,13 +20,13 @@ import java.lang.reflect.Method;
  * @author Xio
  */
 public class Item<T, R> {
+  protected T itemValue;
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;
   private Object indexKeyValue;
   private long itemTTLSeconds;
-  protected T itemValue;
-
+  private FlowItemCompletionHandler<R, T> callback;
 
   public Item() {
     this.itemNodeId = NodeID.getNodeID();
@@ -60,10 +60,7 @@ public class Item<T, R> {
     this.itemTTLSeconds = itemTTLSeconds;
   }
 
-  private FlowItemCompletionHandler<R, T> callback;
-
-  public Item(T value, long itemId, long itemTTLSeconds,
-      FlowItemCompletionHandler<R, T> callback) {
+  public Item(T value, long itemId, long itemTTLSeconds, FlowItemCompletionHandler<R, T> callback) {
     this(value, itemId, itemTTLSeconds);
     this.callback = callback;
   }

@@ -4,7 +4,10 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.flow.*;
+import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
+import org.xio.one.reactive.flow.domain.flow.FutureItemResultFlowable;
+import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscriber.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureItemSubscriber;
@@ -28,19 +31,6 @@ public class FlowTest {
   public static final int NUMBER_OF_ITEMS = 1000000;
   String HELLO_WORLD_FLOW = "helloWorldFlow";
   String INT_FLOW = "integerFlow";
-
-
-  public class TestObject {
-    String testField;
-
-    public TestObject(String testField) {
-      this.testField = testField;
-    }
-
-    public String getTestField() {
-      return testField;
-    }
-  }
 
   @Test
   public void shouldReturnHelloWorldItemFromFlowContents() {
@@ -129,7 +119,7 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(Item<String,Long> itemValue) {
+      public void onNext(Item<String, Long> itemValue) {
         if (count < 4) {
           setResult(System.currentTimeMillis());
           System.out.println("got ping");
@@ -146,7 +136,7 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(Item<String,Long> itemValue) {
+      public void onNext(Item<String, Long> itemValue) {
         if (count < 4) {
           setResult(System.currentTimeMillis());
           System.out.println("got pong");
@@ -170,7 +160,7 @@ public class FlowTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest",1);
+    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest", 1);
     final StreamItemSubscriber<Long, String> subscriber = new StreamItemSubscriber<Long, String>() {
       long count;
 
@@ -180,7 +170,7 @@ public class FlowTest {
       }
 
       @Override
-      public void onNext(Item<String,Long> itemValue) {
+      public void onNext(Item<String, Long> itemValue) {
         this.count++;
       }
 
@@ -214,7 +204,7 @@ public class FlowTest {
         Flow.aFutureResultItemFlow("micro_stream", new FutureMultiplexItemSubscriber<>() {
 
           @Override
-          public Map<Long, Future<String>> onNext(Stream<Item<String,String>> e) {
+          public Map<Long, Future<String>> onNext(Stream<Item<String, String>> e) {
             Map<Long, Future<String>> results = new HashMap<>();
             e.forEach(stringItem -> results.put(stringItem.itemId(),
                 CompletableFuture.completedFuture(stringItem.value().toUpperCase())));
@@ -243,8 +233,8 @@ public class FlowTest {
     asyncFlow.putItemWithTTL(1, "test1");
     asyncFlow.putItemWithTTL(1, "test2");
     asyncFlow.putItemWithTTL(1, "test3");
+    Thread.sleep(1000);
     asyncFlow.end(true);
-    Thread.currentThread().sleep(1100);
     assertThat(asyncFlow.size(), is(1));
     assertThat(asyncFlow.contents().last().value(), is("test10"));
   }
@@ -318,14 +308,14 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(Item<Integer,List<Integer>> itemValue) {
+      public void onNext(Item<Integer, List<Integer>> itemValue) {
         count++;
         if (count == 2)
           throw new RuntimeException("hello");
       }
 
       @Override
-      public void onError(Throwable error, Item<Integer,List<Integer>> itemValue) {
+      public void onError(Throwable error, Item<Integer, List<Integer>> itemValue) {
         errors.add(error.getMessage());
       }
 
@@ -380,6 +370,19 @@ public class FlowTest {
     for (int i = 0; i < 10; i++)
       asyncFlow.submitItem("Hello" + i, myHandler);
     asyncFlow.end(true);
+  }
+
+
+  public class TestObject {
+    String testField;
+
+    public TestObject(String testField) {
+      this.testField = testField;
+    }
+
+    public String getTestField() {
+      return testField;
+    }
   }
 
 
