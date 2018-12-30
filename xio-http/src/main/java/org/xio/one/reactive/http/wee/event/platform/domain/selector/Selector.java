@@ -45,7 +45,7 @@ public class Selector {
   private Event doFilter(Event eventIn, FilterEntry filterEntry) {
 
     switch (filterEntry.getOperator()) {
-      case IN:
+      case CONTAINS:
         return doContains(eventIn, filterEntry.getField(), filterEntry.getValue());
       case EQ:
         return doEquals(eventIn, filterEntry.getField(), filterEntry.getValue());

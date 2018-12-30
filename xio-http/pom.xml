@@ -86,7 +86,7 @@
         </plugins>
         <resources>
             <resource>
-                <directory>src/resources</directory>
+                <directory>src/main/resources</directory>
             </resource>
         </resources>
         <sourceDirectory>src/main/java</sourceDirectory>

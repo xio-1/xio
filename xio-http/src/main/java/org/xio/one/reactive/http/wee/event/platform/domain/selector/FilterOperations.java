@@ -1,7 +1,7 @@
 package org.xio.one.reactive.http.wee.event.platform.domain.selector;
 
 public enum FilterOperations {
-  IN("IN"), GT("GT"), LT("LT'"), EQ("EQ");
+  CONTAINS("CONTAINS"), GT("GT"), LT("LT'"), EQ("EQ");
 
   private final String symbol;
 
