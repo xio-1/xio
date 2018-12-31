@@ -31,16 +31,4 @@ public class FilterEntry {
     return value;
   }
 
-  public void validate() throws SelectorException {
-
-    if (operator == null)
-      throw new SelectorException("Filter operator cannot be null");
-
-    if (field == null || field.isEmpty())
-      throw new SelectorException("Field cannot be null or empty");
-
-    if (value == null)
-      throw new SelectorException("Value cannot be null or empty");
-
-  }
 }

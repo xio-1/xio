@@ -9,11 +9,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 
-public class Selector {
+public class FilterSelector {
 
   private ArrayList<FilterEntry> filterList = new ArrayList<>();
 
-  public Selector() {
+  public FilterSelector() {
     super();
   }
 
@@ -45,7 +45,7 @@ public class Selector {
   private Event doFilter(Event eventIn, FilterEntry filterEntry) {
 
     switch (filterEntry.getOperator()) {
-      case CONTAINS:
+      case MATCH:
         return doContains(eventIn, filterEntry.getField(), filterEntry.getValue());
       case EQ:
         return doEquals(eventIn, filterEntry.getField(), filterEntry.getValue());

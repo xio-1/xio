@@ -5,15 +5,14 @@ import org.junit.Test;
 import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 import org.xio.one.reactive.http.wee.event.platform.domain.selector.FilterEntry;
 import org.xio.one.reactive.http.wee.event.platform.domain.selector.FilterOperations;
-import org.xio.one.reactive.http.wee.event.platform.domain.selector.Selector;
+import org.xio.one.reactive.http.wee.event.platform.domain.selector.FilterSelector;
 
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.xio.one.reactive.http.wee.event.platform.domain.EmptyEvent.EMPTY_EVENT;
 
-public class SelectorTestShould {
+public class FilterSelectorTestShould {
 
   private Event result;
 
@@ -27,7 +26,7 @@ public class SelectorTestShould {
     Map<String, Object> eventValues = new HashMap<>();
     eventValues.put("testField", "Hello");
     Event event = new Event(eventValues);
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, "Hello"));
     Assert.assertThat(result=selector.work(event), CoreMatchers.is(event));
   }
@@ -38,7 +37,7 @@ public class SelectorTestShould {
     eventValues.put("testField", "Hello");
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, "Hello2"));
 
@@ -52,7 +51,7 @@ public class SelectorTestShould {
     eventValues.put("testField", 3.333);
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, 3.333));
     selector.work(event);
@@ -65,7 +64,7 @@ public class SelectorTestShould {
     eventValues.put("testField", 3.333);
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, 3));
 
@@ -78,7 +77,7 @@ public class SelectorTestShould {
     eventValues.put("testField", 3.333);
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.GT, 2.333));
     selector.work(event);
@@ -92,7 +91,7 @@ public class SelectorTestShould {
     eventValues.put("testField", 1.333);
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.GT, 2.333));
     selector.work(event);
@@ -105,7 +104,7 @@ public class SelectorTestShould {
     eventValues.put("testField", 3.333);
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.LT, 4.333));
     selector.work(event);
@@ -118,7 +117,7 @@ public class SelectorTestShould {
     eventValues.put("testField", 5.333);
     Event event = new Event(eventValues);
 
-    Selector selector = new Selector();
+    FilterSelector selector = new FilterSelector();
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.LT, 2.333));
     selector.work(event);

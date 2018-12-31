@@ -2,6 +2,7 @@ package org.xio.one.reactive.http.wee.event.platform.api;
 
 
 import org.apache.http.HttpStatus;
+import org.xio.one.reactive.http.wee.event.platform.domain.request.FilterExpression;
 import org.xio.one.reactive.http.wee.event.platform.service.EventChannel;
 import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 
@@ -46,6 +47,17 @@ public class ChannelApi {
     } catch (Exception e) {
       return Response.status(HttpStatus.SC_METHOD_FAILURE).build();
     }
+  }
+
+  @POST
+  @Path("/{channelname}/subscribe")
+  @Consumes("application/json")
+  public Response subscribe(@PathParam("channelname") String channelname, FilterExpression filterEntryExpression) {
+    try {
+    } catch (Exception e) {
+      return Response.status(HttpStatus.SC_METHOD_FAILURE).build();
+    }
+    return null;
   }
 
   @GET

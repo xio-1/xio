@@ -95,7 +95,6 @@ public class WEEiOServer {
           serverHostIPAddress = argList.get((argList.indexOf("-ip") + 1));
           logger.info(
               "**** configuring server host using provided ip "+ serverHostIPAddress);
-
         }
       }
 
