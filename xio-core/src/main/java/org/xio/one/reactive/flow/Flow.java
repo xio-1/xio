@@ -10,6 +10,7 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.internal.FlowContents;
 import org.xio.one.reactive.flow.internal.FlowDaemonService;
+import org.xio.one.reactive.flow.internal.FlowException;
 import org.xio.one.reactive.flow.subscriber.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
 import org.xio.one.reactive.flow.subscriber.Subscriber;
@@ -156,6 +157,14 @@ public final class Flow<T, R>
       this.futureSubscriber = null;
     }
     subscriberSubscriptions.remove(subscriber.getId());
+  }
+
+  @Override
+  public SubscriberInterface<R,T> getSubscriber(String subscriberId) {
+    if (subscriberId !=null && !subscriberId.isBlank()) {
+      return subscriberSubscriptions.get(subscriberId).getSubscriber();
+    }
+    throw new IllegalArgumentException("Subscriber not found");
   }
 
   private void addAppropriateSubscriber(SubscriberInterface<R, T> subscriber) {

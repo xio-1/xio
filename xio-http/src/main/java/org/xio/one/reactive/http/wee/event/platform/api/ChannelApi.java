@@ -2,9 +2,9 @@ package org.xio.one.reactive.http.wee.event.platform.api;
 
 
 import org.apache.http.HttpStatus;
+import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 import org.xio.one.reactive.http.wee.event.platform.domain.request.FilterExpression;
 import org.xio.one.reactive.http.wee.event.platform.service.EventChannel;
-import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
@@ -52,22 +52,20 @@ public class ChannelApi {
   @POST
   @Path("/{channelname}/subscribe")
   @Consumes("application/json")
-  public Response subscribe(@PathParam("channelname") String channelname, FilterExpression filterEntryExpression) {
-    try {
-    } catch (Exception e) {
-      return Response.status(HttpStatus.SC_METHOD_FAILURE).build();
-    }
-    return null;
+  @Produces("application/json")
+  public Object subscribe(@PathParam("channelname") String channelname,
+      FilterExpression filterEntryExpression) {
+    return "{\"clientID:\"" + "\"" + EventChannel.channel(channelname)
+        .registerNewClient(filterEntryExpression) + "\"";
   }
 
   @GET
   @Path("/{channelname}/{querytype}")
   @Produces("application/json")
-  public Object getAll(@PathParam("channelname") String channelname,
-      @PathParam("querytype") EventChannel.QueryType queryType)  {
-    return JSONUtil.toJSONString(EventChannel.channel(channelname).query(channelname, queryType, null));
+  public Object getQuery(@PathParam("channelname") String channelname,
+      @PathParam("querytype") EventChannel.QueryType queryType) {
+    return JSONUtil
+        .toJSONString(EventChannel.channel(channelname).query(channelname, queryType, null));
   }
-
-
 
 }

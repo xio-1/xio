@@ -71,7 +71,7 @@ public final class FlowDaemonService<T, R> {
     return itemStoreIndexContents;
   }
 
-  private long getMinimumLastSeenProcessed(Flow itemStream) {
+  public long getMinimumLastSeenProcessed(Flow itemStream) {
     Map<String, SubscriptionService> subscriptionMap = itemStream.getSubscriberSubscriptions();
     if (subscriptionMap.size() > 0) {
       OptionalLong lastSeenItemId = subscriptionMap.entrySet().stream()

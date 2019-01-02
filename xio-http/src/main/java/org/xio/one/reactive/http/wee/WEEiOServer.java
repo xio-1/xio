@@ -4,16 +4,19 @@ import io.undertow.Undertow;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.websockets.WebSocketConnectionCallback;
-import io.undertow.websockets.core.*;
+import io.undertow.websockets.core.AbstractReceiveListener;
+import io.undertow.websockets.core.BufferedTextMessage;
+import io.undertow.websockets.core.StreamSourceFrameChannel;
+import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
-import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
 import org.xio.one.reactive.http.wee.event.platform.api.ApiBootstrap;
 import org.xio.one.reactive.http.wee.event.platform.api.JSONUtil;
 import org.xio.one.reactive.http.wee.event.platform.domain.Event;
 import org.xio.one.reactive.http.wee.event.platform.domain.EventNodeID;
+import org.xio.one.reactive.http.wee.event.platform.domain.WebSocketStreamItemSubscriber;
 import org.xio.one.reactive.http.wee.event.platform.service.EventChannel;
 import org.xnio.OptionMap;
 import org.xnio.Options;
@@ -56,14 +59,14 @@ public class WEEiOServer {
         System.out.println("Usage Help");
         System.out.println("[-n name] : create stream with name, default name is events");
         System.out
-            .println("[-ttl integer] : event time to live in seconds, default is 0 for forever");
+            .println("[-ttl integer] : event time to live in seconds, default is 1 second");
         System.out.println("[-ws port] start server data channel (web socket) on given port");
         System.out.println("[-c ipaddress:port] cluster to another master server @ipaddress:port");
         System.out.println("[-ip ipAddress] bind server to given ip address");
         System.out.println("[-in interface name] bind server to given interface adapter name");
         System.out.println("[-p port] start stream web api on given port");
         System.out.println();
-        System.out.println("Example java WEEiOServer -n events -ttl 1 -s 7222 -a 8080");
+        System.out.println("Example java WEEiOServer -n events -ttl 1 -ws 7222 -a 8080");
         System.exit(0);
       }
 
@@ -85,26 +88,25 @@ public class WEEiOServer {
       if (argList.contains("-in")) {
         String interface_name = argList.get((argList.indexOf("-in") + 1));
         serverHostIPAddress = getIPAddress(interface_name);
-        logger.info(
-            "**** configuring server host using interface "+ interface_name + ":" + serverHostIPAddress);
+        logger.info("**** configuring server host using interface " + interface_name + ":"
+            + serverHostIPAddress);
 
       }
 
       if (argList.contains("-ip")) {
         if (!argList.contains("-in")) {
           serverHostIPAddress = argList.get((argList.indexOf("-ip") + 1));
-          logger.info(
-              "**** configuring server host using provided ip "+ serverHostIPAddress);
+          logger.info("**** configuring server host using provided ip " + serverHostIPAddress);
         }
       }
 
-      if (argList.contains("-s")) {
+      if (argList.contains("-ws")) {
         int serverPort;
-        serverPort = Integer.parseInt(argList.get((argList.indexOf("-s") + 1)));
+        serverPort = Integer.parseInt(argList.get((argList.indexOf("-ws") + 1)));
         eventServer.withWebSocketEventServer(channelName, serverHostIPAddress, serverPort, ttl);
         logger.info(
-            "**** started master server socket @ http://"+ serverHostIPAddress + ":" + serverPort + "/" + channelName
-                + "/subscribe");
+            "**** started master server socket @ http://" + serverHostIPAddress + ":" + serverPort
+                + "/" + channelName + "/subscribe");
       }
 
       /*if (argList.contains("-c")) {
@@ -149,7 +151,8 @@ public class WEEiOServer {
 
       eventServer.withAPI(ApiBootstrap.class, serverHostIPAddress, apiport);
       System.out.println(
-          "**** starting sever api @ http://" + serverHostIPAddress + ":" + apiport + "/channel/" + channelName);
+          "**** starting sever api @ http://" + serverHostIPAddress + ":" + apiport + "/channel/"
+              + channelName);
 
 
       logger.info("**** All services are started");
@@ -188,7 +191,8 @@ public class WEEiOServer {
     }
   }
 
-  public WEEiOServer withAPI(Class application, String serverHostIPAddress, int port) throws Exception {
+  public WEEiOServer withAPI(Class application, String serverHostIPAddress, int port)
+      throws Exception {
     Undertow.Builder serverBuilder =
         Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorkerThreads(4);
     server = new UndertowJaxrsServer().start(serverBuilder);
@@ -264,8 +268,7 @@ public class WEEiOServer {
   }*/
 
   public WEEiOServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
-      final int port, int ttl)
-      throws IOException {
+      final int port, int ttl) throws IOException {
 
     final Xnio xnio = Xnio.getInstance("nio", WEEiOServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
@@ -274,60 +277,64 @@ public class WEEiOServer {
             .set(Options.WORKER_TASK_CORE_THREADS, 30).set(Options.WORKER_TASK_MAX_THREADS, 30)
             .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
 
-    Undertow server = Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorker(worker)
-        .setHandler(path().addPrefixPath("/" + eventStreamName + "/subscribe",
-            websocket(new WebSocketConnectionCallback() {
+    Undertow server =
+        Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorker(worker).setHandler(
+            path().addPrefixPath("/" + eventStreamName + "/subscribe",
+                websocket(new WebSocketConnectionCallback() {
 
-              StreamItemSubscriber<String, Event> streamItemSubscriber;
-
-              @Override
-              public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
-                logger.info("A new subscriber is connecting too WEEIOServer");
-                EventChannel.channel(eventStreamName).flow().addSubscriber(
-                    streamItemSubscriber = new StreamItemSubscriber<String, Event>() {
-                      @Override
-                      public void onNext(Item<Event, String> flowItem) throws Throwable {
-                        if (channel.isOpen())
-                          WebSockets
-                              .sendText("data: " + flowItem.value().toString(), channel, null);
-                      }
-                    });
-
-                logger.info("Subscriber " + streamItemSubscriber.getId() + " has connected");
-                channel.getReceiveSetter().set(new AbstractReceiveListener() {
+                  StreamItemSubscriber<String, Event> streamItemSubscriber;
 
                   @Override
-                  //On unsubscribe, unsubscribe the subscriber
-                  protected void onClose(WebSocketChannel webSocketChannel,
-                      StreamSourceFrameChannel channel) throws IOException {
-                    super.onClose(webSocketChannel, channel);
-                    logger.info("Subscriber " + streamItemSubscriber.getId()
-                        + " closed connection to WEEIOServer");
-                    streamItemSubscriber.stop();
+                  public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
+                    List<String> values = exchange.getRequestHeaders().get("clientID");
+                    if (values != null && values.size() > 0) {
+                      String subscriberId = exchange.getRequestHeaders().get("clientID").get(0);
+                      logger.info("A subscriber with clientID" + subscriberId
+                          + " is trying to connect too WEEIOServer");
+                      if (EventChannel.channel(eventStreamName).getSubscriber(subscriberId) == null)
+                        EventChannel.channel(eventStreamName).flow().addSubscriber(
+                            streamItemSubscriber = new WebSocketStreamItemSubscriber(channel));
+                      else
+                        EventChannel.channel(eventStreamName).flow().addSubscriber(
+                            streamItemSubscriber =
+                                EventChannel.channel(eventStreamName).getSubscriber(subscriberId));
+
+                      logger.info("Subscriber " + streamItemSubscriber.getId() + " has connected");
+                      channel.getReceiveSetter().set(new AbstractReceiveListener() {
+
+                        @Override
+                        //On unsubscribe, unsubscribe the subscriber
+                        protected void onClose(WebSocketChannel webSocketChannel,
+                            StreamSourceFrameChannel channel) throws IOException {
+                          super.onClose(webSocketChannel, channel);
+                          logger.info("Subscriber " + streamItemSubscriber.getId()
+                              + " closed connection to WEEIOServer");
+                          streamItemSubscriber.stop();
+                        }
+
+                        @Override
+                        //On error, unsubscribe the subscriber
+                        protected void onError(WebSocketChannel channel, Throwable error) {
+                          super.onError(channel, error);
+                          logger.log(Level.WARNING, "Subscriber " + streamItemSubscriber.getId()
+                              + " sent error to WEEIOServer ", error);
+                          streamItemSubscriber.stop();
+                        }
+
+                        @Override
+                        //On Ping Send Events To Web Subscriber
+                        protected void onFullTextMessage(WebSocketChannel channel,
+                            BufferedTextMessage message) {
+                          processMessageData(message, EventChannel.channel(eventStreamName).flow());
+                        }
+                      });
+                      channel.resumeReceives();
+                    }
                   }
 
-                  @Override
-                  //On error, unsubscribe the subscriber
-                  protected void onError(WebSocketChannel channel, Throwable error) {
-                    super.onError(channel, error);
-                    logger.log(Level.WARNING, "Subscriber " + streamItemSubscriber.getId()
-                        + " sent error to WEEIOServer ", error);
-                    streamItemSubscriber.stop();
-                  }
-
-                  @Override
-                  //On Ping Send Events To Web Subscriber
-                  protected void onFullTextMessage(WebSocketChannel channel,
-                      BufferedTextMessage message) {
-                    processMessageData(message, EventChannel.channel(eventStreamName).flow());
-                  }
-                });
-                channel.resumeReceives();
-              }
-
-            })).addPrefixPath("/web", resource(new FileResourceManager(
-            new File(WEEiOServer.class.getResource("/web/index.html").getFile())))
-            .setDirectoryListingEnabled(true))).build();
+                })).addPrefixPath("/web", resource(new FileResourceManager(
+                new File(WEEiOServer.class.getResource("/web/index.html").getFile())))
+                .setDirectoryListingEnabled(true))).build();
     server.start();
 
     return this;
