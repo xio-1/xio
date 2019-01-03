@@ -25,10 +25,7 @@ import org.xnio.XnioWorker;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+import java.net.*;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
@@ -58,10 +55,12 @@ public class WEEiOServer {
       if (argList.contains("--h") || argList.contains("--help") || argList.size() == 0) {
         System.out.println("Usage Help");
         System.out.println("[-n name] : create stream with name, default name is events");
-        System.out
-            .println("[-ttl integer] : event time to live in seconds, default is 1 second");
+        System.out.println("[-ttl integer] : event time to live in seconds, default is 1 second");
         System.out.println("[-ws port] start server data channel (web socket) on given port");
-        System.out.println("[-c ipaddress:port] cluster to another master server @ipaddress:port");
+        System.out
+            .println("[-c ipaddress:wsport] cluster to another master server @ipaddress:port");
+        System.out
+            .println("[-k shared secret] shared secret to be passed in X-AUTHORIZATION header");
         System.out.println("[-ip ipAddress] bind server to given ip address");
         System.out.println("[-in interface name] bind server to given interface adapter name");
         System.out.println("[-p port] start stream web api on given port");
@@ -286,18 +285,25 @@ public class WEEiOServer {
 
                   @Override
                   public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
-                    List<String> values = exchange.getRequestHeaders().get("clientID");
-                    if (values != null && values.size() > 0) {
-                      String subscriberId = exchange.getRequestHeaders().get("clientID").get(0);
+                    String path = URI.create(exchange.getRequestURI()).getPath();
+                    String clientID = path.substring(path.lastIndexOf("/") + 1);
+                    try {
+                      if (clientID.isBlank() || clientID.isEmpty()) {
+                        throw new SecurityException("No client credentials provided");
+                      }
+                      String subscriberId = clientID;
                       logger.info("A subscriber with clientID" + subscriberId
                           + " is trying to connect too WEEIOServer");
-                      if (EventChannel.channel(eventStreamName).getSubscriber(subscriberId) == null)
-                        EventChannel.channel(eventStreamName).flow().addSubscriber(
-                            streamItemSubscriber = new WebSocketStreamItemSubscriber(channel));
-                      else
-                        EventChannel.channel(eventStreamName).flow().addSubscriber(
-                            streamItemSubscriber =
-                                EventChannel.channel(eventStreamName).getSubscriber(subscriberId));
+
+                      streamItemSubscriber =
+                          EventChannel.channel(eventStreamName).getSubscriber(subscriberId);
+
+
+                      if (streamItemSubscriber == null)
+                        streamItemSubscriber = new WebSocketStreamItemSubscriber(channel);
+
+                      EventChannel.channel(eventStreamName).flow()
+                          .addSubscriber(streamItemSubscriber);
 
                       logger.info("Subscriber " + streamItemSubscriber.getId() + " has connected");
                       channel.getReceiveSetter().set(new AbstractReceiveListener() {
@@ -329,6 +335,14 @@ public class WEEiOServer {
                         }
                       });
                       channel.resumeReceives();
+                    } catch (Exception e) {
+                      logger.log(Level.WARNING, "A valid clientID was not provided");
+                      try {
+                        channel.setCloseReason("Invalid clientID");
+                        channel.sendClose();
+                        channel.close();
+                      } catch (IOException e2) {
+                      }
                     }
                   }
 
