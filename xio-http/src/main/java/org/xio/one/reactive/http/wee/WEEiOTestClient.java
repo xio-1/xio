@@ -3,11 +3,19 @@ package org.xio.one.reactive.http.wee;
 import io.undertow.server.DefaultByteBufferPool;
 import io.undertow.websockets.client.WebSocketClient;
 import io.undertow.websockets.core.*;
+import org.jboss.resteasy.client.jaxrs.ResteasyClient;
+import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.xio.one.reactive.http.wee.event.platform.api.JSONUtil;
 import org.xio.one.reactive.http.wee.event.platform.domain.Event;
+import org.xio.one.reactive.http.wee.event.platform.domain.response.SubscriptionResponse;
+import org.xio.one.reactive.http.wee.event.platform.domain.request.PassthroughExpression;
 import org.xio.one.reactive.http.wee.event.platform.service.EventChannel;
 import org.xnio.*;
 
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
@@ -70,13 +78,12 @@ public class WEEiOTestClient {
       if (argList.contains("-ap")) {
         apiPort = Integer.parseInt(argList.get((argList.indexOf("-ap") + 1)));
       } else
-        serverPort = 7222;
+        apiPort = 8080;
       logger.info("**** configuring client server api port " + serverPort);
 
-      String clientID = "ANCDCDSOD";
       final String remoteWSURL =
-          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName
-              + "/subscribe/287397297329";
+          "ws://" + serverHostIPAddress + ":" + serverPort + "/channel/" + channelName
+              + "/subscribe/" + subscribeToChannel(channelName,serverHostIPAddress,apiPort);
 
       new Thread(() -> {
         try {
@@ -109,6 +116,16 @@ public class WEEiOTestClient {
       System.exit(1);
     }
 
+  }
+
+  private static String subscribeToChannel(String channelName, String serverHostIPAddress,
+      int apiPort) {
+    ResteasyClient client = new ResteasyClientBuilder().build();
+    ResteasyWebTarget target = client.target("http://"+serverHostIPAddress+":"+apiPort+"/"+channelName+"/subscribe");
+    Response response = target.request().post(Entity.entity(new PassthroughExpression(), MediaType.APPLICATION_JSON_TYPE));
+    SubscriptionResponse subscriptionResponse = response.readEntity(SubscriptionResponse.class);
+    response.close();
+    return subscriptionResponse.getClientID();
   }
 
 

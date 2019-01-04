@@ -148,7 +148,7 @@ public class WEEiOServer {
         apiport = Integer.parseInt(argList.get((argList.indexOf("-a") + 1)));
       }
 
-      eventServer.withAPI(ApiBootstrap.class, serverHostIPAddress, apiport);
+      ApiBootstrap.start(serverHostIPAddress, apiport);
       System.out.println(
           "**** starting sever api @ http://" + serverHostIPAddress + ":" + apiport + "/channel/"
               + channelName);
@@ -189,19 +189,6 @@ public class WEEiOServer {
       return null;
     }
   }
-
-  public WEEiOServer withAPI(Class application, String serverHostIPAddress, int port)
-      throws Exception {
-    Undertow.Builder serverBuilder =
-        Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorkerThreads(4);
-    server = new UndertowJaxrsServer().start(serverBuilder);
-    DeploymentInfo di = server.undertowDeployment(application);
-    di.setContextPath("/");
-    di.setDeploymentName("org.xio.one.reactive.http.wee");
-    server.deploy(di);
-    return this;
-  }
-
 
   /*public WebSocketChannel withWebSocketEventClient(String remoteURL, String eventStreamName,
       XnioWorker worker) throws Exception {

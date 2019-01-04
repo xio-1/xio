@@ -66,7 +66,7 @@ public class FilterSelector {
   }
 
   private Event doEquals(Event event, String field, Object value) {
-    if (event.getFieldValue(field) != null)
+    if (event.getFieldValue(field) != "*")
       if ((value instanceof String) && (event.getFieldValue(field) instanceof String) && event
           .getFieldValue(field).equals(value))
         return event;

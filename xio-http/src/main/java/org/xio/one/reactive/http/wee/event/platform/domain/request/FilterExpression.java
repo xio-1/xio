@@ -19,7 +19,7 @@ public class FilterExpression {
   public FilterExpression() {
   }
 
-  public FilterEntry filerEntry() {
+  public FilterEntry filterEntry() {
     Object javaValue=null;
     if (validate()) {
       if (value.startsWith("'") && value.endsWith("'")) {

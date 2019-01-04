@@ -5,6 +5,7 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.servlet.api.DeploymentInfo;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
+import org.xio.one.reactive.http.wee.WEEiOServer;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.BadRequestException;
@@ -15,9 +16,7 @@ import java.util.Set;
 @ApplicationPath("/")
 public class ApiBootstrap extends Application {
 
-  private static UndertowJaxrsServer server;
-
-  public static void main(String args[]) {
+  public static void main(String args[]) throws Exception {
     Undertow.Builder serverBuilder =
         Undertow.builder().addHttpListener(8080, "0.0.0.0").setHandler(new HttpHandler() {
           @Override
@@ -31,12 +30,19 @@ public class ApiBootstrap extends Application {
             }
           }
         });
+    start("0.0.0.0", 8080);
+  }
 
-    server = new UndertowJaxrsServer().start(serverBuilder);
+  public static UndertowJaxrsServer start(String serverHostIPAddress, int port)
+      throws Exception {
+    Undertow.Builder serverBuilder =
+        Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorkerThreads(4);
+    UndertowJaxrsServer server = new UndertowJaxrsServer().start(serverBuilder);
     DeploymentInfo di = server.undertowDeployment(ApiBootstrap.class);
     di.setContextPath("/");
     di.setDeploymentName("org.xio.one.reactive.http.wee");
     server.deploy(di);
+    return server;
   }
 
   @Override
