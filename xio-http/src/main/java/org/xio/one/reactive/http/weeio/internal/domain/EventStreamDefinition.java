@@ -1,4 +1,4 @@
-package org.xio.one.reactive.http.weeio.event.platform.domain;
+package org.xio.one.reactive.http.weeio.internal.domain;
 
 public class EventStreamDefinition {
   public static int EVENT_TTL_FOREVER = 0;

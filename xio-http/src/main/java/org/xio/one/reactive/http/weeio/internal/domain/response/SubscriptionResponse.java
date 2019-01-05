@@ -1,4 +1,4 @@
-package org.xio.one.reactive.http.weeio.event.platform.domain.response;
+package org.xio.one.reactive.http.weeio.internal.domain.response;
 
 public class SubscriptionResponse {
   private String clientID;

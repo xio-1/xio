@@ -1,9 +1,9 @@
-package org.xio.one.reactive.http.weeio.event.platform.domain;
+package org.xio.one.reactive.http.weeio.internal.domain;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.xio.one.reactive.http.weeio.event.platform.api.JSONUtil;
+import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

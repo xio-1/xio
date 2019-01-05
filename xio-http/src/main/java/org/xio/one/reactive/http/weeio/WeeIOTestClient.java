@@ -6,11 +6,11 @@ import io.undertow.websockets.core.*;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
-import org.xio.one.reactive.http.weeio.event.platform.api.JSONUtil;
-import org.xio.one.reactive.http.weeio.event.platform.domain.Event;
-import org.xio.one.reactive.http.weeio.event.platform.domain.response.SubscriptionResponse;
-import org.xio.one.reactive.http.weeio.event.platform.domain.request.PassthroughExpression;
-import org.xio.one.reactive.http.weeio.event.platform.service.EventChannel;
+import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
+import org.xio.one.reactive.http.weeio.internal.domain.Event;
+import org.xio.one.reactive.http.weeio.internal.domain.response.SubscriptionResponse;
+import org.xio.one.reactive.http.weeio.internal.domain.request.PassthroughExpression;
+import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
 import org.xnio.*;
 
 import javax.ws.rs.client.Entity;
@@ -35,17 +35,17 @@ import java.util.logging.Logger;
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  *
  */
-public class WeeioTestClient {
+public class WeeIOTestClient {
 
   private static String PING_CHAR_STRING = Character.toString('�');
-  private static Logger logger = Logger.getLogger(WeeioTestClient.class.getCanonicalName());
+  private static Logger logger = Logger.getLogger(WeeIOTestClient.class.getCanonicalName());
 
   public static void main(final String[] args) {
 
     try {
       String serverHostIPAddress;
       List<String> argList = Arrays.asList(args);
-      WeeioTestClient eventServer = new WeeioTestClient();
+      WeeIOTestClient eventServer = new WeeIOTestClient();
       final String channelName;
 
       if (argList.contains("--h") || argList.contains("--help")) {
@@ -95,7 +95,7 @@ public class WeeioTestClient {
 
       new Thread(() -> {
         try {
-          final Xnio xnio = Xnio.getInstance("nio", WeeioTestClient.class.getClassLoader());
+          final Xnio xnio = Xnio.getInstance("nio", WeeIOTestClient.class.getClassLoader());
           final XnioWorker worker = xnio.createWorker(
               OptionMap.builder().set(Options.WORKER_IO_THREADS, 1)
                   .set(Options.CONNECTION_HIGH_WATER, 10).set(Options.CONNECTION_LOW_WATER, 1)

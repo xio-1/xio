@@ -1,4 +1,4 @@
-package org.xio.one.reactive.http.weeio.event.platform.domain;
+package org.xio.one.reactive.http.weeio.internal.domain;
 
 import java.util.Random;
 

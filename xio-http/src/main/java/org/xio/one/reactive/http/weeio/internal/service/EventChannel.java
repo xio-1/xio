@@ -1,12 +1,12 @@
-package org.xio.one.reactive.http.weeio.event.platform.service;
+package org.xio.one.reactive.http.weeio.internal.service;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
-import org.xio.one.reactive.http.weeio.event.platform.domain.Event;
-import org.xio.one.reactive.http.weeio.event.platform.domain.WebSocketStreamItemSubscriber;
-import org.xio.one.reactive.http.weeio.event.platform.domain.request.FilterExpression;
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterEntry;
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterSelector;
+import org.xio.one.reactive.http.weeio.internal.domain.Event;
+import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
+import org.xio.one.reactive.http.weeio.internal.domain.request.FilterExpression;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterEntry;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterSelector;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,6 +1,6 @@
-package org.xio.one.reactive.http.weeio.event.platform.domain;
+package org.xio.one.reactive.http.weeio.internal.domain;
 
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterSelector;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterSelector;
 
 public class ChannelSubscription {
   private long lastSeenEventId;

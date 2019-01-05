@@ -1,9 +1,9 @@
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
-import org.xio.one.reactive.http.weeio.event.platform.domain.request.FilterExpression;
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterEntry;
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterOperations;
+import org.xio.one.reactive.http.weeio.internal.domain.request.FilterExpression;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterEntry;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterOperations;
 
 public class FilterExpressionShould {
   @Test

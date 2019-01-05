@@ -1,4 +1,4 @@
-package org.xio.one.reactive.http.weeio.event.platform.api;
+package org.xio.one.reactive.http.weeio.internal.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

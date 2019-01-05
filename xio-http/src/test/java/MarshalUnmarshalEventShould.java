@@ -1,8 +1,8 @@
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.matchers.JUnitMatchers;
-import org.xio.one.reactive.http.weeio.event.platform.api.JSONUtil;
-import org.xio.one.reactive.http.weeio.event.platform.domain.Event;
+import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
+import org.xio.one.reactive.http.weeio.internal.domain.Event;
 
 import java.io.IOException;
 

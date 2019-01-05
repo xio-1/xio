@@ -11,12 +11,12 @@ import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
-import org.xio.one.reactive.http.weeio.event.platform.api.ApiBootstrap;
-import org.xio.one.reactive.http.weeio.event.platform.api.JSONUtil;
-import org.xio.one.reactive.http.weeio.event.platform.domain.Event;
-import org.xio.one.reactive.http.weeio.event.platform.domain.EventNodeID;
-import org.xio.one.reactive.http.weeio.event.platform.domain.WebSocketStreamItemSubscriber;
-import org.xio.one.reactive.http.weeio.event.platform.service.EventChannel;
+import org.xio.one.reactive.http.weeio.internal.api.ApiBootstrap;
+import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
+import org.xio.one.reactive.http.weeio.internal.domain.Event;
+import org.xio.one.reactive.http.weeio.internal.domain.EventNodeID;
+import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
+import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
 import org.xnio.*;
 
 import java.io.File;
@@ -32,7 +32,18 @@ import static io.undertow.Handlers.*;
 
 
 /**
- * Weeio HTTP Event Server
+ * Web Events EveryWhere Input / Output  (WeeIO) @ Copyright Richard Durley 2019
+ *
+ * The idea here is the propagation of JSON web events across the web in
+ * near real time using a master cluster <-> edge(s) <-> client(s) pattern
+ * The rational here is to implement highly scalable distributed
+ * two way messaging over HTTP(S) (using web sockets)
+ *
+ * It uses XIO as the core streaming and subscriber implementation
+ * using Undertow to provide async servlet container for api and web
+ * socket connections.
+ *
+ * WeeIO HTTP Event Server
  *
  * @Author Richard Durley
  * @OringinalWork XIO.ONE
@@ -42,18 +53,18 @@ import static io.undertow.Handlers.*;
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  *
  */
-public class WeeioHTTPServer {
+public class WeeIOHTTPServer {
 
   UndertowJaxrsServer server;
   private static String PING_CHAR_STRING = Character.toString('�');
-  private static Logger logger = Logger.getLogger(WeeioHTTPServer.class.getCanonicalName());
+  private static Logger logger = Logger.getLogger(WeeIOHTTPServer.class.getCanonicalName());
 
   public static void main(final String[] args) {
 
     try {
       String serverHostIPAddress = "0.0.0.0";
       List<String> argList = Arrays.asList(args);
-      WeeioHTTPServer eventServer = new WeeioHTTPServer();
+      WeeIOHTTPServer eventServer = new WeeIOHTTPServer();
       final String channelName;
 
       if (argList.contains("--h") || argList.contains("--help") || argList.size() == 0) {
@@ -257,10 +268,10 @@ public class WeeioHTTPServer {
 
   }*/
 
-  public WeeioHTTPServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
+  public WeeIOHTTPServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
       final int port, int ttl) throws IOException {
 
-    final Xnio xnio = Xnio.getInstance("nio", WeeioHTTPServer.class.getClassLoader());
+    final Xnio xnio = Xnio.getInstance("nio", WeeIOHTTPServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
         OptionMap.builder().set(Options.WORKER_IO_THREADS, 8)
             .set(Options.CONNECTION_HIGH_WATER, 1000000).set(Options.CONNECTION_LOW_WATER, 10)
@@ -338,7 +349,7 @@ public class WeeioHTTPServer {
                   }
 
                 })).addPrefixPath("/web", resource(new FileResourceManager(
-                new File(WeeioHTTPServer.class.getResource("/web/index.html").getFile())))
+                new File(WeeIOHTTPServer.class.getResource("/web/index.html").getFile())))
                 .setDirectoryListingEnabled(true))).build();
     server.start();
 

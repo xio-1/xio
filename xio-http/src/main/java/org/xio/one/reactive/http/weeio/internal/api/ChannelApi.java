@@ -1,12 +1,12 @@
-package org.xio.one.reactive.http.weeio.event.platform.api;
+package org.xio.one.reactive.http.weeio.internal.api;
 
 
 import org.apache.http.HttpStatus;
-import org.xio.one.reactive.http.weeio.event.platform.domain.Event;
-import org.xio.one.reactive.http.weeio.event.platform.domain.request.FilterExpression;
-import org.xio.one.reactive.http.weeio.event.platform.domain.request.PassthroughExpression;
-import org.xio.one.reactive.http.weeio.event.platform.domain.response.SubscriptionResponse;
-import org.xio.one.reactive.http.weeio.event.platform.service.EventChannel;
+import org.xio.one.reactive.http.weeio.internal.domain.Event;
+import org.xio.one.reactive.http.weeio.internal.domain.request.FilterExpression;
+import org.xio.one.reactive.http.weeio.internal.domain.request.PassthroughExpression;
+import org.xio.one.reactive.http.weeio.internal.domain.response.SubscriptionResponse;
+import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;

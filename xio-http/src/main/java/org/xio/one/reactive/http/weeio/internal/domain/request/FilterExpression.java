@@ -1,8 +1,8 @@
-package org.xio.one.reactive.http.weeio.event.platform.domain.request;
+package org.xio.one.reactive.http.weeio.internal.domain.request;
 
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterEntry;
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterOperations;
-import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterSelectorException;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterEntry;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterOperations;
+import org.xio.one.reactive.http.weeio.internal.domain.selector.FilterSelectorException;
 
 public class FilterExpression {
 
