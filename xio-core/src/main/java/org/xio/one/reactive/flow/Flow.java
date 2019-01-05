@@ -10,12 +10,11 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.internal.FlowContents;
 import org.xio.one.reactive.flow.internal.FlowDaemonService;
-import org.xio.one.reactive.flow.internal.FlowException;
-import org.xio.one.reactive.flow.subscriber.CompletableSubscriber;
-import org.xio.one.reactive.flow.subscriber.FutureSubscriber;
-import org.xio.one.reactive.flow.subscriber.Subscriber;
-import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
-import org.xio.one.reactive.flow.subscriber.internal.SubscriptionService;
+import org.xio.one.reactive.flow.subscribers.CompletableSubscriber;
+import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
+import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
+import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
+import org.xio.one.reactive.flow.subscribers.internal.SubscriptionService;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.Collections;
@@ -26,12 +25,21 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * An Flow - a anItemFlow stream of items
+ * Flow
  *
- * <p>Flow is implemented with a Command Query Responsibility Segregation external objects,
+ * a anItemFlow stream of items
+ *
+ * Flow is implemented with a Command Query Responsibility Segregation external objects,
  * json etc can be put into the anItemFlow and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
  * futureSubscriber
+ *
+ * @Author Richard Durley
+ * @OringinalWork XIO.ONE
+ * @Copyright Richard Durley
+ * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
+ * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
+ * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
 public final class Flow<T, R>
     implements Flowable<T, R>, ItemFlow<T, R>, FutureItemResultFlowable<T, R>,
@@ -308,7 +316,7 @@ public final class Flow<T, R>
     if (futureSubscriber != null)
       return putAndReturnAsCompletableFuture(ttlSeconds, value);
     throw new IllegalStateException(
-        "Cannot submit item without future subscriber being registered");
+        "Cannot submit item without future subscribers being registered");
   }
 
   @Override

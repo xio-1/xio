@@ -11,8 +11,6 @@ import java.util.concurrent.Executors;
 
 /**
  * Wraps singleton methods arround Executors created cached thread pools
- *
- * @author Xio
  */
 public class InternalExecutors {
 

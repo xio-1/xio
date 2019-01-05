@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemComparator;
 
@@ -11,7 +12,15 @@ import java.util.concurrent.locks.LockSupport;
 import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 
 /**
- * ItemStoreOperations @Author Xio @Copyright Xio
+ * FlowContents (Query Store)
+ *
+ * @Author Richard Durley
+ * @OringinalWork XIO.ONE
+ * @Copyright Richard Durley
+ * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
+ * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
+ * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
+ *
  */
 public final class FlowContents<T, R> {
 

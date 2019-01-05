@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.domain.flow;
 
-import org.xio.one.reactive.flow.subscriber.internal.SubscriberInterface;
+import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 
 
 public interface ItemFlow<T, R> extends Flowable<T, R> {

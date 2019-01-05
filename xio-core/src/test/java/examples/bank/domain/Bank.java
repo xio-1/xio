@@ -3,8 +3,8 @@ package examples.bank.domain;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.StreamMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.StreamMultiplexItemSubscriber;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;

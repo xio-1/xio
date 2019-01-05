@@ -3,7 +3,7 @@ package org.xio.one.reactive.flow.internal;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
-import org.xio.one.reactive.flow.subscriber.internal.SubscriptionService;
+import org.xio.one.reactive.flow.subscribers.internal.SubscriptionService;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.Collection;
@@ -16,7 +16,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The Xio.contents.domain itemQueryStore where the putAll domain are persisted in memory
+ * FlowDaemonService (Flow input and housekeeping)
+ *
+ * @Author Richard Durley
+ * @OringinalWork XIO.ONE
+ * @Copyright Richard Durley
+ * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
+ * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
+ * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
 public final class FlowDaemonService<T, R> {
 
@@ -31,7 +38,7 @@ public final class FlowDaemonService<T, R> {
   /**
    * New Item BaseWorker Execution using the sequence comparator to order the results
    * by item sequence number.
-   * Items will be retained until consumed to by all subscriber and whilst they are alive
+   * Items will be retained until consumed to by all subscribers and whilst they are alive
    * i.e. before they expire their/stream TTL
    */
   public FlowDaemonService(Flow<T, R> itemStream) {

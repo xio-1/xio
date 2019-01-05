@@ -3,7 +3,7 @@ package examples.logger.domain;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.File;

@@ -4,7 +4,7 @@ import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscriber.CompletableMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.CompletableMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.File;

@@ -2,15 +2,15 @@ import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.xio.one.reactive.http.wee.event.platform.domain.Event;
-import org.xio.one.reactive.http.wee.event.platform.domain.selector.FilterEntry;
-import org.xio.one.reactive.http.wee.event.platform.domain.selector.FilterOperations;
-import org.xio.one.reactive.http.wee.event.platform.domain.selector.FilterSelector;
+import org.xio.one.reactive.http.weeio.event.platform.domain.Event;
+import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterEntry;
+import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterOperations;
+import org.xio.one.reactive.http.weeio.event.platform.domain.selector.FilterSelector;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.xio.one.reactive.http.wee.event.platform.domain.EmptyEvent.EMPTY_EVENT;
+import static org.xio.one.reactive.http.weeio.event.platform.domain.EmptyEvent.EMPTY_EVENT;
 
 public class FilterSelectorTestShould {
 
@@ -18,7 +18,7 @@ public class FilterSelectorTestShould {
 
   @After
   public void report() {
-    System.out.println(result.toString());
+    System.out.println(result.toJSONString());
   }
 
   @Test

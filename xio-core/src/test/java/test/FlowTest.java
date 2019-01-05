@@ -9,10 +9,10 @@ import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscriber.CompletableItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.FutureItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.FutureMultiplexItemSubscriber;
-import org.xio.one.reactive.flow.subscriber.StreamItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.*;
