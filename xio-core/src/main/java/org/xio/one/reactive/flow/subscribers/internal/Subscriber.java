@@ -10,8 +10,8 @@ import java.util.concurrent.TimeUnit;
  * Subscriber
  *
  * @Author Richard Durley
- * @OringinalWork XIO.ONE
- * @Copyright Richard Durley
+ * @OringinalWork XIO
+ * @Copyright Richard Durley / XIO.ONE
  * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
