@@ -24,11 +24,11 @@ import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 public final class FlowContents<T, R> {
 
   public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  private FlowDaemonService itemStore;
+  private FlowService itemStore;
   private Flow itemStream;
   private NavigableSet<Item<T, R>> itemStoreContents = null;
 
-  FlowContents(FlowDaemonService itemStore, Flow itemStream) {
+  FlowContents(FlowService itemStore, Flow itemStream) {
     this.itemStore = itemStore;
     this.itemStream = itemStream;
     this.itemStoreContents = (NavigableSet<Item<T, R>>) itemStore.itemRepositoryContents;

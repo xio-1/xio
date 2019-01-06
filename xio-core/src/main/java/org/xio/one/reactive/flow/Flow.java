@@ -9,7 +9,7 @@ import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.internal.FlowContents;
-import org.xio.one.reactive.flow.internal.FlowDaemonService;
+import org.xio.one.reactive.flow.internal.FlowService;
 import org.xio.one.reactive.flow.subscribers.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
@@ -17,10 +17,7 @@ import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.subscribers.internal.SubscriptionService;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
@@ -47,16 +44,16 @@ public final class Flow<T, R>
 
   public static final int LOCK_PARK_NANOS = 100000;
   public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
+  private static Map<String, Flow> flowMap = new HashMap<>();
   private final int queue_max_size = 16384;
   // streamContents variables
-  private FlowDaemonService<T, R> contentsControl;
+  private FlowService<T, R> contentsControl;
   // constants
   private int count_down_latch = 10;
   // input parameters
   private String name;
   private String indexFieldName;
   private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
-
 
   private Map<String, Future> streamSubscriberFutureResultMap = new ConcurrentHashMap<>();
   private Map<String, SubscriptionService<R, T>> subscriberSubscriptions =
@@ -80,10 +77,10 @@ public final class Flow<T, R>
     this.indexFieldName = indexFieldName;
     if (ttlSeconds >= 0)
       this.defaultTTLSeconds = ttlSeconds;
-    this.contentsControl = new FlowDaemonService<>(this);
+    this.contentsControl = new FlowService<>(this);
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
-
+    flowMap.put(name, this);
   }
 
   //bad use of erasure need too find a better way
@@ -150,6 +147,10 @@ public final class Flow<T, R>
     Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
     return resultFlowable;
+  }
+
+  public static Map<String, Flow> allFlows() {
+    return flowMap;
   }
 
   @Override
@@ -334,6 +335,8 @@ public final class Flow<T, R>
         }
 
     } catch (InterruptedException e) {
+    } finally {
+      flowMap.remove(this.name);
     }
   }
 

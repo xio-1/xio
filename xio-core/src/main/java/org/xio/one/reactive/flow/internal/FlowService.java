@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,15 +26,17 @@ import java.util.logging.Logger;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public final class FlowDaemonService<T, R> {
+public final class FlowService<T, R> {
 
   protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
-  Logger logger = Logger.getLogger(FlowDaemonService.class.getCanonicalName());
+  Logger logger = Logger.getLogger(FlowService.class.getCanonicalName());
   private Flow itemStream = null;
   private boolean isEnd = false;
   private FlowContents itemStoreOperations = null;
   private String itemStoreIndexFieldName;
+  private static Future flowInputDaemon = null;
+
 
   /**
    * New Item BaseWorker Execution using the sequence comparator to order the results
@@ -41,7 +44,7 @@ public final class FlowDaemonService<T, R> {
    * Items will be retained until consumed to by all subscribers and whilst they are alive
    * i.e. before they expire their/stream TTL
    */
-  public FlowDaemonService(Flow<T, R> itemStream) {
+  public FlowService(Flow<T, R> itemStream) {
     this.itemStream = itemStream;
     itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreOperations = new FlowContents<T, R>(this, itemStream);
@@ -49,8 +52,13 @@ public final class FlowDaemonService<T, R> {
     if (itemStream.indexFieldName() != null) {
       itemStoreIndexFieldName = itemStream.indexFieldName();
     }
+    startFlowInputDaemon();
     InternalExecutors.itemLoopThreadPoolInstance().submit(new ExpiredItemsCollector());
-    InternalExecutors.itemLoopThreadPoolInstance().submit(new FlowInput(this));
+  }
+
+  private static synchronized void startFlowInputDaemon() {
+    if (flowInputDaemon==null || flowInputDaemon.isDone() || flowInputDaemon.isCancelled())
+      flowInputDaemon  = InternalExecutors.itemLoopThreadPoolInstance().submit(new FlowInputDaemon());
   }
 
   public void setItemStoreIndexFieldName(String itemStoreIndexFieldName) {
@@ -95,11 +103,11 @@ public final class FlowDaemonService<T, R> {
   /**
    * Gets all the input from the Xio.contents.domain itemStream and persists it to the contents store
    */
-  private class FlowInput implements Runnable {
+  /*private class FlowInput implements Runnable {
 
-    FlowDaemonService daemon;
+    FlowService daemon;
 
-    public FlowInput(FlowDaemonService daemon) {
+    public FlowInput(FlowService daemon) {
       this.daemon = daemon;
     }
 
@@ -119,7 +127,7 @@ public final class FlowDaemonService<T, R> {
       }
       logger.log(Level.INFO, "Flow input stopped for stream : " + itemStream.name());
     }
-  }
+  }*/
 
 
   /**
