@@ -1,12 +1,14 @@
 package org.xio.one.reactive.flow.domain.flow;
 
-import org.xio.one.reactive.flow.internal.FlowContents;
+import org.xio.one.reactive.flow.FlowContents;
 
 import java.util.concurrent.ExecutorService;
 
 public interface Flowable<T, R> {
 
   String name();
+
+  String uuid();
 
   Flowable<T, R> enableImmediateFlushing();
 
@@ -16,7 +18,7 @@ public interface Flowable<T, R> {
 
   FlowContents contents();
 
-  void end(boolean waitForEnd);
+  void close(boolean waitForEnd);
 
   boolean hasEnded();
 
@@ -25,5 +27,7 @@ public interface Flowable<T, R> {
   boolean isEmpty();
 
   long ttl();
+
+  boolean housekeep();
 
 }

@@ -106,6 +106,6 @@ public class AsyncMultiplexCallbackLoggerService {
 
   public void close() {
     this.
-        logEntryFlow.end(true);
+        logEntryFlow.close(true);
   }
 }

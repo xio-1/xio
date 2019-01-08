@@ -234,7 +234,7 @@ public class WeeIOHTTPServer {
         protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel)
             throws IOException {
           super.onClose(webSocketChannel, channel);
-          eventStream.end(true);
+          eventStream.close(true);
         }
 
         @Override

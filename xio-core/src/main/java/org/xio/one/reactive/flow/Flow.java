@@ -8,8 +8,8 @@ package org.xio.one.reactive.flow;
 import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
-import org.xio.one.reactive.flow.internal.FlowContents;
-import org.xio.one.reactive.flow.internal.FlowService;
+import org.xio.one.reactive.flow.internal.FlowHousekeepingDaemon;
+import org.xio.one.reactive.flow.internal.FlowInputDaemon;
 import org.xio.one.reactive.flow.subscribers.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
@@ -20,12 +20,14 @@ import org.xio.one.reactive.flow.util.InternalExecutors;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Flow
- *
+ * <p>
  * a anItemFlow stream of items
- *
+ * <p>
  * Flow is implemented with a Command Query Responsibility Segregation external objects,
  * json etc can be put into the anItemFlow and are then asynchronously loaded in memory to a
  * contents store that is used to provide a sequenced view of the flowing items to downstream
@@ -42,45 +44,61 @@ public final class Flow<T, R>
     implements Flowable<T, R>, ItemFlow<T, R>, FutureItemResultFlowable<T, R>,
     CompletableItemFlowable<T, R> {
 
+  Logger logger = Logger.getLogger(FlowHousekeepingDaemon.class.getCanonicalName());
+
   public static final int LOCK_PARK_NANOS = 100000;
   public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
-  private static Map<String, Flow> flowMap = new HashMap<>();
   private final int queue_max_size = 16384;
+
+  // all flows
+  private volatile static Map<String, Flow> flowMap = new ConcurrentHashMap<>();
+
   // streamContents variables
-  private FlowService<T, R> contentsControl;
+  private FlowContents<T, R> flowContents;
   // constants
   private int count_down_latch = 10;
   // input parameters
   private String name;
+  private String id;
   private String indexFieldName;
   private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
 
-  private Map<String, Future> streamSubscriberFutureResultMap = new ConcurrentHashMap<>();
   private Map<String, SubscriptionService<R, T>> subscriberSubscriptions =
       new ConcurrentHashMap<>();
 
   // Queue control
-  private Item[] itemqueue_out;
   private BlockingQueue<Item<T, R>> item_queue;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
   private ItemIdSequence itemIDSequence;
   private long slowDownNanos = 0;
   private boolean flushImmediately;
-  private ExecutorService executorService = InternalExecutors.subscriberCachedThreadPoolInstance();
+  private ExecutorService subscriberExecutor =
+      InternalExecutors.subscriberCachedThreadPoolInstance();
   private FutureSubscriber<R, T> futureSubscriber = null;
+  private static int flowCount = 0;
+
+  private static final Object flowControlLock = new Object();
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
-    this.itemqueue_out = new Item[this.queue_max_size];
     this.name = name;
+    this.id = UUID.randomUUID().toString();
     this.indexFieldName = indexFieldName;
     if (ttlSeconds >= 0)
       this.defaultTTLSeconds = ttlSeconds;
-    this.contentsControl = new FlowService<>(this);
+    this.flowContents = new FlowContents<>(this);
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
-    flowMap.put(name, this);
+    synchronized (flowControlLock) {
+      flowMap.put(id,this);
+      flowCount++;
+      if (flowCount == 1) {
+        InternalExecutors.flowControlThreadPoolInstance().submit(new FlowInputDaemon());
+        InternalExecutors.flowControlThreadPoolInstance().submit(new FlowHousekeepingDaemon());
+      }
+      logger.info("Flow " + name + " id " + id + " has started");
+    }
   }
 
   //bad use of erasure need too find a better way
@@ -149,8 +167,12 @@ public final class Flow<T, R>
     return resultFlowable;
   }
 
-  public static Map<String, Flow> allFlows() {
-    return flowMap;
+  public static Collection<Flow> allFlows() {
+    return Collections.synchronizedMap(flowMap).values();
+  }
+
+  public static Flow forID(String id) {
+    return Collections.synchronizedMap(flowMap).get(id);
   }
 
   @Override
@@ -169,8 +191,8 @@ public final class Flow<T, R>
   }
 
   @Override
-  public SubscriberInterface<R,T> getSubscriber(String subscriberId) {
-    if (subscriberId !=null && !subscriberId.isBlank()) {
+  public SubscriberInterface<R, T> getSubscriber(String subscriberId) {
+    if (subscriberId != null && !subscriberId.isBlank()) {
       return subscriberSubscriptions.get(subscriberId).getSubscriber();
     }
     throw new IllegalArgumentException("Subscriber not found");
@@ -209,8 +231,18 @@ public final class Flow<T, R>
    * @return
    */
   public Flowable<T, R> executorService(ExecutorService executorService) {
-    this.executorService = executorService;
+    this.subscriberExecutor = executorService;
     return this;
+  }
+
+  /**
+   * Return the flows unique UUID
+   *
+   * @return
+   */
+  @Override
+  public String uuid() {
+    return this.id;
   }
 
   /**
@@ -225,7 +257,7 @@ public final class Flow<T, R>
 
 
   public ExecutorService executorService() {
-    return executorService;
+    return subscriberExecutor;
   }
 
   /**
@@ -322,22 +354,27 @@ public final class Flow<T, R>
 
   @Override
   public FlowContents contents() {
-    return contentsControl.query();
+    return flowContents;
   }
 
   @Override
-  public void end(boolean waitForEnd) {
+  public void close(boolean waitForEnd) {
     this.isEnd = true;
     try {
       if (waitForEnd)
         while (!this.hasEnded() || activeSubscriptions()) {
           Thread.sleep(100);
         }
-
     } catch (InterruptedException e) {
-    } finally {
-      flowMap.remove(this.name);
     }
+    synchronized (flowControlLock) {
+      flowCount--;
+      flowMap.remove(this.id);
+      if (flowCount == 0) {
+        InternalExecutors.flowControlThreadPoolInstance().shutdown();
+      }
+    }
+    logger.info("Flow " + name + " id " + id + " has stopped");
   }
 
   @Override
@@ -358,6 +395,23 @@ public final class Flow<T, R>
             .findAny();
     return any.isPresent();
   }
+
+  public static int numActiveFlows() {
+    synchronized (flowControlLock) {
+      return flowCount;
+    }
+  }
+
+  public boolean housekeep() {
+    if (this.ttl() > 0)
+      if (flowService().itemRepositoryContents.removeIf(item -> !item.alive())) {
+        logger.log(Level.INFO, "House kept flow : " + this.name());
+        return true;
+      }
+    return false;
+  }
+
+
 
   public boolean hasEnded() {
     return this.isEnd && this.buffer_size() == 0;
@@ -387,8 +441,8 @@ public final class Flow<T, R>
   public void acceptAll() {
     int ticks = count_down_latch;
     while (!hasEnded()) {
-      if (ticks == 0 || flush || item_queue.size() == queue_max_size) {
-        this.item_queue.drainTo(this.contentsControl.getItemRepositoryContents());
+      if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
+        this.item_queue.drainTo(this.flowContents.itemRepositoryContents);
         ticks = count_down_latch;
       }
       ticks--;
@@ -430,6 +484,10 @@ public final class Flow<T, R>
 
   public boolean isEmpty() {
     return this.size() == 0;
+  }
+
+  public FlowContents<T, R> flowService() {
+    return flowContents;
   }
 
   @Override

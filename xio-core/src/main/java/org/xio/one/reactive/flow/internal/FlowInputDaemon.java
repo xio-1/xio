@@ -1,8 +1,8 @@
 package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.FlowContents;
 
-import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,12 +17,16 @@ public class FlowInputDaemon implements Runnable {
   public void run() {
     logger.log(Level.INFO, "Flow input daemon has started");
     try {
-      while (Flow.allFlows().size()>0) {
-        Flow.allFlows().values().parallelStream().forEach(s->s.acceptAll());
+      //while any flow is active keep going
+      while (Flow.numActiveFlows()>0) {
+        Flow.allFlows().parallelStream().forEach(n -> {
+          if (!n.hasEnded())
+            n.acceptAll();
+        });
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Flow input was interrupted", e);
     }
-    logger.log(Level.INFO, "Flow input stopped");
+    logger.log(Level.INFO, "Flow input has stopped");
   }
 }

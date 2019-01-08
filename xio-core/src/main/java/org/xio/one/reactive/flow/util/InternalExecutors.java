@@ -6,8 +6,11 @@
 
 package org.xio.one.reactive.flow.util;
 
+import org.xio.one.reactive.flow.internal.FlowInputDaemon;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 /**
  * Wraps singleton methods arround Executors created cached thread pools
@@ -32,11 +35,11 @@ public class InternalExecutors {
     return cachedThreadPoolexec;
   }
 
-  public static synchronized ExecutorService itemLoopThreadPoolInstance() {
+  public static synchronized ExecutorService flowControlThreadPoolInstance() {
     if (itemLoopThreadPoolexec == null)
-      itemLoopThreadPoolexec = Executors.newCachedThreadPool();
+      itemLoopThreadPoolexec = Executors.newFixedThreadPool(2);
     else if (itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
-      itemLoopThreadPoolexec = Executors.newCachedThreadPool();
+      itemLoopThreadPoolexec = Executors.newFixedThreadPool(2);
     return itemLoopThreadPoolexec;
   }
 

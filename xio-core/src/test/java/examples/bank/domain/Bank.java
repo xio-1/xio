@@ -110,8 +110,8 @@ public class Bank {
   }
 
   public void close() {
-    this.transactionEventLoop.end(true);
-    this.transactionLedger.end(true);
+    this.transactionEventLoop.close(true);
+    this.transactionLedger.close(true);
   }
 
   public Double getLiquidity() throws Exception {

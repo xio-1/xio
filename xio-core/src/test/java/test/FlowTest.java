@@ -37,7 +37,7 @@ public class FlowTest {
     ItemFlow<String, String> asyncFlow = Flow.anItemFlow(HELLO_WORLD_FLOW);
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
-    asyncFlow.end(true);
+    asyncFlow.close(true);
     assertThat(asyncFlow.contents().last().value(), is("Hello world"));
   }
 
@@ -56,6 +56,8 @@ public class FlowTest {
     });
 
     toUPPERcaseFlow.putItem("value1", "value2");
+    toUPPERcaseFlow.close(true);
+
 
   }
 
@@ -81,7 +83,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.addSubscriber(subscriber);
     asyncFlow.putItem(1, 2, 3, 4);
-    asyncFlow.end(false);
+    asyncFlow.close(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
     Assert.assertEquals(true, Arrays.equals(subscriber.getResult().toArray(), intList));
   }
@@ -101,7 +103,7 @@ public class FlowTest {
           }
         });
     Future<String> result = asyncFlow.submitItem("Hello");
-    asyncFlow.end(true);
+    asyncFlow.close(true);
     assertThat(result.get(), is("Hello world"));
   }
 
@@ -152,8 +154,8 @@ public class FlowTest {
     ping_stream.addSubscriber(pingSubscriber);
     pong_stream.addSubscriber(pongSubscriber);
     ping_stream.putItem("ping");
-    ping_stream.end(true);
-    pong_stream.end(true);
+    ping_stream.close(true);
+    pong_stream.close(true);
     System.out.println("Latency Ms = " + (pongSubscriber.getResult() - pingSubscriber.getResult()));
   }
 
@@ -183,7 +185,7 @@ public class FlowTest {
     for (int i = 0; i < 10000000; i++) {
       asyncFlow.putItemWithTTL(1, "Hello world" + i);
     }
-    asyncFlow.end(true);
+    asyncFlow.close(true);
     assertThat(subscriber.getResult(), is(10000000L));
     System.out
         .println("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
@@ -223,6 +225,7 @@ public class FlowTest {
     assertThat(result1.get(), is("HELLO1"));
     assertThat(result2.get(), is("HELLO2"));
     assertThat(result3.get(), is("HELLO3"));
+    micro_stream.close(true);
   }
 
   @Test
@@ -233,8 +236,8 @@ public class FlowTest {
     asyncFlow.putItemWithTTL(1, "test1");
     asyncFlow.putItemWithTTL(1, "test2");
     asyncFlow.putItemWithTTL(1, "test3");
-    Thread.sleep(1000);
-    asyncFlow.end(true);
+    Thread.sleep(1100);
+    asyncFlow.close(true);
     assertThat(asyncFlow.size(), is(1));
     assertThat(asyncFlow.contents().last().value(), is("test10"));
   }
@@ -246,7 +249,7 @@ public class FlowTest {
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
     asyncFlow.putItem(testObject1, testObject2, testObject3);
-    asyncFlow.end(true);
+    asyncFlow.close(true);
     Assert.assertThat(asyncFlow.contents().item("hello1").value(), is(testObject1));
   }
 
@@ -258,7 +261,7 @@ public class FlowTest {
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
     long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
-    asyncFlow.end(true);
+    asyncFlow.close(true);
     Assert.assertThat(asyncFlow.contents().item(itemIds[1]).value(), is(testObject2));
   }
 
@@ -295,7 +298,7 @@ public class FlowTest {
     assertThat(result2.get(), is("happy"));
     assertThat(result3.get(), is(nullValue()));
     assertThat(result3.isDone(), is(true));
-    asyncFlow.end(true);
+    asyncFlow.close(true);
   }
 
   @Test
@@ -326,7 +329,7 @@ public class FlowTest {
     });
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem(1, 2, 3, 4);
-    asyncFlow.end(true);
+    asyncFlow.close(true);
     Assert.assertThat(errors.size(), is(1));
     Assert.assertThat(errors.get(0), is("hello"));
   }
@@ -369,7 +372,7 @@ public class FlowTest {
     System.out.println(Thread.currentThread() + ":OnSubmit");
     for (int i = 0; i < 10; i++)
       asyncFlow.submitItem("Hello" + i, myHandler);
-    asyncFlow.end(true);
+    asyncFlow.close(true);
   }
 
 

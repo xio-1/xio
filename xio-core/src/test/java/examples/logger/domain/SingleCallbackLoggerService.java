@@ -87,6 +87,6 @@ public class SingleCallbackLoggerService {
 
   public void close() {
     this.
-        logEntryFlow.end(true);
+        logEntryFlow.close(true);
   }
 }

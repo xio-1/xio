@@ -1,11 +1,13 @@
-package org.xio.one.reactive.flow.internal;
+package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemComparator;
+import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
 
@@ -23,19 +25,26 @@ import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
  */
 public final class FlowContents<T, R> {
 
+
+  protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
+  protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
+  private String itemStoreIndexFieldName;
   public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  private FlowService itemStore;
-  private Flow itemStream;
+  private Flow itemFlow;
   private NavigableSet<Item<T, R>> itemStoreContents = null;
 
-  FlowContents(FlowService itemStore, Flow itemStream) {
-    this.itemStore = itemStore;
-    this.itemStream = itemStream;
-    this.itemStoreContents = (NavigableSet<Item<T, R>>) itemStore.itemRepositoryContents;
+  public FlowContents(Flow itemStream) {
+    this.itemFlow = itemStream;
+    itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
+    itemStoreContents = itemRepositoryContents;
+    itemStoreIndexContents = new ConcurrentHashMap<>();
+    if (itemFlow.indexFieldName() != null) {
+      itemStoreIndexFieldName = itemFlow.indexFieldName();
+  }
   }
 
   public NavigableSet<Item<T, R>> getItemStoreContents() {
-    return itemStoreContents;
+    return this.itemStoreContents;
   }
 
   public Item<T, R> item(long id) {
@@ -43,7 +52,7 @@ public final class FlowContents<T, R> {
   }
 
   public Item item(Object index) {
-    return (Item) itemStore.getItemStoreIndexContents().get(index);
+    return itemStoreIndexContents.get(index);
   }
 
   public Item[] all() {
@@ -132,12 +141,9 @@ public final class FlowContents<T, R> {
     if (querystorecontents.isEmpty())
       return EMPTY_ITEM;
     else {
-      return querystorecontents.last();
+      Optional<Item<T,R>> last = querystorecontents.descendingSet().stream().filter(Item::alive).findFirst();
+      return last.orElse(EMPTY_ITEM);
     }
-  }
-
-  public boolean hasEnded() {
-    return itemStore.hasEnded();
   }
 
   /*public Item getLastSeenItemByFieldnameValue(String fieldname, Object value) {
