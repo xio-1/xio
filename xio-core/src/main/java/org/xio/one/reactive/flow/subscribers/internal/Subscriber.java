@@ -4,6 +4,8 @@ import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.NavigableSet;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -15,7 +17,6 @@ import java.util.concurrent.TimeUnit;
  * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
- *
  */
 public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
 
@@ -24,8 +25,10 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
+  CompletableFuture<R> completableFuture;
 
   public Subscriber() {
+    this.completableFuture = new CompletableFuture<>();
     initialise();
   }
 
@@ -83,17 +86,19 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
     }
   }
 
+  @Override
   public final String getId() {
     return id;
   }
 
   @Override
-  public final R getResult() {
-    return getNext();
+  public final Future<R> getResult() {
+    return completableFuture;
   }
 
   @Override
   public final void setResult(R result) {
+    completableFuture.complete(result);
     this.result = result;
   }
 }

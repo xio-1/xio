@@ -14,7 +14,7 @@ import org.xio.one.reactive.flow.subscribers.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
-import org.xio.one.reactive.flow.subscribers.internal.SubscriptionService;
+import org.xio.one.reactive.flow.internal.FlowSubscriptionDaemon;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.*;
@@ -63,7 +63,7 @@ public final class Flow<T, R>
   private String indexFieldName;
   private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
 
-  private Map<String, SubscriptionService<R, T>> subscriberSubscriptions =
+  private Map<String, FlowSubscriptionDaemon<R, T>> subscriberSubscriptions =
       new ConcurrentHashMap<>();
 
   // Queue control
@@ -77,6 +77,7 @@ public final class Flow<T, R>
       InternalExecutors.subscriberCachedThreadPoolInstance();
   private FutureSubscriber<R, T> futureSubscriber = null;
   private static int flowCount = 0;
+  private FlowSubscriptionDaemon<R,T> subscriptions;
 
   private static final Object flowControlLock = new Object();
 
@@ -94,8 +95,10 @@ public final class Flow<T, R>
       flowMap.put(id,this);
       flowCount++;
       if (flowCount == 1) {
+        subscriptions = new FlowSubscriptionDaemon<>(this);
         InternalExecutors.flowControlThreadPoolInstance().submit(new FlowInputDaemon());
         InternalExecutors.flowControlThreadPoolInstance().submit(new FlowHousekeepingDaemon());
+        InternalExecutors.flowControlThreadPoolInstance().submit(subscriptions);
       }
       logger.info("Flow " + name + " id " + id + " has started");
     }
@@ -182,18 +185,14 @@ public final class Flow<T, R>
 
   @Override
   public void removeSubscriber(SubscriberInterface<R, T> subscriber) {
-    subscriber.stop();
-    if (subscriber == this.futureSubscriber) {
-      this.futureSubscriber.setResult(null);
-      this.futureSubscriber = null;
-    }
-    subscriberSubscriptions.remove(subscriber.getId());
+    subscriptions.unsubscribe(subscriber);
   }
 
   @Override
   public SubscriberInterface<R, T> getSubscriber(String subscriberId) {
     if (subscriberId != null && !subscriberId.isBlank()) {
-      return subscriberSubscriptions.get(subscriberId).getSubscriber();
+      if (subscriptions.getSubscriber(subscriberId).isPresent())
+        return subscriptions.getSubscriber(subscriberId).get();
     }
     throw new IllegalArgumentException("Subscriber not found");
   }
@@ -208,9 +207,7 @@ public final class Flow<T, R>
   }
 
   private void registerSubscriber(SubscriberInterface<R, T> subscriber) {
-    SubscriptionService<R, T> subscription = new SubscriptionService<>(this, subscriber);
-    subscription.subscribe();
-    subscriberSubscriptions.put(subscriber.getId(), subscription);
+    subscriptions.subscribe(subscriber);
   }
 
   /**
@@ -362,7 +359,7 @@ public final class Flow<T, R>
     this.isEnd = true;
     try {
       if (waitForEnd)
-        while (!this.hasEnded() || activeSubscriptions()) {
+        while (!this.hasEnded() || activeSubscribers()) {
           Thread.sleep(100);
         }
     } catch (InterruptedException e) {
@@ -389,11 +386,8 @@ public final class Flow<T, R>
     return futureSubscriber.register(itemId, completableFuture);
   }
 
-  private boolean activeSubscriptions() {
-    Optional<SubscriptionService<R, T>> any =
-        this.getSubscriberSubscriptions().values().stream().filter(s -> !s.getSubscriber().isDone())
-            .findAny();
-    return any.isPresent();
+  private boolean activeSubscribers() {
+    return subscriptions.hasActiveSubscribers();
   }
 
   public static int numActiveFlows() {
@@ -421,7 +415,7 @@ public final class Flow<T, R>
     return this.indexFieldName;
   }
 
-  public Map<String, SubscriptionService<R, T>> getSubscriberSubscriptions() {
+  public Map<String, FlowSubscriptionDaemon<R, T>> getSubscriberSubscriptions() {
     return this.subscriberSubscriptions;
   }
 
@@ -452,9 +446,7 @@ public final class Flow<T, R>
 
   private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
     if (futureSubscriber == null) {
-      SubscriptionService<R, T> subscription = new SubscriptionService<>(this, subscriber);
-      Collections.synchronizedMap(subscriberSubscriptions).put(subscriber.getId(), subscription);
-      subscription.subscribe();
+      subscriptions.subscribe(subscriber);
       this.futureSubscriber = subscriber;
     } else
       throw new IllegalStateException("Only one futureSubscriber may be added");

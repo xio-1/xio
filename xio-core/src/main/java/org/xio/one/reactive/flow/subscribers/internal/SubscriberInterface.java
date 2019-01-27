@@ -3,6 +3,7 @@ package org.xio.one.reactive.flow.subscribers.internal;
 import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.NavigableSet;
+import java.util.concurrent.Future;
 
 /**
  * SubscriberInterface
@@ -31,7 +32,7 @@ public interface SubscriberInterface<R, T> {
 
   void initialise();
 
-  R getResult();
+  Future<R> getResult();
 
   void setResult(R result);
 
