@@ -2,6 +2,7 @@ package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowException;
+import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemComparator;
 import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
@@ -70,7 +71,7 @@ public final class FlowContents<T, R> {
       NavigableSet<Item<T, R>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (!querystorecontents.isEmpty())
-        if (lastItem != null) {
+        if (!lastItem.equals(EmptyItem.EMPTY_ITEM)) {
           Item newLastItem = querystorecontents.last();
           NavigableSet<Item<T, R>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));

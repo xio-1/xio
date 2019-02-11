@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class BankTestShould {
+public class BankTestMust {
 
   @Test
   public void bankOpensWithLiquidityOfZero() throws Exception {
@@ -79,8 +79,8 @@ public class BankTestShould {
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
 
-
-    for (int i = 0; i < 10000; i++) {
+    int no_transactions=10000;
+    for (int i = 0; i < no_transactions; i++) {
       bank.submitTransactionRequest(
           new TransactionRequest("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
               TransactionType.CREDIT));
@@ -96,7 +96,7 @@ public class BankTestShould {
     }
 
     bank.close();
-    Assert.assertThat(bank.getLiquidity(), is(2600d * 10000));
+    Assert.assertThat(bank.getLiquidity(), is(2600d*no_transactions));
   }
 
   @Test

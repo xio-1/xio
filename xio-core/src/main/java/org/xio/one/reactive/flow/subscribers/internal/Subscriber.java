@@ -92,7 +92,7 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   }
 
   @Override
-  public final Future<R> getResult() {
+  public final Future<R> result() {
     return completableFuture;
   }
 

@@ -9,6 +9,11 @@ public final class EmptyItem extends Item {
   }
 
   @Override
+  public long itemId() {
+    return 0;
+  }
+
+  @Override
   public boolean alive() {
     return false;
   }

@@ -22,7 +22,8 @@ public class Bank {
   StreamMultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    transactionEventLoop = Flow.anItemFlow();
+    transactionEventLoop = Flow.anItemFlow("transactions",10);
+    transactionLedger = Flow.anItemFlow("ledger",10);
   }
 
   public void open() {
@@ -44,6 +45,8 @@ public class Bank {
       }
 
       private void recordInLedger(TransactionRequest transaction) {
+        logger.info(
+                "recording transaction in ledger" + transaction.toString());
         transactionLedger.putItem(transaction);
       }
 
@@ -73,7 +76,6 @@ public class Bank {
 
     });
 
-    transactionLedger = Flow.anItemFlow("ledger");
     transactionLedger
         .addSubscriber(new StreamMultiplexItemSubscriber<Boolean, TransactionRequest>() {
           @Override

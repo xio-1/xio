@@ -6,50 +6,46 @@
 
 package org.xio.one.reactive.flow.util;
 
-import org.xio.one.reactive.flow.internal.FlowInputDaemon;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Logger;
 
 /**
  * Wraps singleton methods arround Executors created cached thread pools
  */
 public class InternalExecutors {
 
-  private static ExecutorService cachedThreadPoolexec;
+  private static ExecutorService subscriptionsThreadPoolexec;
   private static ExecutorService itemLoopThreadPoolexec;
   private static ExecutorService computeThreadPoolexec;
   private static ExecutorService ioThreadPoolexec;
 
   /**
-   * Gets an instance anItemFlow ExecutorService for the application JETI threadpool
+   * Gets an instance anItemFlow ExecutorService for the application XIO threadpool
    *
    * @return
    */
-  public static synchronized ExecutorService subscriberCachedThreadPoolInstance() {
-    if (cachedThreadPoolexec == null)
-      cachedThreadPoolexec = Executors.newCachedThreadPool();
-    else if (cachedThreadPoolexec.isShutdown() || cachedThreadPoolexec.isTerminated())
-      cachedThreadPoolexec = Executors.newCachedThreadPool();
-    return cachedThreadPoolexec;
+  public static synchronized ExecutorService subscriptionsThreadPoolInstance() {
+    if (subscriptionsThreadPoolexec == null)
+      subscriptionsThreadPoolexec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+    else if (subscriptionsThreadPoolexec.isShutdown() || subscriptionsThreadPoolexec.isTerminated())
+      subscriptionsThreadPoolexec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+    return subscriptionsThreadPoolexec;
   }
 
-  public static synchronized ExecutorService flowControlThreadPoolInstance() {
-    if (itemLoopThreadPoolexec == null)
-      itemLoopThreadPoolexec = Executors.newFixedThreadPool(2);
-    else if (itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
-      itemLoopThreadPoolexec = Executors.newFixedThreadPool(2);
-    return itemLoopThreadPoolexec;
-  }
-
-
-  public static synchronized ExecutorService computeThreadPoolInstance() {
+  public static synchronized ExecutorService subscribersThreadPoolInstance() {
     if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown() || computeThreadPoolexec
-        .isTerminated())
+            .isTerminated())
       computeThreadPoolexec =
-          Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+              Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
     return computeThreadPoolexec;
+  }
+
+  public static synchronized ExecutorService controlFlowThreadPoolInstance() {
+    if (itemLoopThreadPoolexec == null)
+      itemLoopThreadPoolexec = Executors.newFixedThreadPool(3);
+    else if (itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
+      itemLoopThreadPoolexec = Executors.newFixedThreadPool(3);
+    return itemLoopThreadPoolexec;
   }
 
 

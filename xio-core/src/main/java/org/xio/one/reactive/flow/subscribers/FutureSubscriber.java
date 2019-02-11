@@ -19,8 +19,11 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   private volatile R result = null;
   private boolean done = false;
   private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
+  private CompletableFuture<R> completableFuture;
 
   public FutureSubscriber() {
+    this.completableFuture = new CompletableFuture<>();
+    initialise();
     initialise();
   }
 
@@ -85,13 +88,14 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   }
 
   @Override
-  public R getResult() {
-    return result;
+  public Future<R> result() {
+    return completableFuture;
   }
 
   @Override
   public final void setResult(R result) {
     this.result = result;
+    completableFuture.complete(result);
   }
 
   public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {

@@ -12,15 +12,13 @@ public interface Flowable<T, R> {
 
   Flowable<T, R> enableImmediateFlushing();
 
-  Flowable<T, R> executorService(ExecutorService executorService);
-
-  Flowable<T, R> countDownLatch(int count_down_latch);
-
   FlowContents contents();
 
   void close(boolean waitForEnd);
 
   boolean hasEnded();
+
+  boolean isAtEnd();
 
   int size();
 

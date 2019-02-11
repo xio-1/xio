@@ -1,21 +1,25 @@
-package org.xio.one.reactive.flow.subscribers;
+package org.xio.one.reactive.flow.subscribers.internal;
 
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 
 import java.util.NavigableSet;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public abstract class CompletableSubscriber<R, T> implements SubscriberInterface<R, T> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
+  private final CompletableFuture<R> completableFuture;
   protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
 
   public CompletableSubscriber() {
+    this.completableFuture = new CompletableFuture<>();
     initialise();
   }
 
@@ -73,17 +77,21 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
     }
   }
 
-  public final String getId() {
-    return id;
-  }
-
   @Override
-  public final R getResult() {
-    return getNext();
+  public final Future<R> result() {
+    return completableFuture;
   }
 
   @Override
   public final void setResult(R result) {
+    completableFuture.complete(result);
     this.result = result;
   }
+
+  @Override
+  public String getId() {
+    return id;
+  }
+
+
 }

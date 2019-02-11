@@ -38,7 +38,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
     asyncFlow.close(true);
-    assertThat(asyncFlow.contents().last().value(), is("Hello world"));
+    assertThat(asyncFlow.contents().last().value().toString(), is("Hello world"));
   }
 
   @Test
@@ -85,15 +85,16 @@ public class FlowTest {
     asyncFlow.putItem(1, 2, 3, 4);
     asyncFlow.close(true);
     Integer[] intList = new Integer[] {10, 20, 30, 40};
-    Assert.assertEquals(true, Arrays.equals(subscriber.getResult().toArray(), intList));
+    Assert.assertEquals(true, Arrays.equals(subscriber.result().get().toArray(), intList));
   }
 
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     FutureItemResultFlowable<String, String> asyncFlow =
-        Flow.aFutureResultItemFlow(HELLO_WORLD_FLOW, new FutureItemSubscriber<String, String>() {
+        Flow.aFutureResultItemFlow(HELLO_WORLD_FLOW,100, new FutureItemSubscriber<String, String>() {
           @Override
           public Future<String> onNext(String itemValue) {
+            System.out.println("Completing future");
             return CompletableFuture.completedFuture(itemValue + " world");
           }
 
@@ -108,7 +109,7 @@ public class FlowTest {
   }
 
   @Test
-  public void shouldPingAndPong() {
+  public void shouldPingAndPong() throws ExecutionException, InterruptedException {
     ItemFlow<String, Long> ping_stream = Flow.anItemFlow("ping_stream");
     ItemFlow<String, Long> pong_stream = Flow.anItemFlow("pong_stream");
     ping_stream.enableImmediateFlushing();
@@ -156,7 +157,7 @@ public class FlowTest {
     ping_stream.putItem("ping");
     ping_stream.close(true);
     pong_stream.close(true);
-    System.out.println("Latency Ms = " + (pongSubscriber.getResult() - pingSubscriber.getResult()));
+    System.out.println("Latency Ms = " + (pongSubscriber.result().get() - pingSubscriber.result().get()));
   }
 
   @Test
@@ -181,12 +182,13 @@ public class FlowTest {
         this.setResult(this.count);
       }
     };
+    long loops=1000000;
     asyncFlow.addSubscriber(subscriber);
-    for (int i = 0; i < 10000000; i++) {
+    for (int i = 0; i < loops; i++) {
       asyncFlow.putItemWithTTL(1, "Hello world" + i);
     }
     asyncFlow.close(true);
-    assertThat(subscriber.getResult(), is(10000000L));
+    assertThat(subscriber.result().get(), is(loops));
     System.out
         .println("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
   }
@@ -342,7 +344,7 @@ public class FlowTest {
           @Override
           public void onNext(Item<String, String> itemValue) throws Throwable {
             System.out.println(Thread.currentThread() + ":OnNext" + itemValue.value());
-            InternalExecutors.computeThreadPoolInstance().submit(new FutureTask<Void>(() -> {
+            InternalExecutors.subscribersThreadPoolInstance().submit(new FutureTask<Void>(() -> {
               itemValue.completionHandler()
                   .completed(itemValue.value() + "World", itemValue.value());
               return null;

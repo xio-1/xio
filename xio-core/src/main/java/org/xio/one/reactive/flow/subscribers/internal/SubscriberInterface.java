@@ -32,7 +32,7 @@ public interface SubscriberInterface<R, T> {
 
   void initialise();
 
-  Future<R> getResult();
+  Future<R> result();
 
   void setResult(R result);
 

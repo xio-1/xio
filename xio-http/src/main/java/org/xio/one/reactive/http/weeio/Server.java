@@ -53,18 +53,18 @@ import static io.undertow.Handlers.*;
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  *
  */
-public class WeeIOHTTPServer {
+public class WEEIOHTTPServer {
 
   UndertowJaxrsServer server;
   private static String PING_CHAR_STRING = Character.toString('�');
-  private static Logger logger = Logger.getLogger(WeeIOHTTPServer.class.getCanonicalName());
+  private static Logger logger = Logger.getLogger(WEEIOHTTPServer.class.getCanonicalName());
 
   public static void main(final String[] args) {
 
     try {
       String serverHostIPAddress = "0.0.0.0";
       List<String> argList = Arrays.asList(args);
-      WeeIOHTTPServer eventServer = new WeeIOHTTPServer();
+      WEEIOHTTPServer eventServer = new WEEIOHTTPServer();
       final String channelName;
 
       if (argList.contains("--h") || argList.contains("--help") || argList.size() == 0) {
@@ -268,10 +268,10 @@ public class WeeIOHTTPServer {
 
   }*/
 
-  public WeeIOHTTPServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
+  public WEEIOHTTPServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
       final int port, int ttl) throws IOException {
 
-    final Xnio xnio = Xnio.getInstance("nio", WeeIOHTTPServer.class.getClassLoader());
+    final Xnio xnio = Xnio.getInstance("nio", WEEIOHTTPServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
         OptionMap.builder().set(Options.WORKER_IO_THREADS, 8)
             .set(Options.CONNECTION_HIGH_WATER, 1000000).set(Options.CONNECTION_LOW_WATER, 10)
@@ -349,7 +349,7 @@ public class WeeIOHTTPServer {
                   }
 
                 })).addPrefixPath("/web", resource(new FileResourceManager(
-                new File(WeeIOHTTPServer.class.getResource("/web/index.html").getFile())))
+                new File(WEEIOHTTPServer.class.getResource("/web/index.html").getFile())))
                 .setDirectoryListingEnabled(true))).build();
     server.start();
 
