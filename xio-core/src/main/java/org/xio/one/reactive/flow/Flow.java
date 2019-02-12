@@ -86,17 +86,8 @@ public final class Flow<T, R>
     private static final Object flowControlLock = new Object();
 
     private Flow(String name, String indexFieldName, long ttlSeconds) {
-        this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
-        this.name = name;
         this.id = UUID.randomUUID().toString();
-        this.indexFieldName = indexFieldName;
-        if (ttlSeconds >= 0)
-            this.defaultTTLSeconds = ttlSeconds;
-        this.flowContents = new FlowContents<>(this);
-        this.itemIDSequence = new ItemIdSequence();
-        this.flushImmediately = false;
-        this.subscribers = new ArrayList<>();
-        this.lastSeenItemMap = new HashMap<>();
+        initialise(name, indexFieldName, ttlSeconds);
         synchronized (flowControlLock) {
             flowMap.put(id, this);
             flowCount++;
@@ -113,6 +104,19 @@ public final class Flow<T, R>
 
             logger.info("Flow " + name + " id " + id + " has started");
         }
+    }
+
+    private void initialise(String name, String indexFieldName, long ttlSeconds) {
+        this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
+        this.name = name;
+        this.indexFieldName = indexFieldName;
+        if (ttlSeconds >= 0)
+            this.defaultTTLSeconds = ttlSeconds;
+        this.flowContents = new FlowContents<>(this);
+        this.itemIDSequence = new ItemIdSequence();
+        this.flushImmediately = false;
+        this.subscribers = new ArrayList<>();
+        this.lastSeenItemMap = new HashMap<>();
     }
 
     //bad use of erasure need too find a better way
@@ -320,7 +324,7 @@ public final class Flow<T, R>
 
     /**
      * Each putItem is processed as a Future<R> using the given single or multiplex future futureSubscriber
-     * A future result will be made available immediately the domain is processed by the futureSubscriber
+     * A future getResult will be made available immediately the domain is processed by the futureSubscriber
      *
      * @return
      */
@@ -331,7 +335,7 @@ public final class Flow<T, R>
 
     /**
      * Each putItem is processed as a Future<R> using the given a single flow or multiplexed flow future futureSubscriber
-     * A future result will be made available immediately the domain is processed by the futureSubscriber
+     * A future getResult will be made available immediately the domain is processed by the futureSubscriber
      *
      * @return
      */
@@ -358,14 +362,25 @@ public final class Flow<T, R>
                 }
         } catch (InterruptedException e) {
         }
+
         synchronized (flowControlLock) {
             flowCount--;
             flowMap.remove(this.id);
             if (flowCount == 0) {
-                InternalExecutors.controlFlowThreadPoolInstance().shutdown();
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
+            this.reset();
         }
         logger.info("Flow " + name + " id " + id + " has stopped");
+    }
+
+    private void reset() {
+        this.subscribers.forEach(this::unsubscribe);
+        this.initialise(this.name, this.indexFieldName, this.ttl());
     }
 
     public Flowable<T, R> countDownLatch(int count_down_latch) {
@@ -426,10 +441,9 @@ public final class Flow<T, R>
 
     public void acceptAll() {
         int ticks = count_down_latch;
-        while (!hasEnded()) {
+        while (!hasEnded() && ticks >= 0) {
             if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
                 this.item_queue.drainTo(this.flowContents.itemRepositoryContents);
-                ticks = count_down_latch;
             }
             ticks--;
             LockSupport.parkNanos(100000);
@@ -491,17 +505,19 @@ public final class Flow<T, R>
             this.lastSeenItemMap.put(subscriber.getId(), EmptyItem.EMPTY_ITEM);
             logger.info("Added subscriber " + subscriber.getId() + " flow " + name());
         }
-        return subscriber.result();
+        return subscriber.getResult();
     }
 
     public void unsubscribe(SubscriberInterface<R, T> subscriber) {
         synchronized (lockSubscriberslist) {
-            subscriber.finalise();
-            subscriber.stop();
-            subscriber.setResult(subscriber.getNext());
-            this.subscribers.remove(subscriber);
-            this.lastSeenItemMap.remove(subscriber.getId());
-            logger.info("Removed subscriber " + subscriber.getId() + " flow " + name());
+            if (subscribers.contains(subscriber)) {
+                subscriber.finalise();
+                subscriber.stop();
+                subscriber.setResult(subscriber.getNext());
+                this.subscribers.remove(subscriber);
+                this.lastSeenItemMap.remove(subscriber.getId());
+                logger.info("Removed subscriber " + subscriber.getId() + " flow " + name());
+            }
         }
     }
 
@@ -537,12 +553,7 @@ public final class Flow<T, R>
 
                         } else {
                             processFinalResults(subscriber, lastSeenItem);
-                            subscriber.finalise();
-                            subscriber.stop();
-                            subscriber.setResult(subscriber.getNext());
-                            synchronized (lockSubscriberslist) {
-                                subscribers.remove(subscriber);
-                            }
+                            unsubscribe(subscriber);
                             logger.log(Level.FINE,
                                     "Subscriber " + subscriber.getId() + " stopped for stream : " + itemStream.name());
                             return true;
@@ -558,7 +569,7 @@ public final class Flow<T, R>
                                 InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream()
                                         .map(f -> {
                                             try {
-                                                //block for subscriber tasks to finish
+                                                //block for all subscriber tasks to finish
                                                 return f.get();
                                             } catch (InterruptedException | ExecutionException e) {
                                                 e.printStackTrace();
@@ -578,7 +589,7 @@ public final class Flow<T, R>
             NavigableSet<Item<T, R>> streamContents = streamContents(subscriber, lastSeenItem);
             while (streamContents.size() > 0) {
                 subscriber.emit(streamContents);
-                lastSeenItem=streamContents.last();
+                lastSeenItem = streamContents.last();
                 streamContents = streamContents(subscriber, lastSeenItem);
             }
         }

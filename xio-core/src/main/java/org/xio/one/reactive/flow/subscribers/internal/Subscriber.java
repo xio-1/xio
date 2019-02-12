@@ -92,13 +92,14 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
   }
 
   @Override
-  public final Future<R> result() {
+  public final Future<R> getResult() {
     return completableFuture;
   }
 
   @Override
   public final void setResult(R result) {
-    completableFuture.complete(result);
     this.result = result;
+    completableFuture.complete(result);
+    this.stop();
   }
 }

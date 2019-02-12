@@ -78,7 +78,7 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
   }
 
   @Override
-  public final Future<R> result() {
+  public final Future<R> getResult() {
     return completableFuture;
   }
 
@@ -86,6 +86,7 @@ public abstract class CompletableSubscriber<R, T> implements SubscriberInterface
   public final void setResult(R result) {
     completableFuture.complete(result);
     this.result = result;
+    this.stop();
   }
 
   @Override

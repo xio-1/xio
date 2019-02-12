@@ -88,7 +88,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   }
 
   @Override
-  public Future<R> result() {
+  public Future<R> getResult() {
     return completableFuture;
   }
 
@@ -96,6 +96,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   public final void setResult(R result) {
     this.result = result;
     completableFuture.complete(result);
+    this.stop();
   }
 
   public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {
@@ -136,7 +137,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
       @Override
       protected boolean exec() {
         try {
-          setRawResult(result.get());
+          setRawResult(getResult.get());
         } catch (InterruptedException | ExecutionException e) {
           e.printStackTrace();
         }
@@ -147,7 +148,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
 
     /*CompletableFuture.supplyAsync(() -> {
       try {
-        future.complete(result.get());
+        future.complete(getResult.get());
       } catch (Exception e1) {
         future.complete(null);
         onFutureCompletionError(e1, item.value());
