@@ -7,6 +7,7 @@ import examples.logger.domain.SingleCallbackLoggerService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
+import test.FlowTest;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
@@ -14,6 +15,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
 
@@ -22,6 +24,7 @@ public class LoggerServiceTest {
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
   private static int ONE_MILLION = 1000000;
 
+  Logger logger = Logger.getLogger(LoggerServiceTest.class.getCanonicalName());
 
   @Test
   public void createEmptyLogFileOnCreation() {
@@ -39,7 +42,7 @@ public class LoggerServiceTest {
     loggerService.close();
     Assert.assertThat(bytesLogged.get(),
         is(("INFO" + ":" + HELLO_LOG_ASYNC_ENTRY + "\r\n").getBytes().length));
-    System.out.println(loggerService.getLogFilePath().toString());
+    logger.info(loggerService.getLogFilePath().toString());
   }
 
   @Test
@@ -51,7 +54,7 @@ public class LoggerServiceTest {
         AsyncFutureMultiplexLoggerService.logger(this.getClass());
     for (int i = 0; i < ONE_MILLION; i++)
       results.add(loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i));
-    System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     results.forEach(i -> {
       try {
@@ -62,12 +65,12 @@ public class LoggerServiceTest {
         e.printStackTrace();
       }
     });
-    System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
 
-    System.out.println(
+    logger.info(
         "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
-    System.out.println(loggerService.getLogFilePath().toString());
+    logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
   }
 
@@ -83,7 +86,7 @@ public class LoggerServiceTest {
       new Thread(() -> {
         for (int i = 0; i < ONE_MILLION / 50; i++)
           results.add(loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i));
-        System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
+        logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
       }).run();
 
     results.stream().parallel().forEach(i -> {
@@ -97,12 +100,11 @@ public class LoggerServiceTest {
         e.printStackTrace();
       }
     });
-    System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
 
-    System.out
-        .println("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() - start)));
+    logger.info("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() - start)));
 
-    System.out.println(loggerService.getLogFilePath().toString());
+    logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
   }
 
@@ -142,17 +144,17 @@ public class LoggerServiceTest {
 
     for (int i = 0; i < ONE_MILLION; i++)
       loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
-    System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < ONE_MILLION) {
       Thread.sleep(100);
     }
 
-    System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    System.out.println(
+    logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info(
         "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
-    System.out.println(loggerService.getLogFilePath().toString());
+    logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
   }
 
@@ -183,17 +185,17 @@ public class LoggerServiceTest {
 
     for (int i = 0; i < ONE_MILLION; i++)
       loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
-    System.out.println("logged in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < ONE_MILLION) {
       Thread.sleep(100);
     }
 
-    System.out.println("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    System.out.println(
+    logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
+    logger.info(
         "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
-    System.out.println(loggerService.getLogFilePath().toString());
+    logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
   }
 

@@ -32,7 +32,7 @@ public abstract class FutureMultiplexItemSubscriber<R, T> extends FutureSubscrib
     if (e != null) {
       try {
         streamResults = onNext(e.stream());
-        e.stream().parallel().forEach(i -> completeFuture(i, streamResults.get(i.itemId())));
+        e.parallelStream().forEach(i -> completeFuture(i, streamResults.get(i.itemId())));
       } catch (Exception ex) {
         ex.printStackTrace();
       }

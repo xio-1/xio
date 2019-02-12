@@ -6,10 +6,15 @@ import examples.bank.domain.TransactionRequest;
 import examples.bank.domain.TransactionType;
 import org.junit.Assert;
 import org.junit.Test;
+import test.FlowTest;
+
+import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
 
 public class BankTestMust {
+
+  Logger logger = Logger.getLogger(BankTestMust.class.getCanonicalName());
 
   @Test
   public void bankOpensWithLiquidityOfZero() throws Exception {

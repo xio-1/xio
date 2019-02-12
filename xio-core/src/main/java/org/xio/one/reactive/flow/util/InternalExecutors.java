@@ -36,7 +36,7 @@ public class InternalExecutors {
     if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown() || computeThreadPoolexec
             .isTerminated())
       computeThreadPoolexec =
-              Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+              Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() +1);
     return computeThreadPoolexec;
   }
 
@@ -53,7 +53,7 @@ public class InternalExecutors {
     if (ioThreadPoolexec == null || ioThreadPoolexec.isShutdown() || ioThreadPoolexec
         .isTerminated())
       ioThreadPoolexec = Executors.newFixedThreadPool(
-          (int) Math.round(Runtime.getRuntime().availableProcessors() * 1.2 / 0.02));
+          (int) Math.round(Runtime.getRuntime().availableProcessors() * 250));
     return ioThreadPoolexec;
   }
 
