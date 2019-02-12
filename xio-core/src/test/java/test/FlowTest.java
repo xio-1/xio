@@ -69,7 +69,7 @@ public class FlowTest {
 
     @Test
     public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
-        for (int i = 0; i < 10; i++) {
+
             ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
 
             StreamItemSubscriber<List<Integer>, Integer> subscriber = new StreamItemSubscriber<>() {
@@ -97,7 +97,6 @@ public class FlowTest {
                 System.out.print("\r");
             }
             assertArrayEquals(intList, subscriber.getResult().get().toArray());
-        }
 
     }
 
@@ -206,7 +205,7 @@ public class FlowTest {
 
     @Test
     public void stability() throws Exception {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 3; i++) {
             shouldHandleExceptionForFutureSubscriber();
             shouldReturnHelloWorldItemFromFlowContents();
             shouldReturnHelloWorldFutureForSingleFutureSubscriber();
