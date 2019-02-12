@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -35,6 +36,8 @@ public class FlowTest {
     public static final int NUMBER_OF_ITEMS = 1000000;
     String HELLO_WORLD_FLOW = "helloWorldFlow";
     String INT_FLOW = "integerFlow";
+
+    Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
 
     @Test
     public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
@@ -56,7 +59,7 @@ public class FlowTest {
 
             @Override
             public void onNext(Item<String, String> itemValue) {
-                System.out.println(itemValue.value().toUpperCase());
+                logger.info(itemValue.value().toUpperCase());
             }
 
         });
@@ -93,8 +96,7 @@ public class FlowTest {
             Integer[] intList = new Integer[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
             asyncFlow.close(true);
             if (subscriber.getResult().get().toArray().length > 10) {
-                subscriber.getResult().get().forEach(System.out::print);
-                System.out.print("\r");
+                subscriber.getResult().get().forEach(s->logger.info(s.toString()));
             }
             assertArrayEquals(intList, subscriber.getResult().get().toArray());
 
@@ -106,7 +108,7 @@ public class FlowTest {
                 Flow.aFutureResultItemFlow(HELLO_WORLD_FLOW, 100, new FutureItemSubscriber<String, String>() {
                     @Override
                     public Future<String> onNext(String itemValue) {
-                        System.out.println("Completing future");
+                        logger.info("Completing future");
                         return CompletableFuture.completedFuture(itemValue + " world");
                     }
 
@@ -133,9 +135,9 @@ public class FlowTest {
             @Override
             public void onNext(Item<String, Long> itemValue) {
                 if (this.count < 4) {
-                    System.out.println("got ping");
+                    logger.info("got ping");
                     pong_stream.putItemWithTTL(100, "pong");
-                    System.out.println("sent pong");
+                    logger.info("sent pong");
                     this.count++;
                 }
                 if (count == 4)
@@ -151,9 +153,9 @@ public class FlowTest {
             @Override
             public void onNext(Item<String, Long> itemValue) {
                 if (this.count < 4) {
-                    System.out.println("got pong");
+                    logger.info("got pong");
                     ping_stream.putItemWithTTL(100, "ping");
-                    System.out.println("sent ping");
+                    logger.info("sent ping");
                     this.count++;
                 }
                 if (count == 4)
@@ -165,7 +167,7 @@ public class FlowTest {
         pong_stream.addSubscriber(pongSubscriber);
         ping_stream.putItem("ping");
         Thread.sleep(1000);
-        System.out.println("Latency Ms = " + (pongSubscriber.getResult().get() - pingSubscriber.getResult().get()));
+        logger.info("Latency Ms = " + (pongSubscriber.getResult().get() - pingSubscriber.getResult().get()));
         ping_stream.close(true);
         pong_stream.close(true);
     }
@@ -199,8 +201,7 @@ public class FlowTest {
         }
         asyncFlow.close(true);
         assertThat(subscriber.getResult().get(), is(loops));
-        System.out
-                .println("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
+        logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
     }
 
     @Test
@@ -355,7 +356,7 @@ public class FlowTest {
 
                     @Override
                     public void onNext(Item<String, String> itemValue) throws Throwable {
-                        System.out.println(Thread.currentThread() + ":OnNext" + itemValue.value());
+                        logger.info(Thread.currentThread() + ":OnNext" + itemValue.value());
                         InternalExecutors.subscribersThreadPoolInstance().submit(new FutureTask<Void>(() -> {
                             itemValue.completionHandler()
                                     .completed(itemValue.value() + "World", itemValue.value());
@@ -372,7 +373,7 @@ public class FlowTest {
         FlowItemCompletionHandler<String, String> myHandler = new FlowItemCompletionHandler<>() {
             @Override
             public void completed(String result, String attachment) {
-                System.out.println(Thread.currentThread() + ":OnCallbackCompletion:" + result);
+                logger.info(Thread.currentThread() + ":OnCallbackCompletion:" + result);
 
             }
 
@@ -383,7 +384,7 @@ public class FlowTest {
 
         };
 
-        System.out.println(Thread.currentThread() + ":OnSubmit");
+        logger.info(Thread.currentThread() + ":OnSubmit");
         for (int i = 0; i < 10; i++)
             asyncFlow.submitItem("Hello" + i, myHandler);
         asyncFlow.close(true);

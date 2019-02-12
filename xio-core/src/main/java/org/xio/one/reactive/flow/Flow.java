@@ -18,10 +18,13 @@ import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -46,7 +49,18 @@ public final class Flow<T, R>
         implements Flowable<T, R>, ItemFlow<T, R>, FutureItemResultFlowable<T, R>,
         CompletableItemFlowable<T, R> {
 
-    Logger logger = Logger.getLogger(FlowHousekeepingDaemon.class.getCanonicalName());
+    private static Logger logger;
+
+    static {
+        try {
+            InputStream stream = Flow.class.getResourceAsStream("/logger.properties");
+            if (stream!=null)
+                LogManager.getLogManager().readConfiguration(stream);
+        } catch (Exception e) {
+        } finally {
+            logger = Logger.getLogger(Flow.class.getCanonicalName());
+        }
+    }
 
     public static final int LOCK_PARK_NANOS = 100000;
     public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
