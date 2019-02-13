@@ -13,6 +13,7 @@ import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -37,7 +39,7 @@ public class FlowTest {
     String HELLO_WORLD_FLOW = "helloWorldFlow";
     String INT_FLOW = "integerFlow";
 
-    Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
+    final Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
 
     @Test
     public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
@@ -73,34 +75,35 @@ public class FlowTest {
     @Test
     public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
 
-            ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
+        ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
 
-            StreamItemSubscriber<List<Integer>, Integer> subscriber = new StreamItemSubscriber<>() {
+        StreamItemSubscriber<List<Integer>, Integer> subscriber = new StreamItemSubscriber<>() {
 
-                private List<Integer> output = new ArrayList<>();
+            private List<Integer> output = new ArrayList<>();
 
-                @Override
-                public void onNext(Item<Integer, List<Integer>> flowItem) {
-                    output.add(flowItem.value() * 10);
-                }
-
-                @Override
-                public void finalise() {
-                    this.setResult(output);
-                }
-            };
-
-            asyncFlow.enableImmediateFlushing();
-            asyncFlow.addSubscriber(subscriber);
-            asyncFlow.putItem(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-            Integer[] intList = new Integer[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-            asyncFlow.close(true);
-            if (subscriber.getResult().get().toArray().length > 10) {
-                subscriber.getResult().get().forEach(s->logger.info(s.toString()));
+            @Override
+            public void onNext(Item<Integer, List<Integer>> flowItem) {
+                output.add(flowItem.value() * 10);
             }
-            assertArrayEquals(intList, subscriber.getResult().get().toArray());
+
+            @Override
+            public void finalise() {
+                this.setResult(output);
+            }
+        };
+
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.addSubscriber(subscriber);
+        asyncFlow.putItem(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        Integer[] intList = new Integer[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+        asyncFlow.close(true);
+        if (subscriber.getResult().get().toArray().length > 10) {
+            subscriber.getResult().get().forEach(s -> logger.info(s.toString()));
+        }
+        assertArrayEquals(intList, subscriber.getResult().get().toArray());
 
     }
+
 
     @Test
     public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
@@ -201,6 +204,60 @@ public class FlowTest {
         }
         asyncFlow.close(true);
         assertThat(subscriber.getResult().get(), is(loops));
+        logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
+    }
+
+
+    @Test
+    public void shouldSustainThroughputPerformanceTestForMultipleSubscribers() throws Exception {
+        long start = System.currentTimeMillis();
+        ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("multisubcriberperformance", 20);
+
+        List<SubscriberInterface<Long,String>> subscriberInterfaceMap = new ArrayList<>();
+
+        for (int i = 0; i < 1000; i++) {
+
+            final StreamItemSubscriber<Long, String> subscriber = new StreamItemSubscriber<Long, String>() {
+                long count;
+
+                @Override
+                public void initialise() {
+                    this.count = 0;
+                }
+
+                @Override
+                public void onNext(Item<String, Long> itemValue) {
+                    this.count++;
+                }
+
+                @Override
+                public void finalise() {
+                    this.setResult(this.count);
+                }
+            };
+            subscriberInterfaceMap.add(subscriber);
+            asyncFlow.addSubscriber(subscriber);
+        }
+
+
+        long loops = 1000000;
+
+        for (int i = 0; i < loops; i++) {
+            asyncFlow.putItemWithTTL(10, "Hello world" + i);
+        }
+
+
+        Thread.sleep(1000);
+        asyncFlow.close(true);
+
+        subscriberInterfaceMap.stream().map(s -> {
+            try {
+                return s.getResult().get();
+            } catch (InterruptedException | ExecutionException e) {
+                return 0;
+            }
+        }).forEach(s->logger.info(((Number) s).toString()));
+
         logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
     }
 

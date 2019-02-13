@@ -18,7 +18,6 @@ import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.*;
@@ -54,7 +53,7 @@ public final class Flow<T, R>
     static {
         try {
             InputStream stream = Flow.class.getResourceAsStream("/logger.properties");
-            if (stream!=null)
+            if (stream != null)
                 LogManager.getLogManager().readConfiguration(stream);
         } catch (Exception e) {
         } finally {
@@ -69,7 +68,7 @@ public final class Flow<T, R>
     // all flows
     private volatile static Map<String, Flow> flowMap = new ConcurrentHashMap<>();
 
-    // streamContents variables
+    // streamContentsSnapShot variables
     private FlowContents<T, R> flowContents;
     // constants
     private int count_down_latch = 10;
@@ -561,18 +560,21 @@ public final class Flow<T, R>
                 List<Callable<Boolean>> callableList;
                 synchronized (lockSubscriberslist) {
                     callableList = subscribers.stream().map(subscriber -> (Callable<Boolean>) () -> {
-                        Item lastSeenItem = lastSeenItemMap.get(subscriber.getId());
-                        if (!subscriber.isDone() && !itemStream.isAtEnd()) {
-                            return !lastSeenItemMap.put(subscriber.getId(), processResults(subscriber, lastSeenItem)).equals(lastSeenItem);
+                        try {
+                            Item lastSeenItem = lastSeenItemMap.get(subscriber.getId());
+                            if (!subscriber.isDone() && !itemStream.isAtEnd()) {
+                                return !lastSeenItemMap.put(subscriber.getId(), processResults(subscriber, lastSeenItem)).equals(lastSeenItem);
 
-                        } else {
-                            processFinalResults(subscriber, lastSeenItem);
-                            unsubscribe(subscriber);
-                            logger.log(Level.FINE,
-                                    "Subscriber " + subscriber.getId() + " stopped for stream : " + itemStream.name());
-                            return true;
+                            } else {
+                                processFinalResults(subscriber, lastSeenItem);
+                                unsubscribe(subscriber);
+                                logger.log(Level.FINE,
+                                        "Subscriber " + subscriber.getId() + " stopped for stream : " + itemStream.name());
+                                return true;
+                            }
+                        } catch (Exception e) {
+                            return false;
                         }
-
                     }).collect(Collectors.toList());
                 }
 
@@ -580,16 +582,15 @@ public final class Flow<T, R>
                     try {
                         Collections.shuffle(callableList);
                         Optional<Boolean> atLeastOnehasExecuted =
-                                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream()
-                                        .map(f -> {
-                                            try {
-                                                //block for all subscriber tasks to finish
-                                                return f.get();
-                                            } catch (InterruptedException | ExecutionException e) {
-                                                e.printStackTrace();
-                                            }
-                                            return false;
-                                        }).filter(b -> b.equals(true)).findFirst();
+                                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream().map(f -> {
+                                    try {
+                                        //block for all subscriber tasks to finish
+                                        return f.get();
+                                    } catch (InterruptedException | ExecutionException e) {
+                                        logger.log(Level.WARNING, "subcriber execution error", e);
+                                    }
+                                    return false;
+                                }).filter(b -> b.equals(true)).findFirst();
 
                         return atLeastOnehasExecuted.orElse(false);
                     } catch (InterruptedException e) {
@@ -600,16 +601,21 @@ public final class Flow<T, R>
         }
 
         private void processFinalResults(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {
-            NavigableSet<Item<T, R>> streamContents = streamContents(subscriber, lastSeenItem);
-            while (streamContents.size() > 0) {
-                subscriber.emit(streamContents);
-                lastSeenItem = streamContents.last();
-                streamContents = streamContents(subscriber, lastSeenItem);
+            Item lastItemInStream = itemStream.contents().last();
+            while (!lastSeenItem.equals(lastItemInStream) && !lastItemInStream.equals(EmptyItem.EMPTY_ITEM)) {
+                NavigableSet<Item<T, R>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
+                while (streamContents.size() > 0) {
+                    subscriber.emit(streamContents);
+                    lastSeenItem = streamContents.last();
+                    streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
+                }
+                lastItemInStream = itemStream.contents().last();
             }
+            logger.info("Final results processed " + (lastSeenItem != null ? lastSeenItem.value() : "empty"));
         }
 
         private Item processResults(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {
-            NavigableSet<Item<T, R>> streamContents = streamContents(subscriber, lastSeenItem);
+            NavigableSet<Item<T, R>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
             if (streamContents.size() > 0) {
                 subscriber.emit(streamContents);
                 if (streamContents.size() > 0)
@@ -619,7 +625,7 @@ public final class Flow<T, R>
             return lastSeenItem;
         }
 
-        private NavigableSet<Item<T, R>> streamContents(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {
+        private NavigableSet<Item<T, R>> streamContentsSnapShot(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {
             if (subscriber.delayMS() > 0)
                 LockSupport.parkUntil(System.currentTimeMillis() + subscriber.delayMS());
             NavigableSet<Item<T, R>> streamContents = Collections
