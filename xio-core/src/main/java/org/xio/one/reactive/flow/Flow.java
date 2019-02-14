@@ -419,7 +419,7 @@ public final class Flow<T, R>
 
     public boolean housekeep() {
         if (this.ttl() > 0)
-            if (flowService().itemRepositoryContents.removeIf(item -> !item.alive())) {
+            if (flowService().itemStoreContents.removeIf(item -> !item.alive())) {
                 logger.log(Level.INFO, "House kept flow : " + this.name());
                 return true;
             }
@@ -456,7 +456,7 @@ public final class Flow<T, R>
         int ticks = count_down_latch;
         while (!hasEnded() && ticks >= 0) {
             if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
-                this.item_queue.drainTo(this.flowContents.itemRepositoryContents);
+                this.item_queue.drainTo(this.flowContents.itemStoreContents);
             }
             ticks--;
             LockSupport.parkNanos(100000);
@@ -602,7 +602,7 @@ public final class Flow<T, R>
 
         private void processFinalResults(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {
             Item lastItemInStream = itemStream.contents().last();
-            while (!lastSeenItem.equals(lastItemInStream) && !lastItemInStream.equals(EmptyItem.EMPTY_ITEM)) {
+            while (lastSeenItem==null | (!lastSeenItem.equals(lastItemInStream) && !lastItemInStream.equals(EmptyItem.EMPTY_ITEM))) {
                 NavigableSet<Item<T, R>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
                 while (streamContents.size() > 0) {
                     subscriber.emit(streamContents);
@@ -611,7 +611,7 @@ public final class Flow<T, R>
                 }
                 lastItemInStream = itemStream.contents().last();
             }
-            logger.info("Final results processed " + (lastSeenItem != null ? lastSeenItem.value() : "empty"));
+            logger.info("Final results processed " + (lastSeenItem != null ? lastSeenItem.value() : "empty") + lastItemInStream.value());
         }
 
         private Item processResults(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {

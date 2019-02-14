@@ -211,11 +211,11 @@ public class FlowTest {
     @Test
     public void shouldSustainThroughputPerformanceTestForMultipleSubscribers() throws Exception {
         long start = System.currentTimeMillis();
-        ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("multisubcriberperformance", 20);
+        ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("multisubcriberperformance", 0);
 
         List<SubscriberInterface<Long,String>> subscriberInterfaceMap = new ArrayList<>();
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
 
             final StreamItemSubscriber<Long, String> subscriber = new StreamItemSubscriber<Long, String>() {
                 long count;
@@ -243,7 +243,7 @@ public class FlowTest {
         long loops = 1000000;
 
         for (int i = 0; i < loops; i++) {
-            asyncFlow.putItemWithTTL(10, "Hello world" + i);
+            asyncFlow.putItem("Hello world" + i);
         }
 
 
@@ -256,7 +256,7 @@ public class FlowTest {
             } catch (InterruptedException | ExecutionException e) {
                 return 0;
             }
-        }).forEach(s->logger.info(((Number) s).toString()));
+        }).forEach(s->assertThat(s, is(loops)));
 
         logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
     }
@@ -268,6 +268,7 @@ public class FlowTest {
             shouldReturnHelloWorldItemFromFlowContents();
             shouldReturnHelloWorldFutureForSingleFutureSubscriber();
             shouldReturnInSequenceForFlowSubscriber();
+            shouldSustainThroughputPerformanceTestForMultipleSubscribers();
         }
     }
 

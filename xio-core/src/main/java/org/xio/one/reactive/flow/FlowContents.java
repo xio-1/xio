@@ -27,17 +27,16 @@ import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 public final class FlowContents<T, R> {
 
 
-  protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
+  //protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
   private String itemStoreIndexFieldName;
   public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   private Flow itemFlow;
-  private NavigableSet<Item<T, R>> itemStoreContents = null;
+  protected volatile NavigableSet<Item<T, R>> itemStoreContents = null;
 
   public FlowContents(Flow itemStream) {
     this.itemFlow = itemStream;
-    itemRepositoryContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
-    itemStoreContents = itemRepositoryContents;
+    itemStoreContents  = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreIndexContents = new ConcurrentHashMap<>();
     if (itemFlow.indexFieldName() != null) {
       itemStoreIndexFieldName = itemFlow.indexFieldName();
