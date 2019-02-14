@@ -13,7 +13,9 @@ import org.xio.one.reactive.flow.internal.FlowHousekeepingDaemon;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
+import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
+import org.xio.one.reactive.flow.subscribers.internal.OnNextItem;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
 import org.xio.one.reactive.flow.util.InternalExecutors;
@@ -358,6 +360,16 @@ public final class Flow<T, R>
             return putAndReturnAsCompletableFuture(ttlSeconds, value);
         throw new IllegalStateException(
                 "Cannot submit item without future subscribers being registered");
+    }
+
+    @Override
+    public void onNextItem(OnNextItem<T, R> nextItem) {
+        this.addSubscriber(new StreamItemSubscriber<>() {
+            @Override
+            public void onNext(Item<T, R> itemValue) throws Throwable {
+                nextItem.onNext(itemValue);
+            }
+        });
     }
 
     @Override

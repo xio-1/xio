@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -68,9 +67,16 @@ public class FlowTest {
 
         toUPPERcaseFlow.putItem("value1", "value2");
         toUPPERcaseFlow.close(true);
-
-
     }
+
+    @Test
+    public void simpleExampleFunctionalStyle() throws Exception {
+        ItemFlow<String, String> toUPPERcaseFlow = Flow.anItemFlow();
+        toUPPERcaseFlow.putItem("value1", "value2");
+        toUPPERcaseFlow.onNextItem(i -> logger.info(i.value().toUpperCase()));
+        toUPPERcaseFlow.close(true);
+    }
+
 
     @Test
     public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
@@ -213,7 +219,7 @@ public class FlowTest {
         long start = System.currentTimeMillis();
         ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("multisubcriberperformance", 0);
 
-        List<SubscriberInterface<Long,String>> subscriberInterfaceMap = new ArrayList<>();
+        List<SubscriberInterface<Long, String>> subscriberInterfaceMap = new ArrayList<>();
 
         for (int i = 0; i < 100; i++) {
 
@@ -256,7 +262,7 @@ public class FlowTest {
             } catch (InterruptedException | ExecutionException e) {
                 return 0;
             }
-        }).forEach(s->assertThat(s, is(loops)));
+        }).forEach(s -> assertThat(s, is(loops)));
 
         logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
     }

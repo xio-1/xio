@@ -1,11 +1,12 @@
 package org.xio.one.reactive.flow.subscribers;
 
 import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.subscribers.internal.OnNextItem;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 import java.util.NavigableSet;
 
-public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> {
+public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> implements OnNextItem<T,R> {
 
   @Override
   public final void process(NavigableSet<Item<T, R>> e) {
