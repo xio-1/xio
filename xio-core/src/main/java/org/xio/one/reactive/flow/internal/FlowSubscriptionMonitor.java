@@ -30,7 +30,7 @@ public class FlowSubscriptionMonitor implements Runnable {
 
             //while any flow is active keep going
             while (Flow.numActiveFlows() > 0) {
-                //subscribe to any dirty flow
+                //publish to any dirty flow
                 ArrayList<Callable<Boolean>> callables = new ArrayList<>();
 
                 Flow.allFlows().stream().filter(f->!f.hasEnded()).map(itemStream -> itemStream.newSubscriptionTask()).forEach(f->callables.add(f));

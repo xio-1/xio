@@ -1,12 +1,12 @@
 package org.xio.one.reactive.flow.subscribers;
 
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.internal.OnNextItem;
+import org.xio.one.reactive.flow.subscribers.internal.functional.OnNextFunction;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 import java.util.NavigableSet;
 
-public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> implements OnNextItem<T,R> {
+public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> implements OnNextFunction<T,R> {
 
   @Override
   public final void process(NavigableSet<Item<T, R>> e) {
@@ -34,4 +34,5 @@ public abstract class StreamItemSubscriber<R, T> extends Subscriber<R, T> implem
       onError(e, item);
     }
   }
+
 }

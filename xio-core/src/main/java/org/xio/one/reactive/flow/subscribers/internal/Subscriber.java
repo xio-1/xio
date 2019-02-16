@@ -78,10 +78,12 @@ public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
             break;
         } catch (InterruptedException e) {
         }
-      this.finalise();
+
       R toreturn = result;
-      if (reset)
+      if (reset) {
+        this.finalise();
         this.initialise();
+      }
       return toreturn;
     }
   }

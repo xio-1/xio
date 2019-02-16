@@ -35,10 +35,9 @@ import static org.junit.Assert.assertThat;
 public class FlowTest {
 
     public static final int NUMBER_OF_ITEMS = 1000000;
+    final Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
     String HELLO_WORLD_FLOW = "helloWorldFlow";
     String INT_FLOW = "integerFlow";
-
-    final Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
 
     @Test
     public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
@@ -72,8 +71,13 @@ public class FlowTest {
     @Test
     public void simpleExampleFunctionalStyle() throws Exception {
         ItemFlow<String, String> toUPPERcaseFlow = Flow.anItemFlow();
-        toUPPERcaseFlow.putItem("value1", "value2");
-        toUPPERcaseFlow.onNextItem(i -> logger.info(i.value().toUpperCase()));
+        toUPPERcaseFlow.putItem("Value1", "Value2");
+        toUPPERcaseFlow.publish().doOnNext(i -> logger.info(i.value().toUpperCase())).subscribe();
+        toUPPERcaseFlow.publish().doOnNext(i -> logger.info(i.value().toLowerCase())).subscribe();
+        toUPPERcaseFlow.publish().onStart(()-> logger.fine("I starting")).doOnNext(i -> {
+            logger.info("I happy " + i.value());
+            throw new RuntimeException("I ask help " + i.value());
+        }).doOnError((e, i) -> logger.warning(e.getMessage())).onEnd(()->logger.fine("I finish")).subscribe();
         toUPPERcaseFlow.close(true);
     }
 

@@ -12,12 +12,9 @@ import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.internal.FlowHousekeepingDaemon;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
+import org.xio.one.reactive.flow.subscribers.FunctionalStreamItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
-import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
-import org.xio.one.reactive.flow.subscribers.internal.OnNextItem;
-import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
-import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
+import org.xio.one.reactive.flow.subscribers.internal.*;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.InputStream;
@@ -209,8 +206,9 @@ public final class Flow<T, R>
     }
 
     @Override
-    public void addSubscriber(SubscriberInterface<R, T> subscriber) {
+    public String addSubscriber(SubscriberInterface<R, T> subscriber) {
         addAppropriateSubscriber(subscriber);
+        return subscriber.getId();
     }
 
     @Override
@@ -362,14 +360,10 @@ public final class Flow<T, R>
                 "Cannot submit item without future subscribers being registered");
     }
 
-    @Override
-    public void onNextItem(OnNextItem<T, R> nextItem) {
-        this.addSubscriber(new StreamItemSubscriber<>() {
-            @Override
-            public void onNext(Item<T, R> itemValue) throws Throwable {
-                nextItem.onNext(itemValue);
-            }
-        });
+
+    public FunctionalStreamItemSubscriber<R,T> publish() {
+        FunctionalStreamItemSubscriber functionalStreamItemSubscriber= new FunctionalStreamItemSubscriber<>(this);
+        return functionalStreamItemSubscriber;
     }
 
     @Override
