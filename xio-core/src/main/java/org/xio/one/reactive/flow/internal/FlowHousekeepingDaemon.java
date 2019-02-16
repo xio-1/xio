@@ -25,8 +25,9 @@ public class FlowHousekeepingDaemon implements Runnable {
         Thread.sleep(1000);
       }
     } catch (Exception e) {
-      if (Flow.numActiveFlows() >0)
+      if (Flow.numActiveFlows() > 0)
         logger.log(Level.SEVERE, "Flow housekeeping was interrupted", e);
-    } logger.log(Level.INFO, "Flow housekeeping has stopped");
+    }
+    logger.log(Level.INFO, "Flow housekeeping has stopped");
   }
 }

@@ -13,6 +13,8 @@ public enum AnsiColor {
       "\u001B[1;96m"), BOLD_INTENSE_WHITE("\u001B[1;97m"), BOLD_INTENSE_GREEN(
       "\u001B[1;92m"), RESET("\u001b[0m"), NOTHING("");
 
+  private final String colorString;
+
   AnsiColor(String color) {
     colorString = color;
   }
@@ -20,7 +22,5 @@ public enum AnsiColor {
   public String toString() {
     return colorString;
   }
-
-  private final String colorString;
 
 }

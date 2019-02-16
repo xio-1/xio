@@ -6,7 +6,6 @@ import examples.bank.domain.TransactionRequest;
 import examples.bank.domain.TransactionType;
 import org.junit.Assert;
 import org.junit.Test;
-import test.FlowTest;
 
 import java.util.logging.Logger;
 
@@ -84,7 +83,7 @@ public class BankTestMust {
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
 
-    int no_transactions=10000;
+    int no_transactions = 10000;
     for (int i = 0; i < no_transactions; i++) {
       bank.submitTransactionRequest(
           new TransactionRequest("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
@@ -101,7 +100,7 @@ public class BankTestMust {
     }
 
     bank.close();
-    Assert.assertThat(bank.getLiquidity(), is(2600d*no_transactions));
+    Assert.assertThat(bank.getLiquidity(), is(2600d * no_transactions));
   }
 
   @Test

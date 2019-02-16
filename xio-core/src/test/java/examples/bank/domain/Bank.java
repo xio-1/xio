@@ -22,8 +22,8 @@ public class Bank {
   FlowMultiplexItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
-    transactionEventLoop = Flow.anItemFlow("transactions",10);
-    transactionLedger = Flow.anItemFlow("ledger",10);
+    transactionEventLoop = Flow.anItemFlow("transactions", 10);
+    transactionLedger = Flow.anItemFlow("ledger", 10);
   }
 
   public void open() {
@@ -45,8 +45,7 @@ public class Bank {
       }
 
       private void recordInLedger(TransactionRequest transaction) {
-        logger.info(
-                "recording transaction in ledger" + transaction.toString());
+        logger.info("recording transaction in ledger" + transaction.toString());
         transactionLedger.putItem(transaction);
       }
 
@@ -76,25 +75,24 @@ public class Bank {
 
     });
 
-    transactionLedger
-        .addSubscriber(new FlowMultiplexItemSubscriber<Boolean, TransactionRequest>() {
-          @Override
-          public void onNext(Stream<Item<TransactionRequest, Boolean>> e) {
+    transactionLedger.addSubscriber(new FlowMultiplexItemSubscriber<Boolean, TransactionRequest>() {
+      @Override
+      public void onNext(Stream<Item<TransactionRequest, Boolean>> e) {
 
-            String multiplexGroupID = UUID.randomUUID().toString();
-            e.forEach(item -> {
-              logger.info(
-                  "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|"
-                      + item.value().toString());
-              bankTransactionLedger.add(item.value());
-            });
-          }
-
-          @Override
-          public void finalise() {
-            super.finalise();
-          }
+        String multiplexGroupID = UUID.randomUUID().toString();
+        e.forEach(item -> {
+          logger.info(
+              "itemID" + "|" + item.itemId() + "|" + "groupID" + "|" + multiplexGroupID + "|" + item
+                  .value().toString());
+          bankTransactionLedger.add(item.value());
         });
+      }
+
+      @Override
+      public void finalise() {
+        super.finalise();
+      }
+    });
   }
 
   public void submitTransactionRequest(TransactionRequest transaction) {

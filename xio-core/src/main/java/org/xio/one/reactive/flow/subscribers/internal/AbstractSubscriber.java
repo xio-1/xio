@@ -8,30 +8,40 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
+/**
+ * Subscriber
+ *
+ * @Author Richard Durley
+ * @OringinalWork XIO
+ * @Copyright Richard Durley / XIO.ONE
+ * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
+ * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
+ * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
+ */
+public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
 
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
-  private final CompletableFuture<R> completableFuture;
   protected int delayMS = 0;
+  CompletableFuture<R> completableFuture;
   private volatile R result = null;
   private boolean done = false;
 
-  public CompletableSubscriber() {
+  public AbstractSubscriber() {
     this.completableFuture = new CompletableFuture<>();
-    initialise();
   }
 
   @Override
-  public final int delayMS() {
-    return delayMS;
-  }
-
   public abstract void initialise();
 
   @Override
   public final boolean isDone() {
     return this.done;
+  }
+
+  @Override
+  public final int delayMS() {
+    return delayMS;
   }
 
   @Override
@@ -53,7 +63,6 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
 
   public abstract void process(NavigableSet<Item<T, R>> e);
 
-
   @Override
   public final R getNext() {
     return getWithReset(0, TimeUnit.MILLISECONDS, false);
@@ -68,12 +77,19 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
             break;
         } catch (InterruptedException e) {
         }
-      this.finalise();
+
       R toreturn = result;
-      if (reset)
+      if (reset) {
+        this.finalise();
         this.initialise();
+      }
       return toreturn;
     }
+  }
+
+  @Override
+  public final String getId() {
+    return id;
   }
 
   @Override
@@ -83,15 +99,8 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
 
   @Override
   public final void setResult(R result) {
-    completableFuture.complete(result);
     this.result = result;
+    completableFuture.complete(result);
     this.stop();
   }
-
-  @Override
-  public String getId() {
-    return id;
-  }
-
-
 }

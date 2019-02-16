@@ -26,45 +26,46 @@ public class SingleCallbackLoggerService {
   public SingleCallbackLoggerService(String canonicalName, boolean parallel) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
-    logEntryFlow = Flow.aCompletableItemFlow("logger", 2, new CompletableItemSubscriber<>(parallel) {
+    logEntryFlow =
+        Flow.aCompletableItemFlow("logger", 2, new CompletableItemSubscriber<>(parallel) {
 
-      final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
-          .open(logFilePath, Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
-      long position = 0;
+          final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
+              .open(logFilePath, Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
+          long position = 0;
 
-      @Override
-      public void initialise() {
-      }
+          @Override
+          public void initialise() {
+          }
 
-      @Override
-      public void onNext(Item<String, Integer> entry) {
+          @Override
+          public void onNext(Item<String, Integer> entry) {
 
-        try {
-          CompletionHandler<Integer, String> completionHandler =
-              IOCompletionHandler.aIOCompletionHandler(entry.completionHandler());
-          fileChannel
-              .write(ByteBuffer.wrap(entry.value().getBytes()), position, null, completionHandler);
-        } catch (Exception e) {
-          e.printStackTrace();
-        } finally {
-          buffer.clear();
-        }
-      }
+            try {
+              CompletionHandler<Integer, String> completionHandler =
+                  IOCompletionHandler.aIOCompletionHandler(entry.completionHandler());
+              fileChannel.write(ByteBuffer.wrap(entry.value().getBytes()), position, null,
+                  completionHandler);
+            } catch (Exception e) {
+              e.printStackTrace();
+            } finally {
+              buffer.clear();
+            }
+          }
 
-      @Override
-      public void onError(Throwable error, Item<String, Integer> itemValue) {
+          @Override
+          public void onError(Throwable error, Item<String, Integer> itemValue) {
 
-      }
+          }
 
-      @Override
-      public void finalise() {
-        try {
-          fileChannel.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }
-    });
+          @Override
+          public void finalise() {
+            try {
+              fileChannel.close();
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+          }
+        });
 
   }
 

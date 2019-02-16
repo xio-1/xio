@@ -17,7 +17,7 @@ public class FlowInputMonitor implements Runnable {
     logger.log(Level.INFO, "Flow input monitor has started");
     try {
       //while any flow is active keep going
-      while (Flow.numActiveFlows()>0) {
+      while (Flow.numActiveFlows() > 0) {
         Flow.allFlows().parallelStream().forEach(n -> {
           if (!n.hasEnded())
             n.acceptAll();

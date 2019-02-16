@@ -1,7 +1,7 @@
 package org.xio.one.reactive.flow.subscribers;
 
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.internal.SubscriberInterface;
+import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 import java.util.Map;
 import java.util.NavigableSet;
@@ -10,7 +10,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 
-public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T> {
+public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
 
   private final ForkJoinPool pool = new ForkJoinPool(10);
   private final String id = UUID.randomUUID().toString();
@@ -88,7 +88,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
   }
 
   @Override
-  public Future<R> getResult() {
+  public Future<R> getFutureResult() {
     return completableFuture;
   }
 
@@ -137,7 +137,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
       @Override
       protected boolean exec() {
         try {
-          setRawResult(getResult.get());
+          setRawResult(getFutureResult.get());
         } catch (InterruptedException | ExecutionException e) {
           e.printStackTrace();
         }
@@ -148,7 +148,7 @@ public abstract class FutureSubscriber<R, T> implements SubscriberInterface<R, T
 
     /*CompletableFuture.supplyAsync(() -> {
       try {
-        future.complete(getResult.get());
+        future.complete(getFutureResult.get());
       } catch (Exception e1) {
         future.complete(null);
         onFutureCompletionError(e1, item.value());

@@ -30,7 +30,7 @@ public interface FlowItemCompletionHandler<R, T> {
   /**
    * Invoked when an operation has completed.
    *
-   * @param result     The getResult of the async operation.
+   * @param result     The getFutureResult of the async operation.
    * @param attachment The object attached to the async operation when it was initiated.
    */
   void completed(R result, T attachment);

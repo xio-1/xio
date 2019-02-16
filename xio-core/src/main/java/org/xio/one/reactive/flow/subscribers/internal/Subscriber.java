@@ -3,13 +3,10 @@ package org.xio.one.reactive.flow.subscribers.internal;
 import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.NavigableSet;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Subscriber
+ * SubscriberInterface
  *
  * @Author Richard Durley
  * @OringinalWork XIO
@@ -18,90 +15,27 @@ import java.util.concurrent.TimeUnit;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public abstract class Subscriber<R, T> implements SubscriberInterface<R, T> {
+public interface Subscriber<R, T> {
 
-  private final String id = UUID.randomUUID().toString();
-  private final Object lock = new Object();
-  protected int delayMS = 0;
-  private volatile R result = null;
-  private boolean done = false;
-  CompletableFuture<R> completableFuture;
+  void emit(NavigableSet<Item<T, R>> e);
 
-  public Subscriber() {
-    this.completableFuture = new CompletableFuture<>();
-    initialise();
-  }
+  boolean stop();
 
-  @Override
-  public abstract void initialise();
+  boolean isDone();
 
-  @Override
-  public final boolean isDone() {
-    return this.done;
-  }
+  String getId();
 
-  @Override
-  public final int delayMS() {
-    return delayMS;
-  }
+  int delayMS();
 
-  @Override
-  public final boolean stop() {
-    synchronized (lock) {
-      done = true;
-      lock.notify();
-    }
-    return true;
-  }
+  R getNext();
 
-  @Override
-  public final void emit(NavigableSet<Item<T, R>> e) {
-    synchronized (lock) {
-      process(e);
-      lock.notify();
-    }
-  }
+  void initialise();
 
-  public abstract void process(NavigableSet<Item<T, R>> e);
+  Future<R> getFutureResult();
 
-  @Override
-  public final R getNext() {
-    return getWithReset(0, TimeUnit.MILLISECONDS, false);
-  }
+  void setResult(R result);
 
-  private R getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {
-    synchronized (lock) {
-      while (result == null && !isDone())
-        try {
-          lock.wait(timeout);
-          if (timeout > 0)
-            break;
-        } catch (InterruptedException e) {
-        }
+  void finalise();
 
-      R toreturn = result;
-      if (reset) {
-        this.finalise();
-        this.initialise();
-      }
-      return toreturn;
-    }
-  }
-
-  @Override
-  public final String getId() {
-    return id;
-  }
-
-  @Override
-  public final Future<R> getResult() {
-    return completableFuture;
-  }
-
-  @Override
-  public final void setResult(R result) {
-    this.result = result;
-    completableFuture.complete(result);
-    this.stop();
-  }
+  void process(NavigableSet<Item<T, R>> e);
 }

@@ -1,6 +1,5 @@
 package org.xio.one.reactive.flow;
 
-import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
@@ -27,20 +26,20 @@ import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 public final class FlowContents<T, R> {
 
 
+  public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   //protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
   protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
-  private String itemStoreIndexFieldName;
-  public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  private Flow itemFlow;
   protected volatile NavigableSet<Item<T, R>> itemStoreContents = null;
+  private String itemStoreIndexFieldName;
+  private Flow itemFlow;
 
   public FlowContents(Flow itemStream) {
     this.itemFlow = itemStream;
-    itemStoreContents  = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
+    itemStoreContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreIndexContents = new ConcurrentHashMap<>();
     if (itemFlow.indexFieldName() != null) {
       itemStoreIndexFieldName = itemFlow.indexFieldName();
-  }
+    }
   }
 
   public NavigableSet<Item<T, R>> getItemStoreContents() {
@@ -141,7 +140,8 @@ public final class FlowContents<T, R> {
     if (querystorecontents.isEmpty())
       return EMPTY_ITEM;
     else {
-      Optional<Item<T,R>> last = querystorecontents.descendingSet().stream().filter(Item::alive).findFirst();
+      Optional<Item<T, R>> last =
+          querystorecontents.descendingSet().stream().filter(Item::alive).findFirst();
       return last.orElse(EMPTY_ITEM);
     }
   }

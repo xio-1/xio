@@ -25,36 +25,36 @@ public class AnsiiColorFormatter extends XioLogFormatter {
     colors.put(Level.FINER, AnsiColor.BOLD_INTENSE_CYAN);
     colors.put(Level.FINEST, AnsiColor.BOLD_INTENSE_BLUE);
     loggerColor = AnsiColor.BOLD_INTENSE_BLUE;
-    String infoColor = manager.getProperty(this.getClass().getCanonicalName()+".infoColor");
+    String infoColor = manager.getProperty(this.getClass().getCanonicalName() + ".infoColor");
     if (infoColor != null) {
       try {
         colors.put(Level.INFO, AnsiColor.valueOf(infoColor));
-      }catch (IllegalArgumentException iae) {
+      } catch (IllegalArgumentException iae) {
         colors.put(Level.INFO, AnsiColor.BOLD_INTENSE_GREEN);
       }
     }
-    String colorProp = manager.getProperty(this.getClass().getCanonicalName()+".warnColor");
+    String colorProp = manager.getProperty(this.getClass().getCanonicalName() + ".warnColor");
     if (colorProp != null) {
       try {
         colors.put(Level.WARNING, AnsiColor.valueOf(colorProp));
-      }catch (IllegalArgumentException iae) {
+      } catch (IllegalArgumentException iae) {
         colors.put(Level.WARNING, AnsiColor.BOLD_INTENSE_YELLOW);
       }
     }
-    colorProp = manager.getProperty(this.getClass().getCanonicalName()+".severeColor");
+    colorProp = manager.getProperty(this.getClass().getCanonicalName() + ".severeColor");
     if (colorProp != null) {
       try {
         colors.put(Level.SEVERE, AnsiColor.valueOf(colorProp));
-      }catch (IllegalArgumentException iae) {
+      } catch (IllegalArgumentException iae) {
         colors.put(Level.SEVERE, AnsiColor.BOLD_INTENSE_RED);
       }
     }
 
-    colorProp = manager.getProperty(this.getClass().getCanonicalName()+".loggerColor");
+    colorProp = manager.getProperty(this.getClass().getCanonicalName() + ".loggerColor");
     if (colorProp != null) {
       try {
         loggerColor = AnsiColor.valueOf(colorProp);
-      }catch (IllegalArgumentException iae) {
+      } catch (IllegalArgumentException iae) {
         loggerColor = AnsiColor.BOLD_INTENSE_BLUE;
       }
     }
@@ -69,7 +69,7 @@ public class AnsiiColorFormatter extends XioLogFormatter {
     return ansiColor;
   }
 
-  public void noAnsi(){
+  public void noAnsi() {
     ansiColor = false;
   }
 
@@ -92,6 +92,6 @@ public class AnsiiColorFormatter extends XioLogFormatter {
 
   @Override
   public String formatMessage(LogRecord record) {
-    return getColor(record.getLevel())  + super.formatMessage(record);
+    return getColor(record.getLevel()) + super.formatMessage(record);
   }
 }

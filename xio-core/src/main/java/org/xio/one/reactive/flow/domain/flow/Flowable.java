@@ -2,8 +2,6 @@ package org.xio.one.reactive.flow.domain.flow;
 
 import org.xio.one.reactive.flow.FlowContents;
 
-import java.util.concurrent.ExecutorService;
-
 public interface Flowable<T, R> {
 
   String name();

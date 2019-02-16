@@ -7,7 +7,6 @@ import examples.logger.domain.SingleCallbackLoggerService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
-import test.FlowTest;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
@@ -67,8 +66,8 @@ public class LoggerServiceTest {
     });
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
 
-    logger.info(
-        "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
+    logger
+        .info("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -151,8 +150,8 @@ public class LoggerServiceTest {
     }
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    logger.info(
-        "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
+    logger
+        .info("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -192,8 +191,8 @@ public class LoggerServiceTest {
     }
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    logger.info(
-        "items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
+    logger
+        .info("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();

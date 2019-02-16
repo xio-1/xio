@@ -1,13 +1,13 @@
 package org.xio.one.reactive.flow.subscribers;
 
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
+import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
 
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class FlowMultiplexItemSubscriber<R, T> extends Subscriber<R, T> {
+public abstract class FlowMultiplexItemSubscriber<R, T> extends AbstractSubscriber<R, T> {
 
   public FlowMultiplexItemSubscriber() {
     super();
