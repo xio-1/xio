@@ -69,7 +69,7 @@ public class FlowTest {
     }
 
     @Test
-    public void simpleExampleFunctionalStyle() throws Exception {
+    public void simpleItemStreamExampleWithFunctionalStyle() throws Exception {
         ItemFlow<String, String> toUPPERcaseFlow = Flow.anItemFlow();
         toUPPERcaseFlow.putItem("Value1", "Value2");
         toUPPERcaseFlow.publish().doOnNext(i -> logger.info(i.value().toUpperCase())).subscribe();

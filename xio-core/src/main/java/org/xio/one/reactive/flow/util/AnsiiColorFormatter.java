@@ -6,7 +6,7 @@ import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 
-public class AnsiiColorFormatter extends SimpleFormatter {
+public class AnsiiColorFormatter extends SimpleLogFormatter {
 
   private boolean ansiColor;
   private HashMap<Level, AnsiColor> colors;
