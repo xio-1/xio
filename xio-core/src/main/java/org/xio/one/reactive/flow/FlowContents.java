@@ -70,7 +70,7 @@ public final class FlowContents<T, R> {
       NavigableSet<Item<T, R>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (!querystorecontents.isEmpty())
-        if (!lastItem.equals(EmptyItem.EMPTY_ITEM)) {
+        if (!EmptyItem.EMPTY_ITEM.equals(lastItem)) {
           Item newLastItem = querystorecontents.last();
           NavigableSet<Item<T, R>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));

@@ -20,17 +20,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class FlowTest {
 
@@ -131,8 +127,15 @@ public class FlowTest {
                     }
                 });
         Future<String> result = asyncFlow.submitItem("Hello");
-        asyncFlow.close(true);
-        assertThat(result.get(), is("Hello world"));
+        try {
+            assertThat(result.get(1, TimeUnit.SECONDS), is("Hello world"));
+        } catch (Exception e) {
+            fail();
+        }
+        finally {
+            asyncFlow.close(true);
+        }
+
     }
 
     @Test
@@ -273,7 +276,7 @@ public class FlowTest {
 
     @Test
     public void stability() throws Exception {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             shouldHandleExceptionForFutureSubscriber();
             shouldReturnHelloWorldItemFromFlowContents();
             shouldReturnHelloWorldFutureForSingleFutureSubscriber();
@@ -304,10 +307,15 @@ public class FlowTest {
         Future<String> result1 = micro_stream.submitItem("hello1");
         Future<String> result2 = micro_stream.submitItem("hello2");
         Future<String> result3 = micro_stream.submitItem("hello3");
-        assertThat(result1.get(), is("HELLO1"));
-        assertThat(result2.get(), is("HELLO2"));
-        assertThat(result3.get(), is("HELLO3"));
-        micro_stream.close(true);
+        try {
+            assertThat(result1.get(1,TimeUnit.SECONDS), is("HELLO1"));
+            assertThat(result2.get(1, TimeUnit.SECONDS), is("HELLO2"));
+            assertThat(result3.get(1,TimeUnit.SECONDS), is("HELLO3"));
+        } catch (Exception e) {
+            fail();
+        } finally {
+            micro_stream.close(true);
+        }
     }
 
     @Test
@@ -375,13 +383,16 @@ public class FlowTest {
         Future<String> result2 = asyncFlow.submitItem("Hello2");
         Future<String> result3 = asyncFlow.submitItem("Hello3");
 
-        if (result1.get() == null || result2.get() == null || "happy".equals(result3.get()))
-            System.currentTimeMillis();
-        assertThat(result1.get(), is("happy"));
-        assertThat(result2.get(), is("happy"));
-        assertThat(result3.get(), is(nullValue()));
-        assertThat(result3.isDone(), is(true));
-        asyncFlow.close(true);
+        try {
+            assertThat(result1.get(1, TimeUnit.SECONDS), is("happy"));
+            assertThat(result2.get(1,TimeUnit.SECONDS), is("happy"));
+            assertThat(result3.get(1,TimeUnit.SECONDS), is(nullValue()));
+        } catch (TimeoutException e) {
+            fail();
+        } finally {
+            asyncFlow.close(true);
+        }
+
     }
 
     @Test

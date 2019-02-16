@@ -608,7 +608,7 @@ public final class Flow<T, R>
 
         private void processFinalResults(SubscriberInterface<R, T> subscriber, Item lastSeenItem) {
             Item lastItemInStream = itemStream.contents().last();
-            while (lastSeenItem==null | (!lastSeenItem.equals(lastItemInStream) && !lastItemInStream.equals(EmptyItem.EMPTY_ITEM))) {
+            while (lastSeenItem==null | (!lastItemInStream.equals(lastSeenItem) && !lastItemInStream.equals(EmptyItem.EMPTY_ITEM))) {
                 NavigableSet<Item<T, R>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
                 while (streamContents.size() > 0) {
                     subscriber.emit(streamContents);
