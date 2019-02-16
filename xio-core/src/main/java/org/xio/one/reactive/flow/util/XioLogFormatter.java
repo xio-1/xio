@@ -1,28 +1,30 @@
 package org.xio.one.reactive.flow.util;
 
+
+import org.xio.one.reactive.flow.Flow;
+
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.logging.Formatter;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
-import java.util.logging.LogRecord;
+import java.util.logging.*;
 
-public class SimpleLogFormatter extends Formatter {
+public class XioLogFormatter extends Formatter {
 
     // format string for printing the log record
     static String getLoggingProperty(String name) {
         return LogManager.getLogManager().getProperty(name);
     }
-
     private String format;
 
-    public SimpleLogFormatter() {
-        format="[%1$tF %1$tT] [%4$-7s] [%7$-20s] %5$s %n";
+    public XioLogFormatter() {
+        format = LogManager.getLogManager().getProperty("java.util.logging.format");
+        if (format==null || format.isEmpty())
+            format="[%1$tF %1$tT] [%4$-7s] [%7$-20s] %5$s %n";
     }
 
-    public SimpleLogFormatter(String format) {
+    public XioLogFormatter(String format) {
         this.format = format;
     }
 

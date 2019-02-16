@@ -26,7 +26,7 @@ public class FunctionalStreamItemSubscriber<R, T> {
         return (SubscriberInterface) functionalSubscriber;
     }
 
-    private class functionalSubscriber extends StreamItemSubscriber<R, T> {
+    private class functionalSubscriber extends FlowItemSubscriber<R, T> {
         @Override
         public void onNext(Item<T, R> itemValue) throws Throwable {
             if (onNextItem != null)

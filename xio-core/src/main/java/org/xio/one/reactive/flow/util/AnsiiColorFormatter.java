@@ -4,9 +4,8 @@ import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
-import java.util.logging.SimpleFormatter;
 
-public class AnsiiColorFormatter extends SimpleLogFormatter {
+public class AnsiiColorFormatter extends XioLogFormatter {
 
   private boolean ansiColor;
   private HashMap<Level, AnsiColor> colors;
@@ -22,6 +21,9 @@ public class AnsiiColorFormatter extends SimpleLogFormatter {
     colors.put(Level.INFO, AnsiColor.BOLD_INTENSE_GREEN);
     colors.put(Level.WARNING, AnsiColor.BOLD_INTENSE_YELLOW);
     colors.put(Level.SEVERE, AnsiColor.BOLD_INTENSE_RED);
+    colors.put(Level.FINE, AnsiColor.BOLD_INTENSE_PURPLE);
+    colors.put(Level.FINER, AnsiColor.BOLD_INTENSE_CYAN);
+    colors.put(Level.FINEST, AnsiColor.BOLD_INTENSE_BLUE);
     loggerColor = AnsiColor.BOLD_INTENSE_BLUE;
     String infoColor = manager.getProperty(this.getClass().getCanonicalName()+".infoColor");
     if (infoColor != null) {
@@ -85,7 +87,7 @@ public class AnsiiColorFormatter extends SimpleLogFormatter {
 
   @Override
   public String format(LogRecord record) {
-     return getColor(record.getLevel()) + super.format(record);
+    return getColor(record.getLevel()) + super.format(record);
   }
 
   @Override

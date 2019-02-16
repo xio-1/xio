@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public final class Flow<T, R>
+public class Flow<T, R>
         implements Flowable<T, R>, ItemFlow<T, R>, FutureItemResultFlowable<T, R>,
         CompletableItemFlowable<T, R> {
 
@@ -56,7 +56,7 @@ public final class Flow<T, R>
                 LogManager.getLogManager().readConfiguration(stream);
         } catch (Exception e) {
         } finally {
-            logger = Logger.getLogger(Flow.class.getCanonicalName());
+            logger=Logger.getLogger(Flow.class.getName());
         }
     }
 
@@ -567,6 +567,8 @@ public final class Flow<T, R>
                 synchronized (lockSubscriberslist) {
                     callableList = subscribers.stream().map(subscriber -> (Callable<Boolean>) () -> {
                         try {
+                            logger.log(Level.FINE,
+                                    "Subscriber " + subscriber.getId() + " processing : " + itemStream.name());
                             Item lastSeenItem = lastSeenItemMap.get(subscriber.getId());
                             if (!subscriber.isDone() && !itemStream.isAtEnd()) {
                                 return !lastSeenItemMap.put(subscriber.getId(), processResults(subscriber, lastSeenItem)).equals(lastSeenItem);
@@ -574,7 +576,7 @@ public final class Flow<T, R>
                             } else {
                                 processFinalResults(subscriber, lastSeenItem);
                                 unsubscribe(subscriber);
-                                logger.log(Level.FINE,
+                                logger.log(Level.INFO,
                                         "Subscriber " + subscriber.getId() + " stopped for stream : " + itemStream.name());
                                 return true;
                             }
