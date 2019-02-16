@@ -57,6 +57,7 @@ public class Flow<T, R>
         } catch (Exception e) {
         } finally {
             logger=Logger.getLogger(Flow.class.getName());
+            logger.info("XIO loaded");
         }
     }
 
