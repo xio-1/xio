@@ -35,6 +35,11 @@ public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
   public abstract void initialise();
 
   @Override
+  public R finalise() {
+    return null;
+  }
+
+  @Override
   public final boolean isDone() {
     return this.done;
   }
@@ -98,7 +103,7 @@ public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
   }
 
   @Override
-  public final void setResult(R result) {
+  public final void exitAndReturn(R result) {
     this.result = result;
     completableFuture.complete(result);
     this.stop();

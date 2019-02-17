@@ -74,8 +74,8 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
             break;
         } catch (InterruptedException e) {
         }
-      this.finalise();
-      R toreturn = result;
+      R toreturn = this.finalise();
+      //R toreturn = result;
       result = null;
       if (reset)
         this.initialise();
@@ -93,7 +93,7 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
   }
 
   @Override
-  public final void setResult(R result) {
+  public final void exitAndReturn(R result) {
     this.result = result;
     completableFuture.complete(result);
     this.stop();

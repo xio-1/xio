@@ -1,11 +1,11 @@
-package examples.bank;
+package org.xio.one.test.examples.bank;
 
-import examples.bank.domain.Account;
-import examples.bank.domain.Bank;
-import examples.bank.domain.TransactionRequest;
-import examples.bank.domain.TransactionType;
 import org.junit.Assert;
 import org.junit.Test;
+import org.xio.one.test.examples.bank.domain.Account;
+import org.xio.one.test.examples.bank.domain.Bank;
+import org.xio.one.test.examples.bank.domain.TransactionRequest;
+import org.xio.one.test.examples.bank.domain.TransactionType;
 
 import java.util.logging.Logger;
 

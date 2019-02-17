@@ -1,4 +1,4 @@
-package examples.bank.domain;
+package org.xio.one.test.examples.bank.domain;
 
 import java.util.Objects;
 

@@ -1,4 +1,4 @@
-package examples.logger.domain;
+package org.xio.one.test.examples.logger.domain;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
@@ -76,11 +76,13 @@ public class AsyncMultiplexCallbackLoggerService {
 
 
           @Override
-          public void finalise() {
+          public Integer finalise() {
             try {
               fileChannel.close();
+              return 0;
             } catch (IOException e) {
               e.printStackTrace();
+              return -1;
             }
           }
         });

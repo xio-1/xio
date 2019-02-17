@@ -7,7 +7,7 @@ import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 public interface ItemFlow<T, R> extends Flowable<T, R> {
 
-  Subscriber<R,T> addSubscriber(Subscriber<R, T> subscriber);
+  Subscriber<R, T> addSubscriber(Subscriber<R, T> subscriber);
 
   void removeSubscriber(Subscriber<R, T> subscriber);
 

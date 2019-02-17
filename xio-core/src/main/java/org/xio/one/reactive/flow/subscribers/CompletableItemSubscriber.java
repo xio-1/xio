@@ -36,7 +36,8 @@ public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscri
   }
 
   @Override
-  public void finalise() {
+  public R finalise() {
+    return null;
   }
 
   private void accept(Item<T, R> item) {

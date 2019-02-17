@@ -25,7 +25,8 @@ public abstract class FlowItemSubscriber<R, T> extends AbstractSubscriber<R, T>
   }
 
   @Override
-  public void finalise() {
+  public R finalise() {
+    return null;
   }
 
   private void accept(Item<T, R> item) {

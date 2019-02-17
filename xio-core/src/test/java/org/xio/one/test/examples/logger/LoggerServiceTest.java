@@ -1,12 +1,12 @@
-package examples.logger;
+package org.xio.one.test.examples.logger;
 
-import examples.logger.domain.AsyncFutureMultiplexLoggerService;
-import examples.logger.domain.AsyncMultiplexCallbackLoggerService;
-import examples.logger.domain.LogLevel;
-import examples.logger.domain.SingleCallbackLoggerService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
+import org.xio.one.test.examples.logger.domain.AsyncFutureMultiplexLoggerService;
+import org.xio.one.test.examples.logger.domain.AsyncMultiplexCallbackLoggerService;
+import org.xio.one.test.examples.logger.domain.LogLevel;
+import org.xio.one.test.examples.logger.domain.SingleCallbackLoggerService;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;

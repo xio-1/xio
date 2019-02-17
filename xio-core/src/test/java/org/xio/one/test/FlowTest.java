@@ -1,4 +1,4 @@
-package test;
+package org.xio.one.test;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -16,14 +16,13 @@ import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
@@ -34,6 +33,10 @@ public class FlowTest {
   final Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
   String HELLO_WORLD_FLOW = "helloWorldFlow";
   String INT_FLOW = "integerFlow";
+
+  public static Map<String, Long> countWords(Stream<String> names) {
+    return names.collect(groupingBy(name -> name, counting()));
+  }
 
   @Test
   public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
@@ -47,7 +50,7 @@ public class FlowTest {
   }
 
   @Test
-  public void simpleExample() throws Exception {
+  public void simpleFlowExample() throws Exception {
     ItemFlow<String, String> toUPPERCASEFlow = Flow.anItemFlow();
     Subscriber<String, String> upperCaseSubscriber =
         toUPPERCASEFlow.addSubscriber(new FlowItemSubscriber<>() {
@@ -56,41 +59,53 @@ public class FlowTest {
 
           @Override
           public void initialise() {
+            logger.info("initialising");
             stringBuffer = new StringBuffer();
-            logger.info("initialised");
           }
 
           @Override
           public void onNext(Item<String, String> itemValue) {
-            logger.info("on next");
+            logger.info("on next " + itemValue.value());
             stringBuffer.append(itemValue.value().toUpperCase());
             stringBuffer.append(" ");
           }
 
           @Override
-          public void finalise() {
-            setResult(stringBuffer.toString().trim());
-            logger.info("finalised");
+          public String finalise() {
+            logger.info("finalising");
+            return stringBuffer.toString().trim();
           }
         });
     toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
     toUPPERCASEFlow.close(true);
-    Assert.assertThat(upperCaseSubscriber.getFutureResult().get(), is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
+    Assert.assertThat(upperCaseSubscriber.getFutureResult().get(),
+        is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
 
   }
 
   @Test
   public void simpleItemStreamExampleWithFunctionalStyle() throws Exception {
     ItemFlow<String, String> toUPPERcaseFlow = Flow.anItemFlow();
+
     toUPPERcaseFlow.putItem("Value1", "Value2");
+
     toUPPERcaseFlow.publish().doOnNext(i -> logger.info(i.value().toUpperCase())).subscribe();
+
     toUPPERcaseFlow.publish().doOnNext(i -> logger.info(i.value().toLowerCase())).subscribe();
+
     toUPPERcaseFlow.publish().onStart(() -> logger.fine("I starting")).doOnNext(i -> {
       logger.info("I happy " + i.value());
       throw new RuntimeException("I ask help " + i.value());
-    }).doOnError((e, i) -> logger.warning(e.getMessage())).onEnd(() -> logger.fine("I finish"))
-        .subscribe();
+    }).doOnError((e, i) -> logger.warning(e.getMessage())).onEnd(() -> {
+      logger.fine("I finish");
+    }).subscribe();
     toUPPERcaseFlow.close(true);
+  }
+
+  @Test
+  public void shouldCountWords() {
+    countWords(Arrays.stream("The quick quick brown fox".split(" ")))
+        .forEach((key, value) -> logger.info(key + "," + value));
   }
 
 
@@ -109,8 +124,8 @@ public class FlowTest {
       }
 
       @Override
-      public void finalise() {
-        this.setResult(output);
+      public List<Integer> finalise() {
+        return output;
       }
     };
 
@@ -173,7 +188,7 @@ public class FlowTest {
           this.count++;
         }
         if (count == 4)
-          setResult(System.currentTimeMillis());
+          exitAndReturn(System.currentTimeMillis());
       }
 
     };
@@ -191,7 +206,7 @@ public class FlowTest {
           this.count++;
         }
         if (count == 4)
-          setResult(System.currentTimeMillis());
+          exitAndReturn(System.currentTimeMillis());
       }
 
     };
@@ -200,7 +215,8 @@ public class FlowTest {
     ping_stream.putItem("ping");
     Thread.sleep(1000);
     logger.info(
-        "Latency Ms = " + (pongSubscriber.getFutureResult().get() - pingSubscriber.getFutureResult().get()));
+        "Latency Ms = " + (pongSubscriber.getFutureResult().get() - pingSubscriber.getFutureResult()
+            .get()));
     ping_stream.close(true);
     pong_stream.close(true);
   }
@@ -223,11 +239,11 @@ public class FlowTest {
       }
 
       @Override
-      public void finalise() {
-        this.setResult(this.count);
+      public Long finalise() {
+        return this.count;
       }
     };
-    long loops = 1000000;
+    long loops = 10000000;
     asyncFlow.addSubscriber(subscriber);
     for (int i = 0; i < loops; i++) {
       asyncFlow.putItemWithTTL(1, "Hello world" + i);
@@ -261,8 +277,8 @@ public class FlowTest {
         }
 
         @Override
-        public void finalise() {
-          this.setResult(this.count);
+        public Long finalise() {
+          return this.count;
         }
       };
       subscriberInterfaceMap.add(subscriber);
@@ -434,8 +450,8 @@ public class FlowTest {
       }
 
       @Override
-      public void finalise() {
-        this.setResult(new ArrayList<Integer>());
+      public List<Integer> finalise() {
+        return new ArrayList<>();
       }
     });
     asyncFlow.enableImmediateFlushing();

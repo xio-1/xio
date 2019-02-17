@@ -3,10 +3,9 @@ package org.xio.one.reactive.flow.subscribers;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
-import org.xio.one.reactive.flow.subscribers.internal.functional.OnEndFunction;
-import org.xio.one.reactive.flow.subscribers.internal.functional.OnErrorFunction;
-import org.xio.one.reactive.flow.subscribers.internal.functional.OnNextFunction;
-import org.xio.one.reactive.flow.subscribers.internal.functional.OnStartFunction;
+import org.xio.one.reactive.flow.subscribers.internal.functional.*;
+
+import java.util.function.Predicate;
 
 public class FunctionalStreamItemSubscriber<R, T> {
 
@@ -14,8 +13,12 @@ public class FunctionalStreamItemSubscriber<R, T> {
   private OnNextFunction onNextItem;
   private OnErrorFunction onErrorItem;
   private OnStartFunction onStart;
-  private OnEndFunction onEnd;
+  private OnEndReturnFunction<R> onEndReturn;
+  private OnEndFunction onEndFunction;
   private Flow<T, R> trFlow;
+  private OnEndFunction onEnd;
+  private OnExitAndReturnFunction<R> onExitAndReturn;
+  private Predicate<T> exitPredicate;
 
   public FunctionalStreamItemSubscriber(Flow<T, R> trFlow) {
     this.trFlow = trFlow;
@@ -36,6 +39,18 @@ public class FunctionalStreamItemSubscriber<R, T> {
     return this;
   }
 
+  public FunctionalStreamItemSubscriber<R, T> onEndReturn(OnEndReturnFunction onEndReturn) {
+    this.onEndReturn = onEndReturn;
+    return this;
+  }
+
+  public FunctionalStreamItemSubscriber<R, T> ifPredicateExitAndReturn(Predicate<T> exitPredicate,
+      OnExitAndReturnFunction<R> onExitAndReturn) {
+    this.onExitAndReturn = onExitAndReturn;
+    this.exitPredicate = exitPredicate;
+    return this;
+  }
+
   public FunctionalStreamItemSubscriber<R, T> doOnNext(OnNextFunction<T, R> onNextItem) {
     this.onNextItem = onNextItem;
     return this;
@@ -46,9 +61,9 @@ public class FunctionalStreamItemSubscriber<R, T> {
     return this;
   }
 
-  public FunctionalStreamItemSubscriber<R, T> subscribe() {
+  public Subscriber<R, T> subscribe() {
     this.trFlow.addSubscriber(functionalSubscriber);
-    return this;
+    return functionalSubscriber;
   }
 
   private class functionalSubscriber extends FlowItemSubscriber<R, T> {
@@ -56,6 +71,8 @@ public class FunctionalStreamItemSubscriber<R, T> {
     public void onNext(Item<T, R> itemValue) throws Throwable {
       if (onNextItem != null)
         onNextItem.onNext(itemValue);
+      if (onExitAndReturn != null && exitPredicate.test(itemValue.value()))
+        exitAndReturn(onExitAndReturn.onExit());
     }
 
     @Override
@@ -74,11 +91,12 @@ public class FunctionalStreamItemSubscriber<R, T> {
     }
 
     @Override
-    public void finalise() {
-      if (onEnd != null)
+    public R finalise() {
+      if (onEndReturn != null)
+        return onEndReturn.onEnd();
+      else if (onEnd != null)
         onEnd.onEnd();
-      else
-        super.finalise();
+      return super.finalise();
     }
   }
 }

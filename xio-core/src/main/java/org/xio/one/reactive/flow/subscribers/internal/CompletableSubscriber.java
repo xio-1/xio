@@ -82,7 +82,7 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
   }
 
   @Override
-  public final void setResult(R result) {
+  public final void exitAndReturn(R result) {
     completableFuture.complete(result);
     this.result = result;
     this.stop();

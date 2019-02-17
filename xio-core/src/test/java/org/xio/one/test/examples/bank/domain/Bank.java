@@ -1,4 +1,4 @@
-package examples.bank.domain;
+package org.xio.one.test.examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
@@ -89,8 +89,8 @@ public class Bank {
       }
 
       @Override
-      public void finalise() {
-        super.finalise();
+      public Boolean finalise() {
+        return true;
       }
     });
   }

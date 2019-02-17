@@ -33,9 +33,9 @@ public interface Subscriber<R, T> {
 
   Future<R> getFutureResult();
 
-  void setResult(R result);
+  void exitAndReturn(R result);
 
-  void finalise();
+  R finalise();
 
   void process(NavigableSet<Item<T, R>> e);
 }

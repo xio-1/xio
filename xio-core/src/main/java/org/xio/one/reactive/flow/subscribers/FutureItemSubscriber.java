@@ -55,8 +55,8 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
   public abstract void onFutureCompletionError(Throwable error, T itemValue);
 
   @Override
-  public void finalise() {
-
+  public R finalise() {
+    return null;
   }
 
 }

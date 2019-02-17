@@ -16,7 +16,7 @@
     <artifactId>xio-core</artifactId>
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
-        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <testSourceDirectory>src/org.xio.one.test.test/java</testSourceDirectory>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -24,7 +24,7 @@
         </resources>
         <testResources>
             <testResource>
-                <directory>src/test/resources</directory>
+                <directory>src/org.xio.one.test.test/resources</directory>
             </testResource>
         </testResources>
     </build>

@@ -37,7 +37,8 @@ public abstract class FlowMultiplexItemSubscriber<R, T> extends AbstractSubscrib
   }
 
   @Override
-  public void finalise() {
+  public R finalise() {
+    return null;
   }
 
 }

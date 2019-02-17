@@ -36,7 +36,8 @@ public abstract class CompletableMultiplexItemSubscriber<R, T> extends Completab
   }
 
   @Override
-  public void finalise() {
+  public R finalise() {
+    return null;
   }
 
 }

@@ -23,7 +23,8 @@ public abstract class FutureMultiplexItemSubscriber<R, T> extends FutureSubscrib
   }
 
   @Override
-  public void finalise() {
+  public R finalise() {
+    return null;
   }
 
   @Override

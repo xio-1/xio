@@ -517,9 +517,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   public void unsubscribe(Subscriber<R, T> subscriber) {
     synchronized (lockSubscriberslist) {
       if (subscribers.contains(subscriber)) {
-        subscriber.finalise();
+        subscriber.exitAndReturn(subscriber.finalise());
         subscriber.stop();
-        subscriber.setResult(subscriber.getNext());
+        //subscriber.exitAndReturn(subscriber.getNext());
         this.subscribers.remove(subscriber);
         this.lastSeenItemMap.remove(subscriber.getId());
         logger.info("Removed subscriber " + subscriber.getId() + " flow " + name());
@@ -612,7 +612,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
         lastItemInStream = itemStream.contents().last();
       }
       logger.info(
-          "Subscriber " + subscriber.getId() + " finished subscribing to flow " + this.itemStream.name());
+          "Subscriber " + subscriber.getId() + " finished subscribing to flow " + this.itemStream
+              .name());
     }
 
     private Item processResults(Subscriber<R, T> subscriber, Item lastSeenItem) {
