@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,7 +18,7 @@ public class FlowInputMonitor implements Runnable {
     logger.log(Level.INFO, "Flow input monitor has started");
     try {
       //while any flow is active keep going
-      while (Flow.numActiveFlows() > 0) {
+      while (Flow.numActiveFlows() > 0 || XIOService.isRunning()) {
         Flow.allFlows().parallelStream().forEach(n -> {
           if (!n.hasEnded())
             n.acceptAll();
@@ -25,6 +26,7 @@ public class FlowInputMonitor implements Runnable {
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Flow input monitor was interrupted", e);
+      Flow.allFlows().forEach(f->f.close(false));
     }
     logger.log(Level.INFO, "Flow input has monitor stopped");
   }

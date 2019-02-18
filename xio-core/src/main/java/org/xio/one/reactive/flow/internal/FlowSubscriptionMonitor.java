@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public class FlowSubscriptionMonitor implements Runnable {
     try {
 
       //while any flow is active keep going
-      while (Flow.numActiveFlows() > 0) {
+      while (Flow.numActiveFlows() > 0 || XIOService.isRunning()) {
         //publish to any dirty flow
         ArrayList<Callable<Boolean>> callables = new ArrayList<>();
 

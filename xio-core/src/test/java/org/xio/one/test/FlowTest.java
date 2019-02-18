@@ -4,13 +4,14 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.FlowItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.BasicFlowItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
@@ -26,6 +27,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
+import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class FlowTest {
 
@@ -39,8 +41,16 @@ public class FlowTest {
   }
 
   @Test
+  public void HelloWorld() {
+    ItemFlow<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
+    asyncFlow.publish().doOnNext(i->logger.info(i.value())).subscribe();
+    asyncFlow.putItem("Hello World!!!");
+    asyncFlow.close(true);
+  }
+
+  @Test
   public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
-    ItemFlow<String, String> asyncFlow = Flow.anItemFlow(HELLO_WORLD_FLOW);
+    ItemFlow<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
     Thread.sleep(100);
@@ -50,10 +60,10 @@ public class FlowTest {
   }
 
   @Test
-  public void simpleFlowExample() throws Exception {
-    ItemFlow<String, String> toUPPERCASEFlow = Flow.anItemFlow();
+  public void toUpperCaseSubscriberExample() throws Exception {
+    ItemFlow<String, String> toUPPERCASEFlow = anItemFlow();
     Subscriber<String, String> upperCaseSubscriber =
-        toUPPERCASEFlow.addSubscriber(new FlowItemSubscriber<>() {
+        toUPPERCASEFlow.addSubscriber(new BasicFlowItemSubscriber<>() {
 
           StringBuffer stringBuffer;
 
@@ -80,12 +90,11 @@ public class FlowTest {
     toUPPERCASEFlow.close(true);
     Assert.assertThat(upperCaseSubscriber.getFutureResult().get(),
         is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
-
   }
 
   @Test
   public void simpleItemStreamExampleWithFunctionalStyle() throws Exception {
-    ItemFlow<String, String> toUPPERcaseFlow = Flow.anItemFlow();
+    ItemFlow<String, String> toUPPERcaseFlow = anItemFlow();
 
     toUPPERcaseFlow.putItem("Value1", "Value2");
 
@@ -112,9 +121,9 @@ public class FlowTest {
   @Test
   public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
 
-    ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
+    ItemFlow<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
 
-    FlowItemSubscriber<List<Integer>, Integer> subscriber = new FlowItemSubscriber<>() {
+    BasicFlowItemSubscriber<List<Integer>, Integer> subscriber = new BasicFlowItemSubscriber<>() {
 
       private List<Integer> output = new ArrayList<>();
 
@@ -171,11 +180,12 @@ public class FlowTest {
 
   @Test
   public void shouldPingAndPong() throws ExecutionException, InterruptedException {
-    ItemFlow<String, Long> ping_stream = Flow.anItemFlow("ping_stream");
-    ItemFlow<String, Long> pong_stream = Flow.anItemFlow("pong_stream");
+    ItemFlow<String, Long> ping_stream = anItemFlow("ping_stream");
+    ItemFlow<String, Long> pong_stream = anItemFlow("pong_stream");
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
-    FlowItemSubscriber<Long, String> pingSubscriber = new FlowItemSubscriber<Long, String>() {
+    BasicFlowItemSubscriber<Long, String>
+        pingSubscriber = new BasicFlowItemSubscriber<Long, String>() {
 
       private int count = 0;
 
@@ -193,7 +203,7 @@ public class FlowTest {
 
     };
 
-    FlowItemSubscriber<Long, String> pongSubscriber = new FlowItemSubscriber<>() {
+    BasicFlowItemSubscriber<Long, String> pongSubscriber = new BasicFlowItemSubscriber<>() {
 
       private int count = 0;
 
@@ -224,8 +234,9 @@ public class FlowTest {
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
-    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("sustainedPerformanceTest", 1);
-    final FlowItemSubscriber<Long, String> subscriber = new FlowItemSubscriber<Long, String>() {
+    ItemFlow<String, Long> asyncFlow = anItemFlow("sustainedPerformanceTest", 1);
+    final BasicFlowItemSubscriber<Long, String>
+        subscriber = new BasicFlowItemSubscriber<Long, String>() {
       long count;
 
       @Override
@@ -250,20 +261,21 @@ public class FlowTest {
     }
     asyncFlow.close(true);
     assertThat(subscriber.getFutureResult().get(), is(loops));
-    logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
+    logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
   }
 
 
   @Test
   public void shouldSustainThroughputPerformanceTestForMultipleSubscribers() throws Exception {
     long start = System.currentTimeMillis();
-    ItemFlow<String, Long> asyncFlow = Flow.anItemFlow("multisubcriberperformance", 0);
+    ItemFlow<String, Long> asyncFlow = anItemFlow("multisubcriberperformance", 0);
 
     List<Subscriber<Long, String>> subscriberInterfaceMap = new ArrayList<>();
 
     for (int i = 0; i < 100; i++) {
 
-      final FlowItemSubscriber<Long, String> subscriber = new FlowItemSubscriber<Long, String>() {
+      final BasicFlowItemSubscriber<Long, String>
+          subscriber = new BasicFlowItemSubscriber<Long, String>() {
         long count;
 
         @Override
@@ -286,7 +298,7 @@ public class FlowTest {
     }
 
 
-    long loops = 1000000;
+    long loops = 10000000;
 
     for (int i = 0; i < loops; i++) {
       asyncFlow.putItem("Hello world" + i);
@@ -304,7 +316,7 @@ public class FlowTest {
       }
     }).forEach(s -> assertThat(s, is(loops)));
 
-    logger.info("Items per second : " + 10000000 / ((System.currentTimeMillis() - start) / 1000));
+    logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
   }
 
   @Test
@@ -353,7 +365,7 @@ public class FlowTest {
 
   @Test
   public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
-    ItemFlow<String, String> asyncFlow = Flow.anItemFlow("test_ttl");
+    ItemFlow<String, String> asyncFlow = anItemFlow("test_ttl");
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItemWithTTL(10, "test10");
     asyncFlow.putItemWithTTL(1, "test1");
@@ -367,7 +379,7 @@ public class FlowTest {
 
   @Ignore
   public void shouldReturnItemUsingIndexField() {
-    ItemFlow<TestObject, TestObject> asyncFlow = Flow.anItemFlow("test_index", "testField");
+    ItemFlow<TestObject, TestObject> asyncFlow = anItemFlow("test_index", "testField");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
@@ -432,8 +444,8 @@ public class FlowTest {
   public void shouldHandleErrorForFlowSubscriber() throws Exception {
 
     ArrayList<String> errors = new ArrayList<>();
-    ItemFlow<Integer, List<Integer>> asyncFlow = Flow.anItemFlow(INT_FLOW);
-    asyncFlow.addSubscriber(new FlowItemSubscriber<>() {
+    ItemFlow<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
+    asyncFlow.addSubscriber(new BasicFlowItemSubscriber<>() {
 
       int count = 0;
 

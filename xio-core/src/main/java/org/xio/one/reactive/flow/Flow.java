@@ -20,12 +20,10 @@ import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -52,22 +50,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   public static final int LOCK_PARK_NANOS = 100000;
   public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
   private static final Object flowControlLock = new Object();
-  private static Logger logger;
+  private static Logger logger = Logger.getLogger(Flow.class.getName());
   // all flows
   private volatile static Map<String, Flow> flowMap = new ConcurrentHashMap<>();
   private static int flowCount = 0;
-
-  static {
-    try {
-      InputStream stream = Flow.class.getResourceAsStream("/logger.properties");
-      if (stream != null)
-        LogManager.getLogManager().readConfiguration(stream);
-    } catch (Exception e) {
-    } finally {
-      logger = Logger.getLogger(Flow.class.getName());
-      logger.info("XIO loaded");
-    }
-  }
 
   private final int queue_max_size = 16384;
   private final Object lockSubscriberslist = new Object();
@@ -99,7 +85,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
     synchronized (flowControlLock) {
       flowMap.put(id, this);
       flowCount++;
-      if (flowCount == 1) {
+      if (XIOService.isRunning())
+        logger.info("XIO Service will be used to run flow " + name);
+
+      if (!XIOService.isRunning() && flowCount == 1) {
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor());
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor());
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowHousekeepingDaemon());
