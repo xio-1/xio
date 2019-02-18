@@ -4,14 +4,13 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.FutureItemResultFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.BasicFlowItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FlowItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
@@ -63,7 +62,7 @@ public class FlowTest {
   public void toUpperCaseSubscriberExample() throws Exception {
     ItemFlow<String, String> toUPPERCASEFlow = anItemFlow();
     Subscriber<String, String> upperCaseSubscriber =
-        toUPPERCASEFlow.addSubscriber(new BasicFlowItemSubscriber<>() {
+        toUPPERCASEFlow.addSubscriber(new FlowItemSubscriber<>() {
 
           StringBuffer stringBuffer;
 
@@ -123,7 +122,7 @@ public class FlowTest {
 
     ItemFlow<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
 
-    BasicFlowItemSubscriber<List<Integer>, Integer> subscriber = new BasicFlowItemSubscriber<>() {
+    FlowItemSubscriber<List<Integer>, Integer> subscriber = new FlowItemSubscriber<>() {
 
       private List<Integer> output = new ArrayList<>();
 
@@ -184,8 +183,8 @@ public class FlowTest {
     ItemFlow<String, Long> pong_stream = anItemFlow("pong_stream");
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
-    BasicFlowItemSubscriber<Long, String>
-        pingSubscriber = new BasicFlowItemSubscriber<Long, String>() {
+    FlowItemSubscriber<Long, String>
+        pingSubscriber = new FlowItemSubscriber<Long, String>() {
 
       private int count = 0;
 
@@ -203,7 +202,7 @@ public class FlowTest {
 
     };
 
-    BasicFlowItemSubscriber<Long, String> pongSubscriber = new BasicFlowItemSubscriber<>() {
+    FlowItemSubscriber<Long, String> pongSubscriber = new FlowItemSubscriber<>() {
 
       private int count = 0;
 
@@ -235,8 +234,8 @@ public class FlowTest {
   public void shouldSustainThroughputPerformanceTest() throws Exception {
     long start = System.currentTimeMillis();
     ItemFlow<String, Long> asyncFlow = anItemFlow("sustainedPerformanceTest", 1);
-    final BasicFlowItemSubscriber<Long, String>
-        subscriber = new BasicFlowItemSubscriber<Long, String>() {
+    final FlowItemSubscriber<Long, String>
+        subscriber = new FlowItemSubscriber<Long, String>() {
       long count;
 
       @Override
@@ -274,8 +273,8 @@ public class FlowTest {
 
     for (int i = 0; i < 100; i++) {
 
-      final BasicFlowItemSubscriber<Long, String>
-          subscriber = new BasicFlowItemSubscriber<Long, String>() {
+      final FlowItemSubscriber<Long, String>
+          subscriber = new FlowItemSubscriber<Long, String>() {
         long count;
 
         @Override
@@ -445,7 +444,7 @@ public class FlowTest {
 
     ArrayList<String> errors = new ArrayList<>();
     ItemFlow<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
-    asyncFlow.addSubscriber(new BasicFlowItemSubscriber<>() {
+    asyncFlow.addSubscriber(new FlowItemSubscriber<>() {
 
       int count = 0;
 

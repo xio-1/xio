@@ -1,7 +1,7 @@
 package org.xio.one.reactive.flow.domain.flow;
 
 
-import org.xio.one.reactive.flow.subscribers.FunctionalStreamItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FunctionalFlowItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 
@@ -11,7 +11,7 @@ public interface ItemFlow<T, R> extends Flowable<T, R> {
 
   void removeSubscriber(Subscriber<R, T> subscriber);
 
-  FunctionalStreamItemSubscriber<R, T> publish();
+  FunctionalFlowItemSubscriber<R, T> publish();
 
   long putItem(T value);
 
