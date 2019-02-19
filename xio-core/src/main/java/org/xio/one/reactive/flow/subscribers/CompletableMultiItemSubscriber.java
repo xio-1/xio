@@ -7,13 +7,13 @@ import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class CompletableMultiplexItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
+public abstract class CompletableMultiItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
-  public CompletableMultiplexItemSubscriber() {
+  public CompletableMultiItemSubscriber() {
     super();
   }
 
-  public CompletableMultiplexItemSubscriber(int delayMS) {
+  public CompletableMultiItemSubscriber(int delayMS) {
     this.delayMS = delayMS;
   }
 

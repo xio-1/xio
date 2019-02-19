@@ -3,8 +3,8 @@ package org.xio.one.test.examples.bank.domain;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.FlowItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.FlowItemMultiplexSubscriber;
+import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiItemSubscriber;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -19,7 +19,7 @@ public class Bank {
 
   List<TransactionRequest> bankTransactionLedger = Collections.synchronizedList(new ArrayList<>());
   Logger logger = Logger.getLogger(Bank.class.getCanonicalName());
-  FlowItemMultiplexSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
+  MultiItemSubscriber<Boolean, TransactionRequest> ledgerMultiplexFutureSubscriber;
 
   public Bank() {
     transactionEventLoop = Flow.anItemFlow("transactions", 10);
@@ -28,7 +28,7 @@ public class Bank {
 
   public void open() {
     //Subscriber for every transaction request
-    transactionEventLoop.addSubscriber(new FlowItemSubscriber<>() {
+    transactionEventLoop.addSubscriber(new ItemSubscriber<>() {
 
       @Override
       public void onNext(Item<TransactionRequest, Boolean> transaction)
@@ -75,7 +75,7 @@ public class Bank {
 
     });
 
-    transactionLedger.addSubscriber(new FlowItemMultiplexSubscriber<Boolean, TransactionRequest>() {
+    transactionLedger.addSubscriber(new MultiItemSubscriber<Boolean, TransactionRequest>() {
       @Override
       public void onNext(Stream<Item<TransactionRequest, Boolean>> e) {
 

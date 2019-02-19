@@ -6,8 +6,10 @@
 
 package org.xio.one.reactive.flow.util;
 
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,6 +22,7 @@ public class InternalExecutors {
   private static ExecutorService itemLoopThreadPoolexec;
   private static ExecutorService computeThreadPoolexec;
   private static ExecutorService ioThreadPoolexec;
+  private static ScheduledExecutorService schedulerThreadPoolexec;
 
   /**
    * Gets an instance anItemFlow ExecutorService for the application XIO threadpool
@@ -38,20 +41,28 @@ public class InternalExecutors {
     return subscriptionsThreadPoolexec;
   }
 
+  public static synchronized ScheduledExecutorService schedulerThreadPoolInstance() {
+    if (schedulerThreadPoolexec == null || schedulerThreadPoolexec.isShutdown() || schedulerThreadPoolexec
+        .isTerminated())
+      schedulerThreadPoolexec = Executors
+          .newScheduledThreadPool(1,
+              new XIOThreadFactory("cleaner",Thread.MAX_PRIORITY,false));
+    return schedulerThreadPoolexec;
+  }
+
   public static synchronized ExecutorService subscribersThreadPoolInstance() {
     if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown() || computeThreadPoolexec
         .isTerminated())
       computeThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
-              new XIOThreadFactory("subscriber"));
+              new XIOThreadFactory("subscriber",Thread.NORM_PRIORITY,false));
     return computeThreadPoolexec;
   }
 
   public static synchronized ExecutorService controlFlowThreadPoolInstance() {
-    if (itemLoopThreadPoolexec == null)
-      itemLoopThreadPoolexec = Executors.newFixedThreadPool(3, new XIOThreadFactory("boss"));
-    else if (itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
-      itemLoopThreadPoolexec = Executors.newFixedThreadPool(3);
+    if (itemLoopThreadPoolexec == null || itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
+      itemLoopThreadPoolexec = Executors.newFixedThreadPool(2, new XIOThreadFactory("boss",
+          Thread.NORM_PRIORITY,true));
     return itemLoopThreadPoolexec;
   }
 
@@ -70,6 +81,8 @@ public class InternalExecutors {
     private final ThreadGroup group;
     private final AtomicInteger threadNumber = new AtomicInteger(1);
     private final String namePrefix;
+    private int priority=Thread.NORM_PRIORITY;
+    private boolean areDeamonThreads=false;
 
     XIOThreadFactory() {
       SecurityManager s = System.getSecurityManager();
@@ -84,12 +97,18 @@ public class InternalExecutors {
     }
 
 
+    XIOThreadFactory(String name, int priority, boolean areDeamonThreads) {
+      this.priority = priority;
+      this.areDeamonThreads = areDeamonThreads;
+      SecurityManager s = System.getSecurityManager();
+      group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+      namePrefix = "xio-" + name + "-thread-";
+    }
+
     public Thread newThread(Runnable r) {
       Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
-      if (t.isDaemon())
-        t.setDaemon(false);
-      if (t.getPriority() != Thread.NORM_PRIORITY)
-        t.setPriority(Thread.NORM_PRIORITY);
+      t.setDaemon(this.areDeamonThreads);
+      t.setPriority(this.priority);
       return t;
     }
   }

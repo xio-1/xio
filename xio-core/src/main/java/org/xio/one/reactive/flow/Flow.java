@@ -10,10 +10,10 @@ import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.domain.item.VoidItem;
-import org.xio.one.reactive.flow.internal.FlowHousekeepingDaemon;
+import org.xio.one.reactive.flow.internal.FlowHousekeepingTask;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
-import org.xio.one.reactive.flow.subscribers.FunctionalFlowItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FunctionalItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
@@ -91,7 +91,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
       if (!XIOService.isRunning() && flowCount == 1) {
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor());
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor());
-        InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowHousekeepingDaemon());
+        InternalExecutors.schedulerThreadPoolInstance()
+            .scheduleAtFixedRate(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS);
       }
       try {
         Thread.sleep(1000);
@@ -343,9 +344,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
         "Cannot submit item without future subscribers being registered");
   }
 
-  public FunctionalFlowItemSubscriber<R, T> publish() {
-    FunctionalFlowItemSubscriber functionalStreamItemSubscriber =
-        new FunctionalFlowItemSubscriber<>(this);
+  public FunctionalItemSubscriber<R, T> publish() {
+    FunctionalItemSubscriber functionalStreamItemSubscriber = new FunctionalItemSubscriber<>(this);
     return functionalStreamItemSubscriber;
   }
 
@@ -374,6 +374,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+        InternalExecutors.schedulerThreadPoolInstance().shutdown();
       }
       this.reset();
     }
@@ -401,12 +402,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   public boolean housekeep() {
-    if (this.ttl() > 0)
-      if (flowService().itemStoreContents.removeIf(item -> !item.alive())) {
-        logger.log(Level.INFO, "House kept flow : " + this.name());
-        return true;
-      }
+    if (this.ttl() > 0) {
+      logger.info("housekeeping flow " + this.name());
+      flowService().itemStoreContents.removeIf(item -> !item.alive());
+    }
     return false;
+
   }
 
 

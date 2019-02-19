@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow;
 
-import org.xio.one.reactive.flow.internal.FlowHousekeepingDaemon;
+import org.xio.one.reactive.flow.internal.FlowHousekeepingTask;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
 import org.xio.one.reactive.flow.util.InternalExecutors;
@@ -10,6 +10,7 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import java.io.InputStream;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -54,7 +55,8 @@ public class XIOService {
         xioBoss = new XIOService(
             InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor()),
             InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor()),
-            InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowHousekeepingDaemon()));
+            InternalExecutors.schedulerThreadPoolInstance()
+                .scheduleAtFixedRate(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS));
         logger.info("XIO loaded");
       }
     }
@@ -65,7 +67,7 @@ public class XIOService {
     synchronized (lock) {
       if (xioBoss != null) {
         XIOService oldBoss = xioBoss;
-        xioBoss=null;
+        xioBoss = null;
         try {
           //give boss threads a chance to end correctly
           Thread.sleep(1000);

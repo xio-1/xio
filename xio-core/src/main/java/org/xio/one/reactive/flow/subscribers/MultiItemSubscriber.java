@@ -7,13 +7,13 @@ import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
 
-public abstract class FlowItemMultiplexSubscriber<R, T> extends AbstractSubscriber<R, T> {
+public abstract class MultiItemSubscriber<R, T> extends AbstractSubscriber<R, T> {
 
-  public FlowItemMultiplexSubscriber() {
+  public MultiItemSubscriber() {
     super();
   }
 
-  public FlowItemMultiplexSubscriber(int delayMS) {
+  public MultiItemSubscriber(int delayMS) {
     super();
     this.delayMS = delayMS;
   }

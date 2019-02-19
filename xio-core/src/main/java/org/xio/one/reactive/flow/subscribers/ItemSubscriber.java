@@ -6,7 +6,7 @@ import org.xio.one.reactive.flow.subscribers.internal.functional.OnNextFunction;
 
 import java.util.NavigableSet;
 
-public abstract class FlowItemSubscriber<R, T> extends AbstractSubscriber<R, T>
+public abstract class ItemSubscriber<R, T> extends AbstractSubscriber<R, T>
     implements OnNextFunction<T, R> {
 
   @Override
