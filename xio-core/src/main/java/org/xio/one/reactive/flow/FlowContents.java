@@ -63,6 +63,10 @@ public final class FlowContents<T, R> {
     return itemStoreContents.stream().filter(Item::alive).map(Item::value).toArray();
   }
 
+  public NavigableSet<Item<T, R>> allBefore(Item lastItem) {
+    return this.itemStoreContents.subSet(this.itemStoreContents.first(), true, lastItem, false);
+  }
+
 
   public final NavigableSet<Item<T, R>> allAfter(Item lastItem) {
     try {

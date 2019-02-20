@@ -56,7 +56,7 @@ public class XIOService {
             InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor()),
             InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor()),
             InternalExecutors.schedulerThreadPoolInstance()
-                .scheduleAtFixedRate(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS));
+                .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS));
         logger.info("XIO loaded");
       }
     }

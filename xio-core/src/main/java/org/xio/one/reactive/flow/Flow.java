@@ -92,7 +92,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor());
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor());
         InternalExecutors.schedulerThreadPoolInstance()
-            .scheduleAtFixedRate(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS);
+            .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS);
       }
       try {
         Thread.sleep(1000);
@@ -403,8 +403,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   public boolean housekeep() {
     if (this.ttl() > 0) {
-      logger.info("housekeeping flow " + this.name());
-      flowService().itemStoreContents.removeIf(item -> !item.alive());
+      logger.info(
+          "cleaned flow " + this.name() + " of " + flowService().itemStoreContents.parallelStream().filter(i -> !i.alive())
+              .map(d -> flowService().itemStoreContents.remove(d)).count() + " items");
+      return true;
     }
     return false;
 

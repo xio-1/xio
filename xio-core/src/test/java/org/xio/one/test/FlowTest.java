@@ -233,6 +233,7 @@ public class FlowTest {
 
   @Test
   public void shouldSustainThroughputPerformanceTest() throws Exception {
+    logger.info("Thread priority " +  Thread.currentThread().getPriority());
     long start = System.currentTimeMillis();
     ItemFlow<String, Long> asyncFlow = anItemFlow("sustainedPerformanceTest", 1);
     final ItemSubscriber<Long, String> subscriber = new ItemSubscriber<Long, String>() {
@@ -250,14 +251,13 @@ public class FlowTest {
 
       @Override
       public Long finalise() {
-        return this.count;
+        logger.info("Put " + this.count + " Items");return this.count;
       }
     };
     long loops = 10000000;
     asyncFlow.addSubscriber(subscriber);
     for (int i = 0; i < loops; i++) {
       asyncFlow.putItemWithTTL(1, "Hello world" + i);
-      LockSupport.parkNanos(1);
     }
     asyncFlow.close(true);
     assertThat(subscriber.getFutureResult().get(), is(loops));
@@ -366,13 +366,15 @@ public class FlowTest {
   public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
     ItemFlow<String, String> asyncFlow = anItemFlow("test_ttl");
     asyncFlow.enableImmediateFlushing();
-    asyncFlow.putItemWithTTL(10, "test10");
     asyncFlow.putItemWithTTL(1, "test1");
-    asyncFlow.putItemWithTTL(1, "test2");
-    asyncFlow.putItemWithTTL(1, "test3");
-    Thread.sleep(1100);
-    assertThat(asyncFlow.size(), is(1));
-    assertThat(asyncFlow.contents().last().value(), is("test10"));
+    asyncFlow.putItemWithTTL(10, "test10");
+    asyncFlow.putItemWithTTL(20, "test20");
+    asyncFlow.putItemWithTTL(60, "test60");
+
+
+    Thread.sleep(11100);
+    assertThat(asyncFlow.size(), is(2));
+    assertThat(asyncFlow.contents().last().value(), is("test60"));
     asyncFlow.close(true);
   }
 

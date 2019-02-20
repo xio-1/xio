@@ -46,7 +46,7 @@ public class InternalExecutors {
         .isTerminated())
       schedulerThreadPoolexec = Executors
           .newScheduledThreadPool(1,
-              new XIOThreadFactory("cleaner",Thread.MAX_PRIORITY,false));
+              new XIOThreadFactory("cleaner",Thread.NORM_PRIORITY+2,false));
     return schedulerThreadPoolexec;
   }
 
@@ -55,14 +55,14 @@ public class InternalExecutors {
         .isTerminated())
       computeThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
-              new XIOThreadFactory("subscriber",Thread.NORM_PRIORITY,false));
+              new XIOThreadFactory("subscriber",Thread.NORM_PRIORITY+1,false));
     return computeThreadPoolexec;
   }
 
   public static synchronized ExecutorService controlFlowThreadPoolInstance() {
     if (itemLoopThreadPoolexec == null || itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
       itemLoopThreadPoolexec = Executors.newFixedThreadPool(2, new XIOThreadFactory("boss",
-          Thread.NORM_PRIORITY,true));
+          Thread.NORM_PRIORITY+1,true));
     return itemLoopThreadPoolexec;
   }
 
