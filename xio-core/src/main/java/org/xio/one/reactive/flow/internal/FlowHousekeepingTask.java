@@ -17,7 +17,7 @@ public class FlowHousekeepingTask implements Runnable {
   public void run() {
     try {
       if (Flow.numActiveFlows() > 0) {
-        Flow.allFlows().forEach(Flow::housekeep);
+        Flow.allFlows().parallelStream().forEach(Flow::housekeep);
       }
     } catch (Exception e) {
       if (Flow.numActiveFlows() > 0)

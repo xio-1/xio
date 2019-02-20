@@ -403,9 +403,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   public boolean housekeep() {
     if (this.ttl() > 0) {
-      logger.info(
-          "cleaned flow " + this.name() + " of " + flowService().itemStoreContents.parallelStream().filter(i -> !i.alive())
-              .map(d -> flowService().itemStoreContents.remove(d)).count() + " items");
+      long count = flowService().itemStoreContents.stream().filter(i -> !i.alive())
+          .map(d -> flowService().itemStoreContents.remove(d)).count();
+      if (count>0)
+        logger.info(
+          "cleaned flow " + this.name() + " : removed " + count + " items");
       return true;
     }
     return false;

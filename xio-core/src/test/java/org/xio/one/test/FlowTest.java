@@ -94,23 +94,7 @@ public class FlowTest {
         is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
   }
 
-  @Test
-  public void toUpperCaseWithFunctionalStyle() throws Exception {
-    ItemFlow<String, String> toUPPERCASEFlow = anItemFlow();
 
-    StringBuffer buff = new StringBuffer();
-
-    Subscriber<String, String> upperCaseSubscriber =
-        toUPPERCASEFlow.publish().doOnNext(i -> buff.append(i.value().toUpperCase()).append(" "))
-            .onEndReturn(() -> buff.toString().trim()).subscribe();
-
-    toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
-
-    toUPPERCASEFlow.close(true);
-
-    Assert.assertThat(upperCaseSubscriber.getFutureResult().get(),
-        is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
-  }
 
   @Test
   public void shouldCountWords() {
@@ -297,7 +281,7 @@ public class FlowTest {
     }
 
 
-    long loops = 10000000;
+    long loops = 1000000;
 
     for (int i = 0; i < loops; i++) {
       asyncFlow.putItem("Hello world" + i);
