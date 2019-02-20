@@ -2,7 +2,7 @@ package org.xio.one.reactive.http.weeio.internal.domain;
 
 public final class EmptyEvent extends Event {
 
-  public static final Event EMPTY_EVENT = new EmptyEvent(-1,-1);
+  public static final Event EMPTY_EVENT = new EmptyEvent(-1, -1);
 
   public EmptyEvent(long eventid, long eventTimestamp) {
     super(eventid, eventTimestamp);

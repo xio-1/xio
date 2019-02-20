@@ -13,10 +13,9 @@ public class EventKey {
   }
 
   public EventKey(String fieldname, Object value) {
-    this.fieldName=fieldname;
-    this.value=value;
+    this.fieldName = fieldname;
+    this.value = value;
   }
-
 
 
   @Override

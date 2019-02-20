@@ -41,7 +41,8 @@ public class ChannelApi {
   @PATCH
   @Path("/{channelname}")
   @Consumes("application/json")
-  public Response putOne(@Context HttpServletRequest request, @PathParam("channelname") String channelname, Event event) {
+  public Response putOne(@Context HttpServletRequest request,
+      @PathParam("channelname") String channelname, Event event) {
     try {
       HashMap<String, Enumeration<String>> headermap = new HashMap<>();
       request.getHeaderNames().asIterator()
@@ -73,7 +74,7 @@ public class ChannelApi {
   }
 
   @POST
-  @Path("/{channelname}/subscribe")
+  @Path("/{channelname}/publish")
   @Consumes(APPLICATION_JSON)
   @Produces(APPLICATION_JSON)
   public Response subscribe(@PathParam("channelname") String channelname,

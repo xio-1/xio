@@ -12,6 +12,7 @@ public class FilterEntry {
     operator = null;
     value = null;
   }
+
   public FilterEntry(String field, FilterOperations operator, Object value) {
     this.field = field;
     this.operator = operator;

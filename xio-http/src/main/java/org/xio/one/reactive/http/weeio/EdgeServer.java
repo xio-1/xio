@@ -8,8 +8,8 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
-import org.xio.one.reactive.http.weeio.internal.domain.response.SubscriptionResponse;
 import org.xio.one.reactive.http.weeio.internal.domain.request.PassthroughExpression;
+import org.xio.one.reactive.http.weeio.internal.domain.response.SubscriptionResponse;
 import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
 import org.xnio.*;
 
@@ -33,7 +33,6 @@ import java.util.logging.Logger;
  * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
- *
  */
 public class WeeIOTestClient {
 
@@ -90,8 +89,8 @@ public class WeeIOTestClient {
       logger.info("**** configuring client server api port " + serverPort);
 
       final String remoteWSURL =
-          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName
-              + "/subscribe/" + subscribeToChannel(channelName,serverHostIPAddress,apiPort);
+          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName + "/publish/"
+              + subscribeToChannel(channelName, serverHostIPAddress, apiPort);
 
       new Thread(() -> {
         try {
@@ -129,10 +128,12 @@ public class WeeIOTestClient {
   private static String subscribeToChannel(String channelName, String serverHostIPAddress,
       int apiPort) {
     ResteasyClient client = new ResteasyClientBuilder().build();
-    String uri = "http://"+serverHostIPAddress+":"+apiPort+"/channel/"+channelName+"/subscribe";
-    logger.info("Subscribing to: " +uri);
+    String uri =
+        "http://" + serverHostIPAddress + ":" + apiPort + "/channel/" + channelName + "/publish";
+    logger.info("Subscribing to: " + uri);
     ResteasyWebTarget target = client.target(uri);
-    Response response = target.request().post(Entity.entity(new PassthroughExpression(), MediaType.APPLICATION_JSON_TYPE));
+    Response response = target.request()
+        .post(Entity.entity(new PassthroughExpression(), MediaType.APPLICATION_JSON_TYPE));
     SubscriptionResponse subscriptionResponse = response.readEntity(SubscriptionResponse.class);
     response.close();
     return subscriptionResponse.getClientID();
@@ -210,7 +211,8 @@ public class WeeIOTestClient {
               else
                 eventsToPut = (Event[]) List.of(JSONUtil.fromJSONString(event, Event.class))
                     .toArray(new Event[0]);
-              Arrays.stream(eventsToPut).forEach(e -> System.out.println("data:" + e.toJSONString()));
+              Arrays.stream(eventsToPut)
+                  .forEach(e -> System.out.println("data:" + e.toJSONString()));
               if (!message.isComplete())
                 logger.info("B");
             }

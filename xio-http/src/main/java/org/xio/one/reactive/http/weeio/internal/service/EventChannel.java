@@ -15,14 +15,15 @@ import java.util.UUID;
 public class EventChannel {
   private static Map<String, EventChannel> channels = new HashMap<>();
   private ItemFlow<Event, String> flow;
+  private HashMap<String, WebSocketStreamItemSubscriber> clients = new HashMap<>();
 
   private EventChannel(ItemFlow<Event, String> anItemFlow) {
-    this.flow=anItemFlow;
+    this.flow = anItemFlow;
   }
 
   public static EventChannel channel(String name) {
     if (!channels.containsKey(name))
-      channels.put(name, new EventChannel(Flow.anItemFlow(name,60)));
+      channels.put(name, new EventChannel(Flow.anItemFlow(name, 60)));
     return channels.get(name);
   }
 
@@ -67,18 +68,12 @@ public class EventChannel {
     return !this.flow.hasEnded();
   }
 
-  public enum QueryType {
-    STATUS, ALL, LAST, FIRST, ALLAFTER, ALLBEFORE, AVERAGE, Max, Min, COUNT, CONTAINS, LASTBY, AverageBy, CountBy, MaxBy, MinBy, AllBeforeTimestamp, AllAfterTimestamp, Previous, PreviousBy, ALLBY, CLOSE
-  }
-
-
-  private HashMap<String, WebSocketStreamItemSubscriber> clients = new HashMap<>();
-
-
   public String registerNewClient(FilterExpression filterExpression) {
     String clientID = UUID.randomUUID().toString();
     FilterSelector filterSelector = new FilterSelector();
-    FilterEntry filterEntry = new FilterEntry(filterExpression.getField(),filterExpression.getOperator(),filterExpression.getValue());
+    FilterEntry filterEntry =
+        new FilterEntry(filterExpression.getField(), filterExpression.getOperator(),
+            filterExpression.getValue());
     clients.put(clientID, null);
     return clientID;
   }
@@ -92,6 +87,10 @@ public class EventChannel {
         return null;
     }
     throw new SecurityException();
+  }
+
+  public enum QueryType {
+    STATUS, ALL, LAST, FIRST, ALLAFTER, ALLBEFORE, AVERAGE, Max, Min, COUNT, CONTAINS, LASTBY, AverageBy, CountBy, MaxBy, MinBy, AllBeforeTimestamp, AllAfterTimestamp, Previous, PreviousBy, ALLBY, CLOSE
   }
 
 }

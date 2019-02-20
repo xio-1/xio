@@ -48,7 +48,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
     CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
-  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 1;
+  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
   private static final Object flowControlLock = new Object();
   private static Logger logger = Logger.getLogger(Flow.class.getName());
   // all flows

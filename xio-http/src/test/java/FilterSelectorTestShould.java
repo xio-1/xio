@@ -28,7 +28,7 @@ public class FilterSelectorTestShould {
     Event event = new Event(eventValues);
     FilterSelector selector = new FilterSelector();
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, "Hello"));
-    Assert.assertThat(result=selector.work(event), CoreMatchers.is(event));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.is(event));
   }
 
   @Test
@@ -41,7 +41,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, "Hello2"));
 
-    Assert.assertThat(result=selector.work(event), CoreMatchers.is(EMPTY_EVENT));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.is(EMPTY_EVENT));
 
   }
 
@@ -55,7 +55,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, 3.333));
     selector.work(event);
-    Assert.assertThat(result=selector.work(event), CoreMatchers.is(event));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.is(event));
   }
 
   @Test
@@ -68,7 +68,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.EQ, 3));
 
-    Assert.assertThat(result=selector.work(event), CoreMatchers.is(EMPTY_EVENT));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.is(EMPTY_EVENT));
   }
 
   @Test
@@ -81,7 +81,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.GT, 2.333));
     selector.work(event);
-    Assert.assertThat(result=selector.work(event), CoreMatchers.equalTo(event));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.equalTo(event));
   }
 
 
@@ -95,7 +95,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.GT, 2.333));
     selector.work(event);
-    Assert.assertThat(result=selector.work(event), CoreMatchers.is(EMPTY_EVENT));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.is(EMPTY_EVENT));
   }
 
   @Test
@@ -108,7 +108,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.LT, 4.333));
     selector.work(event);
-    Assert.assertThat(result=selector.work(event), CoreMatchers.equalTo(event));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.equalTo(event));
   }
 
   @Test
@@ -121,7 +121,7 @@ public class FilterSelectorTestShould {
 
     selector.addFilterEntry(new FilterEntry("testField", FilterOperations.LT, 2.333));
     selector.work(event);
-    Assert.assertThat(result=selector.work(event), CoreMatchers.is(EMPTY_EVENT));
+    Assert.assertThat(result = selector.work(event), CoreMatchers.is(EMPTY_EVENT));
   }
 
 }

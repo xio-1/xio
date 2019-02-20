@@ -10,14 +10,17 @@ import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
-import org.xio.one.reactive.flow.subscribers.StreamItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.api.ApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.EventNodeID;
 import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
-import org.xnio.*;
+import org.xnio.OptionMap;
+import org.xnio.Options;
+import org.xnio.Xnio;
+import org.xnio.XnioWorker;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,16 +36,16 @@ import static io.undertow.Handlers.*;
 
 /**
  * Web Events EveryWhere Input / Output  (WeeIO) @ Copyright Richard Durley 2019
- *
+ * <p>
  * The idea here is the propagation of JSON web events across the web in
  * near real time using a master cluster <-> edge(s) <-> client(s) pattern
  * The rational here is to implement highly scalable distributed
  * two way messaging over HTTP(S) (using web sockets)
- *
+ * <p>
  * It uses XIO as the core streaming and subscriber implementation
  * using Undertow to provide async servlet container for api and web
  * socket connections.
- *
+ * <p>
  * WeeIO HTTP Event Server
  *
  * @Author Richard Durley
@@ -51,13 +54,12 @@ import static io.undertow.Handlers.*;
  * @Licence @https://github.com/xio-1/xio/blob/master/LICENSE
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
- *
  */
 public class WEEIOHTTPServer {
 
-  UndertowJaxrsServer server;
   private static String PING_CHAR_STRING = Character.toString('�');
   private static Logger logger = Logger.getLogger(WEEIOHTTPServer.class.getCanonicalName());
+  UndertowJaxrsServer server;
 
   public static void main(final String[] args) {
 
@@ -120,12 +122,12 @@ public class WEEIOHTTPServer {
         eventServer.withWebSocketEventServer(channelName, serverHostIPAddress, serverPort, ttl);
         logger.info(
             "**** started master server socket @ http://" + serverHostIPAddress + ":" + serverPort
-                + "/" + channelName + "/subscribe");
+                + "/" + channelName + "/publish");
       }
 
       /*if (argList.contains("-c")) {
         final String clientURL =
-            "http://" + argList.get(argList.indexOf("-c") + 1) + "/" + channelName + "/subscribe";
+            "http://" + argList.get(argList.indexOf("-c") + 1) + "/" + channelName + "/publish";
 
         logger.info("Trying to connect to master node " + clientURL);
         new Thread(() -> {
@@ -212,14 +214,14 @@ public class WEEIOHTTPServer {
     EventChannel.channel(eventStreamName).flow()
         .addSubscriber(new StreamItemSubscriber<String, Event>() {
                          @Override
-                         public void onNext(FlowItem<Event, String> flowItem) throws Throwable {
+                         public void onError(FlowItem<Event, String> flowItem) throws Throwable {
 
                          }
                        }
 
         );
     SubscriberResult<Event[]> subscriberResult =
-        (new Subscription<>(eventStream, Subscribers.CollectorSubscriber())).subscribe();
+        (new Subscription<>(eventStream, Subscribers.CollectorSubscriber())).publish();
     IoFuture<WebSocketChannel> connection;
     new connection = WebSocketClient
         .connectionBuilder(worker, new DefaultByteBufferPool(true, 32768), new URI(remoteURL))
@@ -268,8 +270,8 @@ public class WEEIOHTTPServer {
 
   }*/
 
-  public WEEIOHTTPServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
-      final int port, int ttl) throws IOException {
+  public WEEIOHTTPServer withWebSocketEventServer(String eventStreamName,
+      String serverHostIPAddress, final int port, int ttl) throws IOException {
 
     final Xnio xnio = Xnio.getInstance("nio", WEEIOHTTPServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
@@ -280,10 +282,10 @@ public class WEEIOHTTPServer {
 
     Undertow server =
         Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorker(worker).setHandler(
-            path().addPrefixPath("/" + eventStreamName + "/subscribe",
+            path().addPrefixPath("/" + eventStreamName + "/publish",
                 websocket(new WebSocketConnectionCallback() {
 
-                  StreamItemSubscriber<String, Event> streamItemSubscriber;
+                  ItemSubscriber<String, Event> streamItemSubscriber;
 
                   @Override
                   public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {

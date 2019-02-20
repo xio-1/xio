@@ -15,11 +15,11 @@ public class ChannelSubscription {
     return lastSeenEventId;
   }
 
-  public FilterSelector getFilterSelector() {
-    return filterSelector;
-  }
-
   public void setLastSeenEventId(long lastSeenEventId) {
     this.lastSeenEventId = lastSeenEventId;
+  }
+
+  public FilterSelector getFilterSelector() {
+    return filterSelector;
   }
 }

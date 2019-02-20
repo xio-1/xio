@@ -32,8 +32,7 @@ public class ApiBootstrap extends Application {
     start("0.0.0.0", 8080);
   }
 
-  public static UndertowJaxrsServer start(String serverHostIPAddress, int port)
-      throws Exception {
+  public static UndertowJaxrsServer start(String serverHostIPAddress, int port) throws Exception {
     Undertow.Builder serverBuilder =
         Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorkerThreads(4);
     UndertowJaxrsServer server = new UndertowJaxrsServer().start(serverBuilder);

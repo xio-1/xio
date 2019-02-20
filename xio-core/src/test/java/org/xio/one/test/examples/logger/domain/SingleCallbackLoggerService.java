@@ -25,9 +25,9 @@ public class SingleCallbackLoggerService {
 
   public SingleCallbackLoggerService(String canonicalName, boolean parallel) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
-    ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
+    //ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow =
-        Flow.aCompletableItemFlow("logger", 2, new CompletableItemSubscriber<>(parallel) {
+        Flow.aCompletableItemFlow("logger", 10, new CompletableItemSubscriber<>(parallel) {
 
           final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
               .open(logFilePath, Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
@@ -43,12 +43,14 @@ public class SingleCallbackLoggerService {
             try {
               CompletionHandler<Integer, String> completionHandler =
                   IOCompletionHandler.aIOCompletionHandler(entry.completionHandler());
-              fileChannel.write(ByteBuffer.wrap(entry.value().getBytes()), position, null,
+              ByteBuffer buffer = ByteBuffer.wrap((entry.value()+"\n").getBytes());
+              //buffer = buffer.flip();
+              fileChannel.write(buffer, position, null,
                   completionHandler);
+              position = position + buffer.limit();
             } catch (Exception e) {
               e.printStackTrace();
             } finally {
-              buffer.clear();
             }
           }
 

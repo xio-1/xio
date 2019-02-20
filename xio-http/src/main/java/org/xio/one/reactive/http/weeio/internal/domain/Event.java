@@ -37,16 +37,16 @@ public class Event {
     Map<String, Object> beanProperties = new HashMap<>();
     Method[] methods = object.getClass().getDeclaredMethods();
     Arrays.stream(methods).forEach(m -> {
-      Object value=null;
+      Object value = null;
       try {
-        value = m.invoke(object,null);
+        value = m.invoke(object, null);
       } catch (IllegalAccessException e) {
         e.printStackTrace();
       } catch (InvocationTargetException e) {
         e.printStackTrace();
       }
       String fieldName = m.getName().replace("get", "").replace("is", "");
-      fieldName = fieldName.replaceFirst(".",fieldName.substring(0,1).toLowerCase());
+      fieldName = fieldName.replaceFirst(".", fieldName.substring(0, 1).toLowerCase());
       beanProperties.put(fieldName, value);
     });
     this.eventValues = beanProperties;
@@ -222,8 +222,7 @@ public class Event {
 
   public String toSSEFull() {
     String event = "event: " + eventType;
-    String data =
-        "data: "+ toFullJSONString();
+    String data = "data: " + toFullJSONString();
     return event + "\n" + data;
   }
 
