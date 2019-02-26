@@ -15,9 +15,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
     <build>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -91,7 +89,7 @@
             </resource>
         </resources>
         <sourceDirectory>src/main/java</sourceDirectory>
-        <testSourceDirectory>src/org.xio.one.test.test/java</testSourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
     </build>
     <dependencies>
         <dependency>
@@ -99,19 +97,16 @@
             <artifactId>undertow-core</artifactId>
             <version>1.4.26.Final</version>
         </dependency>
-
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-servlet</artifactId>
             <version>1.4.26.Final</version>
         </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.8.2</version>
         </dependency>
-
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-jaxrs</artifactId>
@@ -122,7 +117,6 @@
             <artifactId>resteasy-jaxb-provider</artifactId>
             <version>3.6.2.Final</version>
         </dependency>
-
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-client</artifactId>
@@ -163,6 +157,5 @@
             <artifactId>jackson-annotations</artifactId>
             <version>2.9.6</version>
         </dependency>
-
     </dependencies>
 </project>

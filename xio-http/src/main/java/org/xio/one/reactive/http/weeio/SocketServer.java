@@ -1,21 +1,28 @@
 package org.xio.one.reactive.http.weeio;
 
 import io.undertow.Undertow;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.resource.FileResourceManager;
+import io.undertow.server.handlers.resource.ResourceHandler;
+import io.undertow.util.HttpString;
 import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.core.AbstractReceiveListener;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
+import org.jboss.resteasy.plugins.interceptors.CorsFilter;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
+import org.jboss.resteasy.spi.ResteasyDeployment;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.http.weeio.internal.CORSResourceHandler;
 import org.xio.one.reactive.http.weeio.internal.api.ApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.EventNodeID;
-import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
 import org.xnio.OptionMap;
 import org.xnio.Options;
@@ -31,7 +38,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static io.undertow.Handlers.*;
+import static io.undertow.Handlers.path;
+import static io.undertow.Handlers.websocket;
 
 
 /**
@@ -55,21 +63,21 @@ import static io.undertow.Handlers.*;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public class WEEIOHTTPServer {
+public class SocketServer {
 
   private static String PING_CHAR_STRING = Character.toString('�');
-  private static Logger logger = Logger.getLogger(WEEIOHTTPServer.class.getCanonicalName());
+  private static Logger logger = Logger.getLogger(SocketServer.class.getCanonicalName());
   UndertowJaxrsServer server;
 
-  public static void main(final String[] args) {
+  public static void main(final String[] args) throws IOException {
 
     try {
       String serverHostIPAddress = "0.0.0.0";
       List<String> argList = Arrays.asList(args);
-      WEEIOHTTPServer eventServer = new WEEIOHTTPServer();
+      SocketServer eventServer = new SocketServer();
       final String channelName;
 
-      if (argList.contains("--h") || argList.contains("--help") || argList.size() == 0) {
+      if (argList.contains("--h") || argList.contains("--help")) {
         System.out.println("Usage Help");
         System.out.println("[-n name] : create stream with name, default name is events");
         System.out.println("[-ttl integer] : event time to live in seconds, default is 1 second");
@@ -116,14 +124,17 @@ public class WEEIOHTTPServer {
         }
       }
 
+      int serverPort = 7000;
       if (argList.contains("-ws")) {
-        int serverPort;
         serverPort = Integer.parseInt(argList.get((argList.indexOf("-ws") + 1)));
-        eventServer.withWebSocketEventServer(channelName, serverHostIPAddress, serverPort, ttl);
-        logger.info(
-            "**** started master server socket @ http://" + serverHostIPAddress + ":" + serverPort
-                + "/" + channelName + "/publish");
       }
+
+      eventServer.withWebSocketEventServer(channelName, serverHostIPAddress, serverPort, ttl);
+
+      logger.info(
+          "**** started master server socket @ http://" + serverHostIPAddress + ":" + serverPort
+              + "/" + channelName + "/subscribe");
+
 
       /*if (argList.contains("-c")) {
         final String clientURL =
@@ -166,7 +177,7 @@ public class WEEIOHTTPServer {
       }
 
       ApiBootstrap.start(serverHostIPAddress, apiport);
-      System.out.println(
+      logger.info(
           "**** starting sever api @ http://" + serverHostIPAddress + ":" + apiport + "/channel/"
               + channelName);
 
@@ -270,19 +281,27 @@ public class WEEIOHTTPServer {
 
   }*/
 
-  public WEEIOHTTPServer withWebSocketEventServer(String eventStreamName,
-      String serverHostIPAddress, final int port, int ttl) throws IOException {
+  public SocketServer withWebSocketEventServer(String eventStreamName, String serverHostIPAddress,
+      final int port, int ttl) throws IOException {
 
-    final Xnio xnio = Xnio.getInstance("nio", WEEIOHTTPServer.class.getClassLoader());
+    final Xnio xnio = Xnio.getInstance("nio", SocketServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
         OptionMap.builder().set(Options.WORKER_IO_THREADS, 8)
-            .set(Options.CONNECTION_HIGH_WATER, 1000000).set(Options.CONNECTION_LOW_WATER, 10)
+            .set(Options.CONNECTION_HIGH_WATER, 10000).set(Options.CONNECTION_LOW_WATER, 10)
             .set(Options.WORKER_TASK_CORE_THREADS, 30).set(Options.WORKER_TASK_MAX_THREADS, 30)
             .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
 
+    ResteasyDeployment rd = new ResteasyDeployment();
+    CorsFilter filter = new CorsFilter();
+    filter.setAllowedMethods("GET,POST,PUT,DELETE,OPTIONS");
+    filter.getAllowedOrigins().add("*");
+    rd.setProviderFactory(new ResteasyProviderFactory());
+    rd.getProviderFactory().register(filter);
+
+
     Undertow server =
         Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorker(worker).setHandler(
-            path().addPrefixPath("/" + eventStreamName + "/publish",
+            path().addPrefixPath("/" + eventStreamName + "/subscribe",
                 websocket(new WebSocketConnectionCallback() {
 
                   ItemSubscriber<String, Event> streamItemSubscriber;
@@ -304,10 +323,8 @@ public class WEEIOHTTPServer {
 
 
                       if (streamItemSubscriber == null)
-                        streamItemSubscriber = new WebSocketStreamItemSubscriber(channel);
-
-                      EventChannel.channel(eventStreamName).flow()
-                          .addSubscriber(streamItemSubscriber);
+                        streamItemSubscriber =
+                            EventChannel.channel(eventStreamName).startNewSubscriber(channel);
 
                       logger.info("Subscriber " + streamItemSubscriber.getId() + " has connected");
                       channel.getReceiveSetter().set(new AbstractReceiveListener() {
@@ -350,8 +367,9 @@ public class WEEIOHTTPServer {
                     }
                   }
 
-                })).addPrefixPath("/web", resource(new FileResourceManager(
-                new File(WEEIOHTTPServer.class.getResource("/web/index.html").getFile())))
+                })).addPrefixPath("/web", new CORSResourceHandler(new FileResourceManager(
+                new File(SocketServer.class.getResource("/web/index.html").getFile()))
+            )
                 .setDirectoryListingEnabled(true))).build();
     server.start();
 

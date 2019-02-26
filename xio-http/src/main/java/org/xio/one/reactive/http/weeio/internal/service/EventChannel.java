@@ -1,7 +1,9 @@
 package org.xio.one.reactive.http.weeio.internal.service;
 
+import io.undertow.websockets.core.WebSocketChannel;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
+import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.domain.request.FilterExpression;
@@ -82,11 +84,16 @@ public class EventChannel {
     if (clients.containsKey(subscriberId)) {
       WebSocketStreamItemSubscriber webSocketStreamItemSubscriber = clients.get(subscriberId);
       if (webSocketStreamItemSubscriber != null)
-        return (WebSocketStreamItemSubscriber) flow.getSubscriber(subscriberId);
-      else
-        return null;
+        return webSocketStreamItemSubscriber;
     }
-    throw new SecurityException();
+    throw new SecurityException("Unauthorized");
+  }
+
+  public ItemSubscriber<String, Event> startNewSubscriber(WebSocketChannel channel) {
+    WebSocketStreamItemSubscriber webSocketStreamItemSubscriber =
+        new WebSocketStreamItemSubscriber(channel);
+    return (ItemSubscriber<String, Event>) flow().addSubscriber(webSocketStreamItemSubscriber);
+
   }
 
   public enum QueryType {

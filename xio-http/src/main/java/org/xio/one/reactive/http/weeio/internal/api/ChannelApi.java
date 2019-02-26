@@ -74,7 +74,7 @@ public class ChannelApi {
   }
 
   @POST
-  @Path("/{channelname}/publish")
+  @Path("/{channelname}/subscribe")
   @Consumes(APPLICATION_JSON)
   @Produces(APPLICATION_JSON)
   public Response subscribe(@PathParam("channelname") String channelname,
