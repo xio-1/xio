@@ -1,24 +1,17 @@
 package org.xio.one.reactive.http.weeio;
 
 import io.undertow.Undertow;
-import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.resource.FileResourceManager;
-import io.undertow.server.handlers.resource.ResourceHandler;
-import io.undertow.util.HttpString;
 import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.core.AbstractReceiveListener;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
-import org.jboss.resteasy.plugins.interceptors.CorsFilter;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
-import org.jboss.resteasy.spi.ResteasyDeployment;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
-import org.xio.one.reactive.http.weeio.internal.CORSResourceHandler;
+import org.xio.one.reactive.http.weeio.internal.CORSResourceHeadersHandler;
 import org.xio.one.reactive.http.weeio.internal.api.ApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
@@ -291,14 +284,6 @@ public class SocketServer {
             .set(Options.WORKER_TASK_CORE_THREADS, 30).set(Options.WORKER_TASK_MAX_THREADS, 30)
             .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
 
-    ResteasyDeployment rd = new ResteasyDeployment();
-    CorsFilter filter = new CorsFilter();
-    filter.setAllowedMethods("GET,POST,PUT,DELETE,OPTIONS");
-    filter.getAllowedOrigins().add("*");
-    rd.setProviderFactory(new ResteasyProviderFactory());
-    rd.getProviderFactory().register(filter);
-
-
     Undertow server =
         Undertow.builder().addHttpListener(port, serverHostIPAddress).setWorker(worker).setHandler(
             path().addPrefixPath("/" + eventStreamName + "/subscribe",
@@ -315,7 +300,7 @@ public class SocketServer {
                         throw new SecurityException("No client credentials provided");
                       }
                       String subscriberId = clientID;
-                      logger.info("A subscribers with clientID" + subscriberId
+                      logger.info("A subscribers with clientID " + subscriberId
                           + " is trying to connect too WEEIOServer");
 
                       streamItemSubscriber =
@@ -367,10 +352,9 @@ public class SocketServer {
                     }
                   }
 
-                })).addPrefixPath("/web", new CORSResourceHandler(new FileResourceManager(
-                new File(SocketServer.class.getResource("/web/index.html").getFile()))
-            )
-                .setDirectoryListingEnabled(true))).build();
+                })).addPrefixPath("/web", new CORSResourceHeadersHandler(new FileResourceManager(
+                new File(SocketServer.class.getResource("/web/index.html").getFile())))))
+            .build();
     server.start();
 
     return this;

@@ -85,8 +85,10 @@ public class EventChannel {
       WebSocketStreamItemSubscriber webSocketStreamItemSubscriber = clients.get(subscriberId);
       if (webSocketStreamItemSubscriber != null)
         return webSocketStreamItemSubscriber;
-    }
-    throw new SecurityException("Unauthorized");
+      else
+        return null;
+    } else
+      throw new SecurityException("Unauthorized");
   }
 
   public ItemSubscriber<String, Event> startNewSubscriber(WebSocketChannel channel) {
