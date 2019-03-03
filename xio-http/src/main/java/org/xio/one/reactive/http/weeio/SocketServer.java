@@ -309,9 +309,11 @@ public class SocketServer {
 
                       if (streamItemSubscriber == null)
                         streamItemSubscriber =
-                            EventChannel.channel(eventStreamName).startNewSubscriber(channel);
+                            EventChannel.channel(eventStreamName).startNewSubscriber(channel, subscriberId);
 
-                      logger.info("Subscriber " + streamItemSubscriber.getId() + " has connected");
+                      logger.info("Subscriber " + streamItemSubscriber.getId() + " for client " + subscriberId + " "
+                          + "has "
+                          + "connected");
                       channel.getReceiveSetter().set(new AbstractReceiveListener() {
 
                         @Override
@@ -378,7 +380,8 @@ public class SocketServer {
               else
                 eventsToPut = (Event[]) List.of(JSONUtil.fromJSONString(event, Event.class))
                     .toArray(new Event[0]);
-              Arrays.stream(eventsToPut).filter(s -> s.get_eventNodeId() != EventNodeID.getNodeID())
+              Arrays.stream(eventsToPut).filter(s -> s.get_eventType()==null ||
+                  s.get_eventNodeId() != EventNodeID.getNodeID())
                   .forEach(eventStream::putItem);
               if (!message.isComplete())
                 logger.info("B");
