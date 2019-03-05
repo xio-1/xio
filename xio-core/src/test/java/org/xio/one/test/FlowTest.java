@@ -165,8 +165,8 @@ public class FlowTest {
 
   @Test
   public void shouldPingAndPong() throws ExecutionException, InterruptedException {
-    ItemFlow<String, Long> ping_stream = anItemFlow("ping_stream");
-    ItemFlow<String, Long> pong_stream = anItemFlow("pong_stream");
+    ItemFlow<String, Long> ping_stream = anItemFlow("ping_stream",30);
+    ItemFlow<String, Long> pong_stream = anItemFlow("pong_stream",30);
     ping_stream.enableImmediateFlushing();
     pong_stream.enableImmediateFlushing();
     ItemSubscriber<Long, String> pingSubscriber = new ItemSubscriber<Long, String>() {
@@ -177,7 +177,7 @@ public class FlowTest {
       public void onNext(Item<String, Long> itemValue) {
         if (this.count < 4) {
           logger.info("got ping");
-          pong_stream.putItemWithTTL(100, "pong");
+          pong_stream.putItemWithTTL(10, "pong");
           logger.info("sent pong");
           this.count++;
         }
@@ -195,7 +195,7 @@ public class FlowTest {
       public void onNext(Item<String, Long> itemValue) {
         if (this.count < 4) {
           logger.info("got pong");
-          ping_stream.putItemWithTTL(100, "ping");
+          ping_stream.putItemWithTTL(10, "ping");
           logger.info("sent ping");
           this.count++;
         }
@@ -347,8 +347,8 @@ public class FlowTest {
   }
 
   @Test
-  public void shouldRemoveExpiredItemsAfter1Second() throws Exception {
-    ItemFlow<String, String> asyncFlow = anItemFlow("test_ttl");
+  public void shouldNotReturnDeadItemsAfter11Seconds() throws Exception {
+    ItemFlow<String, String> asyncFlow = anItemFlow("test_ttl",60);
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItemWithTTL(1, "test1");
     asyncFlow.putItemWithTTL(10, "test10");

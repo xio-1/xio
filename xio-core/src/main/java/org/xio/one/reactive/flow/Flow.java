@@ -5,6 +5,7 @@
  */
 package org.xio.one.reactive.flow;
 
+import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
@@ -57,7 +58,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   private final int queue_max_size = 16384;
   private final Object lockSubscriberslist = new Object();
-  HashMap<String, Item> lastSeenItemMap;
+  ConcurrentHashMap<String, Item> lastSeenItemMap;
   // streamContentsSnapShot variables
   private FlowContents<T, R> flowContents;
   // constants
@@ -66,7 +67,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   private String name;
   private String id;
   private String indexFieldName;
-  private long defaultTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
+  private long maxTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
   private Map<String, FlowSubscriptionTask> subscriberSubscriptions = new ConcurrentHashMap<>();
   // Queue control
   private BlockingQueue<Item<T, R>> item_queue;
@@ -113,8 +114,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
     return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlow<T, R> anItemFlow(String name, long ttlSeconds) {
-    return new Flow<>(name, null, ttlSeconds);
+  public static <T, R> ItemFlow<T, R> anItemFlow(String name, long maxTTLSeconds) {
+    return new Flow<>(name, null, maxTTLSeconds);
   }
 
   public static <T, R> ItemFlow<T, R> anItemFlow(String name, String indexFieldName) {
@@ -122,8 +123,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   public static <T, R> ItemFlow<T, R> anItemFlow(String name, String indexFieldName,
-      long ttlSeconds) {
-    return new Flow<>(name, indexFieldName, ttlSeconds);
+      long maxTTLSeconds) {
+    return new Flow<>(name, indexFieldName, maxTTLSeconds);
   }
 
   public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(
@@ -142,8 +143,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name,
-      long ttlSeconds, FutureSubscriber<R, T> futureSubscriber) {
-    Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
+      long maxTTLSeconds, FutureSubscriber<R, T> futureSubscriber) {
+    Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
   }
@@ -164,8 +165,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name,
-      long ttlSeconds, CompletableSubscriber<R, T> completableSubscriber) {
-    Flow<T, R> resultFlowable = new Flow<>(name, null, ttlSeconds);
+      long maxTTLSeconds, CompletableSubscriber<R, T> completableSubscriber) {
+    Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds);
     resultFlowable.addAppropriateSubscriber(completableSubscriber);
     return resultFlowable;
   }
@@ -184,17 +185,17 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
     }
   }
 
-  private void initialise(String name, String indexFieldName, long ttlSeconds) {
+  private void initialise(String name, String indexFieldName, long maxTTLSeconds) {
     this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
     this.name = name;
     this.indexFieldName = indexFieldName;
-    if (ttlSeconds >= 0)
-      this.defaultTTLSeconds = ttlSeconds;
+    if (maxTTLSeconds >= 0)
+      this.maxTTLSeconds = maxTTLSeconds;
     this.flowContents = new FlowContents<>(this);
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
     this.subscribers = new ArrayList<>();
-    this.lastSeenItemMap = new HashMap<>();
+    this.lastSeenItemMap = new ConcurrentHashMap<>();
   }
 
   @Override
@@ -258,7 +259,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   @Override
   public long putItem(T value) {
-    return putItemWithTTL(defaultTTLSeconds, value)[0];
+    return putItemWithTTL(maxTTLSeconds, value)[0];
   }
 
   /**
@@ -270,7 +271,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   @Override
   public long[] putItem(T... values) {
-    return putItemWithTTL(defaultTTLSeconds, values);
+    return putItemWithTTL(maxTTLSeconds, values);
   }
 
   /**
@@ -283,6 +284,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   @Override
   public long[] putItemWithTTL(long ttlSeconds, T... values) {
     long[] ids = new long[values.length];
+    if (ttlSeconds>this.maxTTLSeconds)
+      throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
         Item<T, R> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
@@ -303,7 +306,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
    */
   @Override
   public void submitItem(T value, FlowItemCompletionHandler<R, T> completionHandler) {
-    submitItemWithTTL(this.defaultTTLSeconds, value, completionHandler);
+    submitItemWithTTL(this.maxTTLSeconds, value, completionHandler);
   }
 
   /**
@@ -315,6 +318,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   @Override
   public void submitItemWithTTL(long ttlSeconds, T value,
       FlowItemCompletionHandler<R, T> completionHandler) {
+    if (ttlSeconds>this.maxTTLSeconds)
+      throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     Item<T, R> item = new Item<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithBlock(item, flushImmediately);
   }
@@ -327,7 +332,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
    */
   @Override
   public Future<R> submitItem(T value) {
-    return submitItemWithTTL(defaultTTLSeconds, value);
+    return submitItemWithTTL(maxTTLSeconds, value);
   }
 
   /**
@@ -338,6 +343,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
    */
   @Override
   public Future<R> submitItemWithTTL(long ttlSeconds, T value) {
+    if (ttlSeconds>this.maxTTLSeconds)
+      throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     if (futureSubscriber != null)
       return putAndReturnAsCompletableFuture(ttlSeconds, value);
     throw new IllegalStateException(
@@ -383,7 +390,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   private void reset() {
     this.subscribers.forEach(this::unsubscribe);
-    this.initialise(this.name, this.indexFieldName, this.ttl());
+    this.initialise(this.name, this.indexFieldName, this.maxTTLSeconds());
   }
 
   public Flowable<T, R> countDownLatch(int count_down_latch) {
@@ -402,8 +409,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   public boolean housekeep() {
-    if (this.ttl() > 0) {
-      long count = flowService().itemStoreContents.stream().filter(i -> !i.alive())
+    if (this.maxTTLSeconds() > 0) {
+      long count =
+          flowService().itemStoreContents.stream().filter(i -> !i.readyForHouseKeeping(this.maxTTLSeconds))
           .map(d -> flowService().itemStoreContents.remove(d)).count();
       if (count>0)
         logger.info(
@@ -490,8 +498,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   @Override
-  public long ttl() {
-    return this.defaultTTLSeconds;
+  public long maxTTLSeconds() {
+    return this.maxTTLSeconds;
   }
 
   public boolean isAtEnd() {
@@ -512,8 +520,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
     synchronized (lockSubscriberslist) {
       if (subscribers.contains(subscriber)) {
         subscriber.exitAndReturn(subscriber.finalise());
-        subscriber.stop();
-        //subscriber.exitAndReturn(subscriber.getNext());
         this.subscribers.remove(subscriber);
         this.lastSeenItemMap.remove(subscriber.getId());
         logger.info("Removed subscriber " + subscriber.getId() + " flow " + name());
@@ -552,10 +558,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
               if (VoidItem.VOID_ITEM.equals(lastSeenItem))
                 subscriber.initialise();
               if (!subscriber.isDone() && !itemStream.isAtEnd()) {
-                return !lastSeenItemMap
-                    .put(subscriber.getId(), processResults(subscriber, lastSeenItem))
-                    .equals(lastSeenItem);
-
+                Item last = processResults(subscriber, lastSeenItem);
+                lastSeenItemMap.replace(subscriber.getId(),lastSeenItem,last);
+                return !lastSeenItem.equals(last);
               } else {
                 processFinalResults(subscriber, lastSeenItem);
                 unsubscribe(subscriber);
@@ -574,13 +579,13 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
           try {
             Collections.shuffle(callableList);
             Optional<Boolean> atLeastOnehasExecuted =
-                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream()
-                    .map(f -> {
+                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream().map(f -> {
                       try {
                         //block for all subscriber tasks to finish
-                        return f.get();
-                      } catch (InterruptedException | ExecutionException e) {
-                        logger.log(Level.WARNING, "subcriber execution error", e);
+                        return f.get(1,TimeUnit.SECONDS);
+                      } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                        logger.log(Level.WARNING, "subscriber execution error", e);
+                        e.printStackTrace();
                       }
                       return false;
                     }).filter(b -> b.equals(true)).findFirst();

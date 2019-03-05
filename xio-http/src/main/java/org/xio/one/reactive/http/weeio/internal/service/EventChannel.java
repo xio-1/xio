@@ -91,13 +91,18 @@ public class EventChannel {
       throw new SecurityException("Unauthorized");
   }
 
-  public ItemSubscriber<String, Event> startNewSubscriber(WebSocketChannel channel,
+  public ItemSubscriber<String, Event> newSubscriber(WebSocketChannel channel,
       String subscriberId) {
     WebSocketStreamItemSubscriber webSocketStreamItemSubscriber =
         new WebSocketStreamItemSubscriber(channel);
     clients.replace(subscriberId, webSocketStreamItemSubscriber);
     return (ItemSubscriber<String, Event>) flow().addSubscriber(webSocketStreamItemSubscriber);
 
+  }
+
+  public void removeSubscriber(String subscriberId) {
+    WebSocketStreamItemSubscriber webSocketStreamItemSubscriber = clients.remove(subscriberId);
+    flow().removeSubscriber(webSocketStreamItemSubscriber);
   }
 
   public enum QueryType {

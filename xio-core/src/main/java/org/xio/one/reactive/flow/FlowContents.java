@@ -93,7 +93,7 @@ public final class FlowContents<T, R> {
           } else
             LockSupport.parkNanos(100000);
         } else
-          return extractItemsThatAreInSequence(EMPTY_ITEM, querystorecontents,
+          return extractItemsThatAreInSequence(querystorecontents.last(), querystorecontents,
               querystorecontents.first());
       else
         LockSupport.parkNanos(100000);

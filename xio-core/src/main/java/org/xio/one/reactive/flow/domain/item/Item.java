@@ -84,6 +84,13 @@ public class Item<T, R> {
       return true;
   }
 
+  public boolean readyForHouseKeeping(long maxTTLSeconds) {
+    if (this.itemTimestamp() + (maxTTLSeconds * 1000) > System.currentTimeMillis())
+      return true;
+    else
+      return false;
+  }
+
   public boolean alive(long lastSeenItemId) {
     if (alive() || lastSeenItemId < this.itemId)
       return true;

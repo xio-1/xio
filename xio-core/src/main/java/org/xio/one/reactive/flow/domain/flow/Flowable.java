@@ -22,7 +22,7 @@ public interface Flowable<T, R> {
 
   boolean isEmpty();
 
-  long ttl();
+  long maxTTLSeconds();
 
   boolean housekeep();
 

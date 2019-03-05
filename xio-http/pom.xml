@@ -31,7 +31,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.xio.one.web.EventServer</mainClass>
+                            <mainClass>org.xio.one.reactive.http.weeio.SocketServer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -41,7 +41,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.xio.one.web.EventServer</mainClass>
+                            <mainClass>org.xio.one.reactive.http.weeio.SocketServer</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -74,7 +74,8 @@
                                         implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.xio.one.web.EventServer
+                                    <mainClass>
+                                        org.xio.one.reactive.http.weeio.SocketServer
                                     </mainClass>
                                 </transformer>
                             </transformers>
