@@ -24,14 +24,14 @@ import org.xnio.Options;
 import org.xnio.Xnio;
 import org.xnio.XnioWorker;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static io.undertow.Handlers.path;
 import static io.undertow.Handlers.websocket;
@@ -77,7 +77,8 @@ public class SocketServer {
       if (argList.contains("--h") || argList.contains("--help")) {
         System.out.println("Usage Help");
         System.out.println("[-n name] : create stream with name, default name is events");
-        System.out.println("[-maxTTLSeconds integer] : event time to live in seconds, default is 1 second");
+        System.out.println(
+            "[-maxTTLSeconds integer] : event time to live in seconds, default is 1 second");
         System.out.println("[-ws port] start server data channel (web socket) on given port");
         System.out
             .println("[-c ipaddress:wsport] cluster to another master server @ipaddress:port");
@@ -341,7 +342,7 @@ public class SocketServer {
                           try {
                             channel.sendClose();
                           } catch (IOException e) {
-                            logger.log(Level.WARNING,e.getMessage(),e);
+                            logger.log(Level.WARNING, e.getMessage(), e);
                           }
                         }
 
@@ -368,7 +369,8 @@ public class SocketServer {
 
                 }).addExtension(new PerMessageDeflateHandshake(false, 6))).addPrefixPath("/web",
                 new CORSResourceHeadersHandler(new FileResourceManager(
-                new File(SocketServer.class.getResource("/web/index.html").getFile()))))).build();
+                    createWelcomeFile()))))
+            .build();
     server.start();
 
     return this;
@@ -406,6 +408,26 @@ public class SocketServer {
         }
       }
     }
+  }
+
+  public File createWelcomeFile() throws IOException {
+    String seedFile;
+    try {
+      logger.info("creating resource located at URI ");
+      final BufferedReader bufferedReader = new BufferedReader(
+          new InputStreamReader(SocketServer.class.getResourceAsStream("/web/index.html")));
+      seedFile = bufferedReader.lines().collect(Collectors.joining("\n"));
+      File index = new File("index.html");
+      try (PrintWriter out = new PrintWriter(index)) {
+        out.write(seedFile);
+      } finally {
+        bufferedReader.close();
+      }
+      return index;
+    } catch (IOException e) {
+      throw new IOException("Could not create index file",e);
+    }
+
   }
 
 }

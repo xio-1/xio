@@ -2,7 +2,7 @@ package org.xio.one.test.examples.bank.domain;
 
 import java.util.Objects;
 
-public class TransactionRequest {
+public class Transaction {
 
   final Long timestamp;
   final String reference;
@@ -11,7 +11,7 @@ public class TransactionRequest {
   final TransactionType transactionType;
   final double amount;
 
-  public TransactionRequest(String fromReference, String fromAccount, String accountTo,
+  public Transaction(String fromReference, String fromAccount, String accountTo,
       double amount, TransactionType transactionType) {
     this.amount = amount;
     this.reference = fromReference;
@@ -64,7 +64,7 @@ public class TransactionRequest {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-    TransactionRequest that = (TransactionRequest) o;
+    Transaction that = (Transaction) o;
     return Double.compare(that.amount, amount) == 0 && Objects.equals(timestamp, that.timestamp)
         && Objects.equals(reference, that.reference) && Objects
         .equals(fromAccount, that.fromAccount) && Objects.equals(toAccount, that.toAccount)
