@@ -11,14 +11,12 @@ import org.xio.one.reactive.flow.domain.flow.ItemFlow;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.FutureMultiplexItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -43,7 +41,7 @@ public class FlowTest {
   @Test
   public void HelloWorld() {
     ItemFlow<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publish().doOnNext(i -> logger.info(i.value())).subscribe();
+    asyncFlow.publish(ItemSubscriber.class).doOnNext(i -> logger.info(i.value())).subscribe();
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.close(true);
   }
@@ -140,15 +138,15 @@ public class FlowTest {
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
     FutureItemResultFlowable<String, String> asyncFlow =
         Flow.aFutureResultItemFlow(HELLO_WORLD_FLOW, 100,
-            new FutureItemSubscriber<String, String>() {
+            new FutureItemSubscriber<>() {
               @Override
-              public Future<String> onNext(String itemValue) {
+              public String onNext(Item<String,String> item) {
                 logger.info("Completing future");
-                return CompletableFuture.completedFuture(itemValue + " world");
+                return item.value() + " world";
               }
 
               @Override
-              public void onFutureCompletionError(Throwable error, String itemValue) {
+              public void onFutureCompletionError(Throwable error, Item<String,String> itemValue) {
                 error.printStackTrace();
               }
             });
@@ -314,39 +312,6 @@ public class FlowTest {
   }
 
   @Test
-  public void putForMultiplexingFutures() throws Exception {
-    FutureItemResultFlowable<String, String> micro_stream =
-        Flow.aFutureResultItemFlow("micro_stream", new FutureMultiplexItemSubscriber<>() {
-
-          @Override
-          public Map<Long, Future<String>> onNext(Stream<Item<String, String>> e) {
-            Map<Long, Future<String>> results = new HashMap<>();
-            e.forEach(stringItem -> results.put(stringItem.itemId(),
-                CompletableFuture.completedFuture(stringItem.value().toUpperCase())));
-            return results;
-          }
-
-          @Override
-          public void onFutureCompletionError(Throwable error, String itemValue) {
-
-          }
-        });
-
-    Future<String> result1 = micro_stream.submitItem("hello1");
-    Future<String> result2 = micro_stream.submitItem("hello2");
-    Future<String> result3 = micro_stream.submitItem("hello3");
-    try {
-      assertThat(result1.get(1, TimeUnit.SECONDS), is("HELLO1"));
-      assertThat(result2.get(1, TimeUnit.SECONDS), is("HELLO2"));
-      assertThat(result3.get(1, TimeUnit.SECONDS), is("HELLO3"));
-    } catch (Exception e) {
-      fail();
-    } finally {
-      micro_stream.close(true);
-    }
-  }
-
-  @Test
   public void shouldNotReturnDeadItemsAfter11Seconds() throws Exception {
     ItemFlow<String, String> asyncFlow = anItemFlow("test_ttl",60);
     asyncFlow.enableImmediateFlushing();
@@ -393,8 +358,8 @@ public class FlowTest {
         Flow.aFutureResultItemFlow(HELLO_WORLD_FLOW, new FutureItemSubscriber<String, String>() {
 
           @Override
-          public Future<String> onNext(String itemValue) {
-            return CompletableFuture.supplyAsync(() -> functionalThrow(itemValue));
+          public String onNext(Item<String,String> itemValue) {
+            return functionalThrow(itemValue.value());
           }
 
           private String functionalThrow(String itemValue) {
@@ -405,8 +370,8 @@ public class FlowTest {
           }
 
           @Override
-          public void onFutureCompletionError(Throwable error, String itemValue) {
-            assert (error.getCause().getMessage().equals("hello"));
+          public void onFutureCompletionError(Throwable error, Item<String,String> itemValue) {
+            assert (error.getMessage().equals("hello"));
           }
         });
     Future<String> result1 = asyncFlow.submitItem("Hello1");

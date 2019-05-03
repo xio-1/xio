@@ -5,6 +5,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.ItemFlow;
+import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 
 import java.util.logging.Logger;
 
@@ -22,7 +23,7 @@ public class XIOServiceTest {
   @Test
   public void HelloWorld1ShouldRunOnBossThreads() {
     ItemFlow<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publish().doOnNext(i->logger.info(i.value())).subscribe();
+    asyncFlow.publish(ItemSubscriber.class).doOnNext(i->logger.info(i.value())).subscribe();
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.close(true);
   }
@@ -30,7 +31,7 @@ public class XIOServiceTest {
   @Test
   public void HelloWorld2ShouldRunOnBossThreads() {
     ItemFlow<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publish().doOnNext(i->logger.info(i.value())).subscribe();
+    asyncFlow.publish(ItemSubscriber.class).doOnNext(i->logger.info(i.value())).subscribe();
     asyncFlow.putItem("Hello World Again!!!");
     asyncFlow.close(true);
   }

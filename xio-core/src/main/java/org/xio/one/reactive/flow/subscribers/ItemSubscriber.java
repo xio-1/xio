@@ -14,7 +14,8 @@ public abstract class ItemSubscriber<R, T> extends AbstractSubscriber<R, T>
     e.forEach(this::accept);
   }
 
-  public abstract void onNext(Item<T, R> itemValue) throws Throwable;
+  @Override
+  public abstract void onNext(Item<T, R> itemValue) ;
 
   public void onError(Throwable error, Item<T, R> itemValue) {
     return;

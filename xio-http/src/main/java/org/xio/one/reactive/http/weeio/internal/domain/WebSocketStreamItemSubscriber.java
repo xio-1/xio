@@ -14,7 +14,7 @@ public class WebSocketStreamItemSubscriber extends ItemSubscriber<String, Event>
   }
 
   @Override
-  public void onNext(Item<Event, String> flowItem) throws Throwable {
+  public Optional<R> onNext(Item<Event, String> flowItem) throws Throwable {
     if (channel.isOpen())
       WebSockets.sendText("data: " + flowItem.value().toJSONString(), channel, null);
   }

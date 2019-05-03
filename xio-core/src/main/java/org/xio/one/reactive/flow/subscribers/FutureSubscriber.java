@@ -24,7 +24,6 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
   public FutureSubscriber() {
     this.completableFuture = new CompletableFuture<>();
     initialise();
-    initialise();
   }
 
   @Override
@@ -104,60 +103,10 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
     return completableFuture;
   }
 
-  private R handleResult(Future<R> result, T value) {
-    try {
-      return result.get();
-    } catch (InterruptedException | ExecutionException e) {
-      onFutureCompletionError(e, value);
-    }
-    return null;
+  public Map<Long, CompletableFuture<R>> getFutures() {
+    return futures;
   }
 
-  final void completeFuture(Item<T, R> item, Future<R> result) {
-    while (futures.get(item.itemId()) == null) {
-      LockSupport.parkNanos(100000);
-    }
-    CompletableFuture<R> future = futures.get(item.itemId());
-    future.complete(handleResult(result, item.value()));
-
-
-    /*ForkJoinTask<R> forkJoinTask = new ForkJoinTask<R>() {
-      R rawResult;
-
-      @Override
-      public R getRawResult() {
-        return rawResult;
-      }
-
-      @Override
-      protected void setRawResult(R value) {
-        rawResult = value;
-      }
-
-      @Override
-      protected boolean exec() {
-        try {
-          setRawResult(getFutureResult.get());
-        } catch (InterruptedException | ExecutionException e) {
-          e.printStackTrace();
-        }
-        return true;
-      }
-    };
-    future.complete(pool.invoke(forkJoinTask));*/
-
-    /*CompletableFuture.supplyAsync(() -> {
-      try {
-        future.complete(getFutureResult.get());
-      } catch (Exception e1) {
-        future.complete(null);
-        onFutureCompletionError(e1, item.value());
-      }
-      return null;
-    });*/
-  }
-
-
-  public abstract void onFutureCompletionError(Throwable error, T itemValue);
+  public abstract void onFutureCompletionError(Throwable error, Item<T,R> itemValue);
 
 }

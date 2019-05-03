@@ -3,6 +3,7 @@ package org.xio.one.test.examples.bank.domain;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
@@ -18,7 +19,7 @@ public class TransactionEventListener extends ItemSubscriber<Boolean, Transactio
 
   @Override
   public void onNext(Item<Transaction, Boolean> transaction)
-      throws InsufficientFundsException, ExecutionException, InterruptedException {
+      throws InsufficientFundsException {
     if (this.processTransaction(transaction.value()))
       recordInLedger(transaction.value());
     else

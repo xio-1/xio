@@ -14,7 +14,7 @@ import org.xio.one.reactive.flow.domain.item.VoidItem;
 import org.xio.one.reactive.flow.internal.FlowHousekeepingTask;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
-import org.xio.one.reactive.flow.subscribers.FunctionalItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
@@ -351,8 +351,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
         "Cannot submit item without future subscribers being registered");
   }
 
-  public FunctionalItemSubscriber<R, T> publish() {
-    FunctionalItemSubscriber functionalStreamItemSubscriber = new FunctionalItemSubscriber<>(this);
+  @Override
+  public FunctionalSubscriber<R, T> publish(Class subscriberClass) {
+    FunctionalSubscriber functionalStreamItemSubscriber = new FunctionalSubscriber<>(this
+        ,subscriberClass);
     return functionalStreamItemSubscriber;
   }
 
