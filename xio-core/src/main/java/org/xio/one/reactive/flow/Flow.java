@@ -23,6 +23,7 @@ import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,7 +55,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private static Logger logger = Logger.getLogger(Flow.class.getName());
   // all flows
   private volatile static Map<String, Flow> flowMap = new ConcurrentHashMap<>();
-  private static int flowCount = 0;
+  private static AtomicInteger flowCount= new AtomicInteger();
 
   private final int queue_max_size = 16384;
   private final Object lockSubscriberslist = new Object();
@@ -85,11 +86,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     initialise(name, indexFieldName, ttlSeconds);
     synchronized (flowControlLock) {
       flowMap.put(id, this);
-      flowCount++;
       if (XIOService.isRunning())
         logger.info("XIO Service will be used to run flow " + name);
 
-      if (!XIOService.isRunning() && flowCount == 1) {
+      if (!XIOService.isRunning() && flowCount.incrementAndGet() == 1) {
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor());
         InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor());
         InternalExecutors.schedulerThreadPoolInstance()
@@ -186,9 +186,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   public static int numActiveFlows() {
-    synchronized (flowControlLock) {
-      return flowCount;
-    }
+      return flowCount.get();
   }
 
   private void initialise(String name, String indexFieldName, long maxTTLSeconds) {
@@ -379,15 +377,15 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     synchronized (flowControlLock) {
-      flowCount--;
       flowMap.remove(this.id);
-      if (flowCount == 0) {
+      if (flowCount.decrementAndGet() == 0) {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
         InternalExecutors.schedulerThreadPoolInstance().shutdown();
+        InternalExecutors.controlFlowThreadPoolInstance().shutdown();
       }
       this.reset();
     }
