@@ -1,16 +1,17 @@
 package org.xio.one.test.examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.flow.ItemFlow;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 public class Bank {
 
   HashMap<String, Account> accounts = new HashMap<>();
 
-  ItemFlow<Transaction, Boolean> transactionEventLoop;
+  ItemFlowable<Transaction, Boolean> transactionEventLoop;
 
   TransactionLedger bankTransactionLedger = new TransactionLedger();
 
@@ -22,7 +23,7 @@ public class Bank {
   }
 
   public void open() {
-      transactionEventLoop.addSubscriber(new TransactionEventListener(this));
+    transactionEventLoop.addSubscriber(new TransactionEventListener(this));
   }
 
   void creditAccount(String accountNumber, Transaction transaction) {

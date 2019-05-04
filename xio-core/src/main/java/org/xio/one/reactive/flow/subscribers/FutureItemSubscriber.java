@@ -4,7 +4,6 @@ import org.xio.one.reactive.flow.domain.item.Item;
 
 import java.util.NavigableSet;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.locks.LockSupport;
 
 public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> {
 
@@ -26,33 +25,26 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
 
   @Override
   public final void process(NavigableSet<Item<T, R>> e) {
-    if (e != null) {
-      {
-        e.parallelStream().forEach(item -> {
-          try {
-            while (getFutures().get(item.itemId()) == null) {
-              LockSupport.parkNanos(100000);
-            }
-            CompletableFuture<R> future = getFutures().get(item.itemId());
-            future.completeAsync(() -> {
-              try {
-                return onNext(item);
-              } catch (Throwable t) {
-                onFutureCompletionError(t, item);
-              }
-              return null;
-            });
-          } catch (Throwable ex) {
-            ex.printStackTrace();
-          }
-        });
+    if (e != null)
+      e.parallelStream().forEach(this::submitNext);
+
+  }
+
+  private void submitNext(Item<T, R> item) {
+    CompletableFuture<R> future = getFutures().get(item.itemId());
+    future.completeAsync(() -> {
+      try {
+        return onNext(item);
+      } catch (Throwable t) {
+        onError(t, item);
       }
-    }
+      return null;
+    });
   }
 
   public abstract R onNext(Item<T, R> itemValue) throws RuntimeException;
 
-  public abstract void onFutureCompletionError(Throwable error, Item<T, R> itemValue);
+  public abstract void onError(Throwable error, Item<T, R> itemValue);
 
   @Override
   public R finalise() {

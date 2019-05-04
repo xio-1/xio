@@ -11,8 +11,8 @@ public class Transaction {
   final TransactionType transactionType;
   final double amount;
 
-  public Transaction(String fromReference, String fromAccount, String accountTo,
-      double amount, TransactionType transactionType) {
+  public Transaction(String fromReference, String fromAccount, String accountTo, double amount,
+      TransactionType transactionType) {
     this.amount = amount;
     this.reference = fromReference;
     this.toAccount = accountTo;

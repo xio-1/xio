@@ -1,6 +1,5 @@
 package org.xio.one.test.examples.logger;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.test.examples.logger.domain.AsyncMultiplexCallbackLoggerService;
@@ -8,14 +7,9 @@ import org.xio.one.test.examples.logger.domain.LogLevel;
 import org.xio.one.test.examples.logger.domain.SingleCallbackLoggerService;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
-
-import static org.hamcrest.CoreMatchers.is;
 
 public class LoggerServiceTest {
 
@@ -23,8 +17,6 @@ public class LoggerServiceTest {
   private static int ONE_MILLION = 1000000;
 
   Logger logger = Logger.getLogger(LoggerServiceTest.class.getCanonicalName());
-
-
 
 
 

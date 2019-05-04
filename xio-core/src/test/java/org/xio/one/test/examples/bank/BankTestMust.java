@@ -115,9 +115,8 @@ public class BankTestMust {
     bank.submitTransactionRequest(
         new Transaction("cash deposit", null, myaccount2.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", myaccount1.getAccountNumber(),
-            myaccount2.getAccountNumber(), 500d, TransactionType.TRANSFER));
+    bank.submitTransactionRequest(new Transaction("cash deposit", myaccount1.getAccountNumber(),
+        myaccount2.getAccountNumber(), 500d, TransactionType.TRANSFER));
     bank.close();
 
     Assert.assertThat(myaccount1.getBalance(), is(500d));

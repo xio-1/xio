@@ -18,24 +18,15 @@ import java.util.logging.Logger;
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 public class XIOService {
 
+  private static final Object lock = new Object();
   private static XIOService xioBoss;
   private static Logger logger;
-  private Future flowInputMonitorFuture;
-  private Future flowSubscriptionMonitorFuture;
-  private Future flowHousekeepingDaemonFuture;
   private static String banner =
       "\n" + "\n" + " /**   /** /******  /****** \n" + "| **  / **|_  **_/ " + "/**__  **\n"
           + "|  **/ **/  | **  | **  \\ **\n" + " \\  ****/   | **  | **  | **\n"
           + "  >**  **   | **  | **  | **\n" + " /**/\\  **  | **  | **  | **\n"
           + "| **  \\ ** /******|  ******/\n" + "|__/  |__/|______/ \\______/ \n"
           + "                            \n";
-  private static final Object lock = new Object();
-
-  private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2) {
-    flowInputMonitorFuture = submit;
-    flowSubscriptionMonitorFuture = submit1;
-    flowHousekeepingDaemonFuture = submit2;
-  }
 
   static {
     try {
@@ -46,6 +37,16 @@ public class XIOService {
     } finally {
       logger = Logger.getLogger(Flow.class.getName());
     }
+  }
+
+  private Future flowInputMonitorFuture;
+  private Future flowSubscriptionMonitorFuture;
+  private Future flowHousekeepingDaemonFuture;
+
+  private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2) {
+    flowInputMonitorFuture = submit;
+    flowSubscriptionMonitorFuture = submit1;
+    flowHousekeepingDaemonFuture = submit2;
   }
 
   public static void start() {
@@ -82,6 +83,12 @@ public class XIOService {
     }
   }
 
+  public static boolean isRunning() {
+    synchronized (lock) {
+      return xioBoss != null;
+    }
+  }
+
   private Future getFlowInputMonitorFuture() {
     return flowInputMonitorFuture;
   }
@@ -92,12 +99,6 @@ public class XIOService {
 
   private Future getFlowHousekeepingDaemonFuture() {
     return flowHousekeepingDaemonFuture;
-  }
-
-  public static boolean isRunning() {
-    synchronized (lock) {
-      return xioBoss != null;
-    }
   }
 
 }

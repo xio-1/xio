@@ -27,7 +27,7 @@ public class FlowSubscriptionMonitor implements Runnable {
 
       //while any flow is active keep going
       while (Flow.numActiveFlows() > 0 || XIOService.isRunning()) {
-        //publish to any dirty flow
+        //publishTo to any dirty flow
         ArrayList<Callable<Boolean>> callables = new ArrayList<>();
 
         Flow.allFlows().stream().filter(f -> !f.hasEnded())

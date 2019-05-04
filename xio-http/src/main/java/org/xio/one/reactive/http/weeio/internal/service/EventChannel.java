@@ -2,7 +2,7 @@ package org.xio.one.reactive.http.weeio.internal.service;
 
 import io.undertow.websockets.core.WebSocketChannel;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.flow.ItemFlow;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
@@ -16,10 +16,10 @@ import java.util.UUID;
 
 public class EventChannel {
   private static Map<String, EventChannel> channels = new HashMap<>();
-  private ItemFlow<Event, String> flow;
+  private ItemFlowable<Event, String> flow;
   private HashMap<String, WebSocketStreamItemSubscriber> clients = new HashMap<>();
 
-  private EventChannel(ItemFlow<Event, String> anItemFlow) {
+  private EventChannel(ItemFlowable<Event, String> anItemFlow) {
     this.flow = anItemFlow;
   }
 
@@ -29,7 +29,7 @@ public class EventChannel {
     return channels.get(name);
   }
 
-  public ItemFlow<Event, String> flow() {
+  public ItemFlowable<Event, String> flow() {
     return flow;
   }
 

@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemResultFlowable<T, R>,
+public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureItemFlowable<T, R>,
     CompletableItemFlowable<T, R> {
 
   public static final int LOCK_PARK_NANOS = 100000;
@@ -106,28 +106,34 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   }
 
   //bad use of erasure need too find a better way
-  public static <T, R> ItemFlow<T, R> anItemFlow() {
+  public static <T, R> ItemFlowable<T, R> anItemFlow() {
     return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlow<T, R> anItemFlow(String name) {
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name) {
     return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlow<T, R> anItemFlow(String name, long maxTTLSeconds) {
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long maxTTLSeconds) {
     return new Flow<>(name, null, maxTTLSeconds);
   }
 
-  public static <T, R> ItemFlow<T, R> anItemFlow(String name, String indexFieldName) {
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName) {
     return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS);
   }
 
-  public static <T, R> ItemFlow<T, R> anItemFlow(String name, String indexFieldName,
+  public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName,
       long maxTTLSeconds) {
     return new Flow<>(name, indexFieldName, maxTTLSeconds);
   }
 
-  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(
+  public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow() {
+    Flow<T, R> resultFlowable =
+        new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
+    return resultFlowable;
+  }
+
+  public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow(
       FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable =
         new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
@@ -135,15 +141,15 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
     return resultFlowable;
   }
 
-  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name,
+  public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow(String name,
       FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
   }
 
-  public static <T, R> FutureItemResultFlowable<T, R> aFutureResultItemFlow(String name,
-      long maxTTLSeconds, FutureSubscriber<R, T> futureSubscriber) {
+  public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow(String name, long maxTTLSeconds,
+      FutureSubscriber<R, T> futureSubscriber) {
     Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds);
     resultFlowable.addAppropriateSubscriber(futureSubscriber);
     return resultFlowable;
@@ -284,7 +290,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   @Override
   public long[] putItemWithTTL(long ttlSeconds, T... values) {
     long[] ids = new long[values.length];
-    if (ttlSeconds>this.maxTTLSeconds)
+    if (ttlSeconds > this.maxTTLSeconds)
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
@@ -318,7 +324,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
   @Override
   public void submitItemWithTTL(long ttlSeconds, T value,
       FlowItemCompletionHandler<R, T> completionHandler) {
-    if (ttlSeconds>this.maxTTLSeconds)
+    if (ttlSeconds > this.maxTTLSeconds)
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     Item<T, R> item = new Item<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithBlock(item, flushImmediately);
@@ -343,7 +349,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
    */
   @Override
   public Future<R> submitItemWithTTL(long ttlSeconds, T value) {
-    if (ttlSeconds>this.maxTTLSeconds)
+    if (ttlSeconds > this.maxTTLSeconds)
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     if (futureSubscriber != null)
       return putAndReturnAsCompletableFuture(ttlSeconds, value);
@@ -351,10 +357,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
         "Cannot submit item without future subscribers being registered");
   }
 
-  @Override
-  public FunctionalSubscriber<R, T> publish(Class subscriberClass) {
-    FunctionalSubscriber functionalStreamItemSubscriber = new FunctionalSubscriber<>(this
-        ,subscriberClass);
+  public FunctionalSubscriber<R, T> publishTo(Class clazz) {
+    FunctionalSubscriber functionalStreamItemSubscriber = new FunctionalSubscriber<>(this, clazz);
     return functionalStreamItemSubscriber;
   }
 
@@ -412,12 +416,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
 
   public boolean housekeep() {
     if (this.maxTTLSeconds() > 0) {
-      long count =
-          flowService().itemStoreContents.stream().filter(i -> !i.readyForHouseKeeping(this.maxTTLSeconds))
+      long count = flowService().itemStoreContents.stream()
+          .filter(i -> !i.readyForHouseKeeping(this.maxTTLSeconds))
           .map(d -> flowService().itemStoreContents.remove(d)).count();
-      if (count>0)
-        logger.info(
-          "cleaned flow " + this.name() + " : removed " + count + " items");
+      if (count > 0)
+        logger.info("cleaned flow " + this.name() + " : removed " + count + " items");
       return true;
     }
     return false;
@@ -561,7 +564,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
                 subscriber.initialise();
               if (!subscriber.isDone() && !itemStream.isAtEnd()) {
                 Item last = processResults(subscriber, lastSeenItem);
-                lastSeenItemMap.replace(subscriber.getId(),lastSeenItem,last);
+                lastSeenItemMap.replace(subscriber.getId(), lastSeenItem, last);
                 return !lastSeenItem.equals(last);
               } else {
                 processFinalResults(subscriber, lastSeenItem);
@@ -581,10 +584,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlow<T, R>, FutureItemRes
           try {
             Collections.shuffle(callableList);
             Optional<Boolean> atLeastOnehasExecuted =
-                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream().map(f -> {
+                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream()
+                    .map(f -> {
                       try {
                         //block for all subscriber tasks to finish
-                        return f.get(1,TimeUnit.SECONDS);
+                        return f.get(1, TimeUnit.SECONDS);
                       } catch (InterruptedException | ExecutionException | TimeoutException e) {
                         logger.log(Level.WARNING, "subscriber execution error", e);
                         e.printStackTrace();

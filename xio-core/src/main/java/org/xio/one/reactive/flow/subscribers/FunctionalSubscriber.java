@@ -1,7 +1,6 @@
 package org.xio.one.reactive.flow.subscribers;
 
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.subscribers.internal.functional.*;
@@ -10,12 +9,14 @@ import java.util.function.Predicate;
 
 public class FunctionalSubscriber<R, T> {
 
-  private FunctionalItemSubscriber functionalSubscriber=null;
-  private OnNextFunction<T,R> onNextItem;
+  private Subscriber<R, T> functionalSubscriber = null;
+  private OnNextFunction<T, R> onNextItem;
+  private OnNextReturnFunction<T, R> onNextItemReturn;
   private OnErrorFunction onErrorItem;
   private OnStartFunction onStart;
   private OnEndReturnFunction<R> onEndReturn;
   private OnEndFunction onEndFunction;
+
   private Flow<T, R> trFlow;
   private OnEndFunction onEnd;
   private OnExitAndReturnFunction<R> onExitAndReturn;
@@ -25,6 +26,8 @@ public class FunctionalSubscriber<R, T> {
     this.trFlow = trFlow;
     if (subscriberClass.isAssignableFrom(ItemSubscriber.class))
       this.functionalSubscriber = new FunctionalItemSubscriber();
+    else if (subscriberClass.isAssignableFrom(FutureItemSubscriber.class))
+      this.functionalSubscriber = new FunctionalFutureItemSubscriber();
   }
 
   public <R, T> Subscriber<R, T> subscriber() {
@@ -53,8 +56,13 @@ public class FunctionalSubscriber<R, T> {
     return this;
   }
 
-  public FunctionalSubscriber<R, T> doOnNext(OnNextFunction<T, R> onNextItem) {
+  public FunctionalSubscriber<R, T> forEach(OnNextFunction<T, R> onNextItem) {
     this.onNextItem = onNextItem;
+    return this;
+  }
+
+  public FunctionalSubscriber<R, T> forEachReturn(OnNextReturnFunction<T, R> onNextItemReturn) {
+    this.onNextItemReturn = onNextItemReturn;
     return this;
   }
 
@@ -70,13 +78,14 @@ public class FunctionalSubscriber<R, T> {
 
   private class FunctionalItemSubscriber extends ItemSubscriber<R, T> {
     @Override
-    public void onNext(Item<T, R> item)  {
+    public void onNext(Item<T, R> item) {
       if (onExitAndReturn != null && exitPredicate.test(item.value()))
         exitAndReturn(onExitAndReturn.onExit());
       if (onNextItem != null)
         onNextItem.onNext(item);
-      else
-        throw new FlowException("No onNext function is defined");
+      if (onNextItemReturn != null)
+        throw new UnsupportedOperationException("ItemSubscriber does not support returning a "
+            + "result per item, use a FutureItemSubscriber instead");
     }
 
     @Override
@@ -84,6 +93,43 @@ public class FunctionalSubscriber<R, T> {
       if (onErrorItem == null)
         super.onError(error, item);
       else
+        onErrorItem.onError(error, item);
+    }
+
+    @Override
+    public void initialise() {
+      super.initialise();
+      if (onStart != null)
+        onStart.onStart();
+    }
+
+    @Override
+    public R finalise() {
+      if (onEndReturn != null)
+        return onEndReturn.onEnd();
+      else if (onEnd != null)
+        onEnd.onEnd();
+      return super.finalise();
+    }
+  }
+
+
+  private class FunctionalFutureItemSubscriber extends FutureItemSubscriber<R, T> {
+    @Override
+    public R onNext(Item<T, R> item) {
+      if (onExitAndReturn != null && exitPredicate.test(item.value()))
+        exitAndReturn(onExitAndReturn.onExit());
+      if (onNextItemReturn != null)
+        return onNextItemReturn.onNext(item);
+      if (onNextItem != null)
+        throw new UnsupportedOperationException("ItemSubscriber does not support returning a "
+            + "result per item, use a FutureItemSubscriber instead");
+      return null;
+    }
+
+    @Override
+    public void onError(Throwable error, Item<T, R> item) {
+      if (onErrorItem != null)
         onErrorItem.onError(error, item);
     }
 

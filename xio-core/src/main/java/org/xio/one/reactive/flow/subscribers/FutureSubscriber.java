@@ -3,11 +3,11 @@ package org.xio.one.reactive.flow.subscribers;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.LockSupport;
 
 
 public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
@@ -18,7 +18,8 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
   protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
-  private Map<Long, CompletableFuture<R>> futures = new ConcurrentHashMap<>();
+  private Map<Long, CompletableFuture<R>> futures =
+      Collections.synchronizedMap(new ConcurrentHashMap<>());
   private CompletableFuture<R> completableFuture;
 
   public FutureSubscriber() {
@@ -107,6 +108,6 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
     return futures;
   }
 
-  public abstract void onFutureCompletionError(Throwable error, Item<T,R> itemValue);
+  public abstract void onError(Throwable error, Item<T, R> itemValue);
 
 }

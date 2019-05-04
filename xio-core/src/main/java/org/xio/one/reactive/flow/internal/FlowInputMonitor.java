@@ -26,7 +26,7 @@ public class FlowInputMonitor implements Runnable {
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Flow input monitor was interrupted", e);
-      Flow.allFlows().forEach(f->f.close(false));
+      Flow.allFlows().forEach(f -> f.close(false));
     }
     logger.log(Level.INFO, "Flow input has monitor stopped");
   }

@@ -11,7 +11,7 @@ import io.undertow.websockets.extensions.PerMessageDeflateHandshake;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.xio.one.reactive.flow.XIOService;
-import org.xio.one.reactive.flow.domain.flow.ItemFlow;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.CORSResourceHeadersHandler;
 import org.xio.one.reactive.http.weeio.internal.api.ApiBootstrap;
@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import static io.undertow.Handlers.path;
 import static io.undertow.Handlers.websocket;
 
+;
 
 /**
  * Web Events EveryWhere Input / Output  (WeeIO) @ Copyright Richard Durley 2019
@@ -136,7 +137,7 @@ public class SocketServer {
 
       /*if (argList.contains("-c")) {
         final String clientURL =
-            "http://" + argList.get(argList.indexOf("-c") + 1) + "/" + channelName + "/publish";
+            "http://" + argList.get(argList.indexOf("-c") + 1) + "/" + channelName + "/publishTo";
 
         logger.info("Trying to connect to master node " + clientURL);
         new Thread(() -> {
@@ -230,7 +231,7 @@ public class SocketServer {
 
         );
     SubscriberResult<Event[]> subscriberResult =
-        (new Subscription<>(eventStream, Subscribers.CollectorSubscriber())).publish();
+        (new Subscription<>(eventStream, Subscribers.CollectorSubscriber())).publishTo();
     IoFuture<WebSocketChannel> connection;
     new connection = WebSocketClient
         .connectionBuilder(worker, new DefaultByteBufferPool(true, 32768), new URI(remoteURL))
@@ -377,8 +378,9 @@ public class SocketServer {
   }
 
   private void processMessageData(BufferedTextMessage message,
-      ItemFlow<Event, String> eventStream) {
+      ItemFlowable<Event, String> eventStream) {
     String messageData = message.getData();
+
     messageData = messageData.replaceAll(PING_CHAR_STRING, "");
     {
       if (messageData.isEmpty())

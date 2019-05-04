@@ -3,8 +3,6 @@ package org.xio.one.test.examples.bank.domain;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 public class TransactionEventListener extends ItemSubscriber<Boolean, Transaction> {
@@ -18,8 +16,7 @@ public class TransactionEventListener extends ItemSubscriber<Boolean, Transactio
   }
 
   @Override
-  public void onNext(Item<Transaction, Boolean> transaction)
-      throws InsufficientFundsException {
+  public void onNext(Item<Transaction, Boolean> transaction) throws InsufficientFundsException {
     if (this.processTransaction(transaction.value()))
       recordInLedger(transaction.value());
     else
@@ -36,8 +33,7 @@ public class TransactionEventListener extends ItemSubscriber<Boolean, Transactio
     bank.bankTransactionLedger.add(transaction);
   }
 
-  private boolean processTransaction(Transaction transaction)
-      throws InsufficientFundsException {
+  private boolean processTransaction(Transaction transaction) throws InsufficientFundsException {
     if (transaction.transactionType == TransactionType.CREDIT)
       bank.creditAccount(transaction.toAccount, transaction);
     else if (transaction.transactionType == TransactionType.DEBIT)

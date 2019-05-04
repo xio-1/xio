@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.domain.flow;
 
 import org.xio.one.reactive.flow.FlowContents;
+import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 
 public interface Flowable<T, R> {
 
@@ -25,5 +26,7 @@ public interface Flowable<T, R> {
   long maxTTLSeconds();
 
   boolean housekeep();
+
+  FunctionalSubscriber<R, T> publishTo(Class clazz);
 
 }

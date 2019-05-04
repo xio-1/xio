@@ -89,7 +89,7 @@ public class WeeIOTestClient {
       logger.info("**** configuring client server api port " + serverPort);
 
       final String remoteWSURL =
-          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName + "/publish/"
+          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName + "/publishTo/"
               + subscribeToChannel(channelName, serverHostIPAddress, apiPort);
 
       new Thread(() -> {
@@ -129,7 +129,7 @@ public class WeeIOTestClient {
       int apiPort) {
     ResteasyClient client = new ResteasyClientBuilder().build();
     String uri =
-        "http://" + serverHostIPAddress + ":" + apiPort + "/channel/" + channelName + "/publish";
+        "http://" + serverHostIPAddress + ":" + apiPort + "/channel/" + channelName + "/publishTo";
     logger.info("Subscribing to: " + uri);
     ResteasyWebTarget target = client.target(uri);
     Response response = target.request()

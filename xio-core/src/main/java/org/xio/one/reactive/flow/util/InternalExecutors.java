@@ -6,7 +6,6 @@
 
 package org.xio.one.reactive.flow.util;
 
-import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -42,11 +41,10 @@ public class InternalExecutors {
   }
 
   public static synchronized ScheduledExecutorService schedulerThreadPoolInstance() {
-    if (schedulerThreadPoolexec == null || schedulerThreadPoolexec.isShutdown() || schedulerThreadPoolexec
-        .isTerminated())
-      schedulerThreadPoolexec = Executors
-          .newScheduledThreadPool(1,
-              new XIOThreadFactory("cleaner",Thread.NORM_PRIORITY+2,false));
+    if (schedulerThreadPoolexec == null || schedulerThreadPoolexec.isShutdown()
+        || schedulerThreadPoolexec.isTerminated())
+      schedulerThreadPoolexec = Executors.newScheduledThreadPool(1,
+          new XIOThreadFactory("cleaner", Thread.NORM_PRIORITY + 2, false));
     return schedulerThreadPoolexec;
   }
 
@@ -55,14 +53,15 @@ public class InternalExecutors {
         .isTerminated())
       computeThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
-              new XIOThreadFactory("subscriber",Thread.NORM_PRIORITY+1,false));
+              new XIOThreadFactory("subscriber", Thread.NORM_PRIORITY + 1, false));
     return computeThreadPoolexec;
   }
 
   public static synchronized ExecutorService controlFlowThreadPoolInstance() {
-    if (itemLoopThreadPoolexec == null || itemLoopThreadPoolexec.isShutdown() || itemLoopThreadPoolexec.isTerminated())
-      itemLoopThreadPoolexec = Executors.newFixedThreadPool(2, new XIOThreadFactory("boss",
-          Thread.NORM_PRIORITY+1,true));
+    if (itemLoopThreadPoolexec == null || itemLoopThreadPoolexec.isShutdown()
+        || itemLoopThreadPoolexec.isTerminated())
+      itemLoopThreadPoolexec = Executors
+          .newFixedThreadPool(2, new XIOThreadFactory("boss", Thread.NORM_PRIORITY + 1, true));
     return itemLoopThreadPoolexec;
   }
 
@@ -81,8 +80,8 @@ public class InternalExecutors {
     private final ThreadGroup group;
     private final AtomicInteger threadNumber = new AtomicInteger(1);
     private final String namePrefix;
-    private int priority=Thread.NORM_PRIORITY;
-    private boolean areDeamonThreads=false;
+    private int priority = Thread.NORM_PRIORITY;
+    private boolean areDeamonThreads = false;
 
     XIOThreadFactory() {
       SecurityManager s = System.getSecurityManager();

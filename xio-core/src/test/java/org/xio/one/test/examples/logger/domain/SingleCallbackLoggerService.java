@@ -43,10 +43,9 @@ public class SingleCallbackLoggerService {
             try {
               CompletionHandler<Integer, String> completionHandler =
                   IOCompletionHandler.aIOCompletionHandler(entry.completionHandler());
-              ByteBuffer buffer = ByteBuffer.wrap((entry.value()+"\n").getBytes());
+              ByteBuffer buffer = ByteBuffer.wrap((entry.value() + "\n").getBytes());
               //buffer = buffer.flip();
-              fileChannel.write(buffer, position, null,
-                  completionHandler);
+              fileChannel.write(buffer, position, null, completionHandler);
               position = position + buffer.limit();
             } catch (Exception e) {
               e.printStackTrace();
