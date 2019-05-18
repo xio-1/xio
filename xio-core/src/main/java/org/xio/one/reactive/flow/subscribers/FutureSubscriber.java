@@ -99,9 +99,12 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
     this.stop();
   }
 
-  public final Future<R> register(long itemId, CompletableFuture<R> completableFuture) {
+  public final void registerCompletableFuture(long itemId, CompletableFuture<R> completableFuture) {
     futures.put(itemId, completableFuture);
-    return completableFuture;
+  }
+
+  public final void deregisterCompletableFuture(long itemId) {
+    futures.remove(itemId);
   }
 
   public Map<Long, CompletableFuture<R>> getFutures() {

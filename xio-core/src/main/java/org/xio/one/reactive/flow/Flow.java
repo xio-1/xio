@@ -55,7 +55,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private static Logger logger = Logger.getLogger(Flow.class.getName());
   // all flows
   private volatile static Map<String, Flow> flowMap = new ConcurrentHashMap<>();
-  private static AtomicInteger flowCount= new AtomicInteger();
+  private static AtomicInteger flowCount = new AtomicInteger();
 
   private final int queue_max_size = 16384;
   private final Object lockSubscriberslist = new Object();
@@ -77,9 +77,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private ItemIdSequence itemIDSequence;
   private long slowDownNanos = 0;
   private boolean flushImmediately;
+
   //subscription control
   private ArrayList<Subscriber<R, T>> subscribers;
-  private FutureSubscriber<R, T> futureSubscriber = null;
+  private ArrayList<FutureSubscriber<R, T>> futureSubscribers;
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.id = UUID.randomUUID().toString();
@@ -186,7 +187,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   public static int numActiveFlows() {
-      return flowCount.get();
+    return flowCount.get();
   }
 
   private void initialise(String name, String indexFieldName, long maxTTLSeconds) {
@@ -199,6 +200,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
     this.subscribers = new ArrayList<>();
+    this.futureSubscribers = new ArrayList<>();
     this.lastSeenItemMap = new ConcurrentHashMap<>();
   }
 
@@ -335,7 +337,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
    * @return
    */
   @Override
-  public Future<R> submitItem(T value) {
+  public Promise<R> submitItem(T value) {
     return submitItemWithTTL(maxTTLSeconds, value);
   }
 
@@ -346,10 +348,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
    * @return
    */
   @Override
-  public Future<R> submitItemWithTTL(long ttlSeconds, T value) {
+  public Promise<R> submitItemWithTTL(long ttlSeconds, T value) {
     if (ttlSeconds > this.maxTTLSeconds)
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
-    if (futureSubscriber != null)
+    if (futureSubscribers.size() > 0)
       return putAndReturnAsCompletableFuture(ttlSeconds, value);
     throw new IllegalStateException(
         "Cannot submit item without future subscribers being registered");
@@ -402,10 +404,15 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     return this;
   }
 
-  private Future<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value) {
+  private Promise<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value) {
     long itemId = putItemWithTTL(ttlSeconds, value)[0];
-    CompletableFuture<R> completableFuture = new CompletableFuture<>();
-    return futureSubscriber.register(itemId, completableFuture);
+    Promise<R> promise = new Promise<>();
+    futureSubscribers.forEach(s -> {
+      CompletableFuture<R> completableFuture = new CompletableFuture<>();
+      promise.addPromise(s.getId(), completableFuture);
+      s.registerCompletableFuture(itemId, completableFuture);
+    });
+    return promise;
   }
 
   private boolean activeSubscribers() {
@@ -463,12 +470,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
-    if (futureSubscriber == null) {
+    if (!futureSubscribers.contains(subscriber)) {
       subscribe(subscriber);
-      this.futureSubscriber = subscriber;
-    } else
-      throw new IllegalStateException("Only one futureSubscriber may be added");
-
+      futureSubscribers.add(subscriber);
+    }
   }
 
 

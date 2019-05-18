@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.Promise;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
@@ -63,15 +64,15 @@ public class FunctionalStyleTest {
             .forEachReturn(i -> i.value().toUpperCase()).onEnd(() -> System.out.println("hello"))
             .subscribe();
 
-    Future<String> one = toUPPERCASEFlow.submitItem("hello1");
-    Future<String> two = toUPPERCASEFlow.submitItem("hello2");
-    Future<String> three = toUPPERCASEFlow.submitItem("hello3");
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello1").results().next().getFuture().get(),is(
+        "HELLO1"));
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().next().getFuture().get(),is(
+        "HELLO2"));
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().next().getFuture().get(),is(
+        "HELLO3"));
 
     toUPPERCASEFlow.close(true);
 
-    Assert.assertThat(one.get(), is("HELLO1"));
-    Assert.assertThat(two.get(), is("HELLO2"));
-    Assert.assertThat(three.get(), is("HELLO3"));
   }
 
 

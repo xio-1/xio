@@ -4,10 +4,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
-import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
@@ -152,9 +149,9 @@ public class FlowTest {
             error.printStackTrace();
           }
         });
-    Future<String> result = asyncFlow.submitItem("Hello");
+    Promise<String> promise = asyncFlow.submitItem("Hello");
     try {
-      assertThat(result.get(1, TimeUnit.SECONDS), is("Hello world"));
+      assertThat(promise.results().next().getFuture().get(1, TimeUnit.SECONDS), is("Hello world"));
     } catch (Exception e) {
       fail();
     } finally {
@@ -377,14 +374,14 @@ public class FlowTest {
             assert (error.getMessage().equals("hello"));
           }
         });
-    Future<String> result1 = asyncFlow.submitItem("Hello1");
-    Future<String> result2 = asyncFlow.submitItem("Hello2");
-    Future<String> result3 = asyncFlow.submitItem("Hello3");
+    Promise<String> promise1 = asyncFlow.submitItem("Hello1");
+    Promise<String> promise2 = asyncFlow.submitItem("Hello2");
+    Promise<String> promise3 = asyncFlow.submitItem("Hello3");
 
     try {
-      assertThat(result1.get(1, TimeUnit.SECONDS), is("happy"));
-      assertThat(result2.get(1, TimeUnit.SECONDS), is("happy"));
-      assertThat(result3.get(1, TimeUnit.SECONDS), is(nullValue()));
+      assertThat(promise1.results().next().getFuture().get(1, TimeUnit.SECONDS), is("happy"));
+      assertThat(promise2.results().next().getFuture().get(1, TimeUnit.SECONDS), is("happy"));
+      assertThat(promise3.results().next().getFuture().get(1, TimeUnit.SECONDS), is(nullValue()));
     } catch (TimeoutException e) {
       fail();
     } finally {

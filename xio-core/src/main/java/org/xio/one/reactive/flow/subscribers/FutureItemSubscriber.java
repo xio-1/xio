@@ -39,7 +39,8 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
         onError(t, item);
       }
       return null;
-    });
+    }).thenRun(() -> deregisterCompletableFuture(item.itemId()));
+
   }
 
   public abstract R onNext(Item<T, R> itemValue) throws RuntimeException;
