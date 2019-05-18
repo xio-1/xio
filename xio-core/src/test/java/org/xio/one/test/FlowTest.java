@@ -1,10 +1,13 @@
 package org.xio.one.test;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.flow.*;
+import org.xio.one.reactive.flow.Promise;
+import org.xio.one.reactive.flow.XIOService;
+import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
+import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
@@ -16,7 +19,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -36,6 +42,16 @@ public class FlowTest {
 
   public static Map<String, Long> countWords(Stream<String> names) {
     return names.collect(groupingBy(name -> name, counting()));
+  }
+
+  @BeforeClass
+  public static void setup() {
+    XIOService.start();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    XIOService.stop();
   }
 
   @Test
@@ -136,8 +152,9 @@ public class FlowTest {
 
   @Test
   public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
-    FutureItemFlowable<String, String> asyncFlow =
-        Flow.aFutureItemFlow(HELLO_WORLD_FLOW, 100, new FutureItemSubscriber<>() {
+    FutureItemSubscriber<String, String> helloWorldSubscriber;
+    FutureItemFlowable<String, String> asyncFlow = Flow.aFutureItemFlow(HELLO_WORLD_FLOW, 100,
+        helloWorldSubscriber = new FutureItemSubscriber<>() {
           @Override
           public String onNext(Item<String, String> item) {
             logger.info("Completing future");
@@ -151,7 +168,8 @@ public class FlowTest {
         });
     Promise<String> promise = asyncFlow.submitItem("Hello");
     try {
-      assertThat(promise.results().next().getFuture().get(1, TimeUnit.SECONDS), is("Hello world"));
+      assertThat(promise.result(helloWorldSubscriber.getId()).get(1,
+          TimeUnit.SECONDS), is("Hello world"));
     } catch (Exception e) {
       fail();
     } finally {
@@ -379,9 +397,9 @@ public class FlowTest {
     Promise<String> promise3 = asyncFlow.submitItem("Hello3");
 
     try {
-      assertThat(promise1.results().next().getFuture().get(1, TimeUnit.SECONDS), is("happy"));
-      assertThat(promise2.results().next().getFuture().get(1, TimeUnit.SECONDS), is("happy"));
-      assertThat(promise3.results().next().getFuture().get(1, TimeUnit.SECONDS), is(nullValue()));
+      assertThat(promise1.results().get(0).get(1, TimeUnit.SECONDS), is("happy"));
+      assertThat(promise2.results().get(0).get(1, TimeUnit.SECONDS), is("happy"));
+      assertThat(promise3.results().get(0).get(1, TimeUnit.SECONDS), is(nullValue()));
     } catch (TimeoutException e) {
       fail();
     } finally {

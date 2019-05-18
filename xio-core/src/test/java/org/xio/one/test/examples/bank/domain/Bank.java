@@ -1,6 +1,7 @@
 package org.xio.one.test.examples.bank.domain;
 
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 
 import java.util.HashMap;

@@ -1,7 +1,10 @@
 package org.xio.one.test.examples.bank;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.test.examples.bank.domain.Account;
 import org.xio.one.test.examples.bank.domain.Bank;
 import org.xio.one.test.examples.bank.domain.Transaction;
@@ -14,6 +17,16 @@ import static org.hamcrest.CoreMatchers.is;
 public class BankTestMust {
 
   Logger logger = Logger.getLogger(BankTestMust.class.getCanonicalName());
+
+  @BeforeClass
+  public static void setup() {
+    XIOService.start();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    XIOService.stop();
+  }
 
   @Test
   public void bankOpensWithLiquidityOfZero() throws Exception {

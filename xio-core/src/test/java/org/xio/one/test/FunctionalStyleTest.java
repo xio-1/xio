@@ -1,21 +1,31 @@
 package org.xio.one.test;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.Promise;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
-
-import java.util.concurrent.Future;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class FunctionalStyleTest {
+
+  @BeforeClass
+  public static void setup() {
+    XIOService.start();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    XIOService.stop();
+  }
 
   @Test
   public void toUpperCaseWithFunctionalStyle() throws Exception {
@@ -64,11 +74,11 @@ public class FunctionalStyleTest {
             .forEachReturn(i -> i.value().toUpperCase()).onEnd(() -> System.out.println("hello"))
             .subscribe();
 
-    Assert.assertThat(toUPPERCASEFlow.submitItem("hello1").results().next().getFuture().get(),is(
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(),is(
         "HELLO1"));
-    Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().next().getFuture().get(),is(
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().get(0).get(),is(
         "HELLO2"));
-    Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().next().getFuture().get(),is(
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().get(0).get(),is(
         "HELLO3"));
 
     toUPPERCASEFlow.close(true);

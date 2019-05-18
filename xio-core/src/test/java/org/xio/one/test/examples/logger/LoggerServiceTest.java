@@ -1,6 +1,9 @@
 package org.xio.one.test.examples.logger;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.test.examples.logger.domain.AsyncMultiplexCallbackLoggerService;
 import org.xio.one.test.examples.logger.domain.LogLevel;
@@ -18,7 +21,15 @@ public class LoggerServiceTest {
 
   Logger logger = Logger.getLogger(LoggerServiceTest.class.getCanonicalName());
 
+  @BeforeClass
+  public static void setup() {
+    XIOService.start();
+  }
 
+  @AfterClass
+  public static void tearDown() {
+    XIOService.stop();
+  }
 
   @Test
   public void logs1MillionEntriesToFileAndSingleWithCallback() throws InterruptedException {
