@@ -57,7 +57,7 @@ public class FlowTest {
   @Test
   public void HelloWorld() {
     ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publishTo(ItemSubscriber.class).forEach(i -> logger.info(i.value())).subscribe();
+    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.value())).subscribe();
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.close(true);
   }

@@ -12,10 +12,14 @@ import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
+import java.util.logging.Logger;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class FunctionalStyleTest {
+
+  Logger logger = Logger.getLogger(FunctionalStyleTest.class.getName());
 
   @BeforeClass
   public static void setup() {
@@ -33,9 +37,12 @@ public class FunctionalStyleTest {
 
     StringBuffer buff = new StringBuffer();
 
-    Subscriber<String, String> upperCaseSubscriber = toUPPERCASEFlow.publishTo(ItemSubscriber.class)
-        .forEach(i -> buff.append(i.value().toUpperCase()).append(" "))
-        .onEndReturn(() -> buff.toString().trim()).subscribe();
+    Subscriber<String, String> upperCaseSubscriber =
+        toUPPERCASEFlow
+            .publishTo(ItemSubscriber.class)
+            .doForEach(i -> buff.append(i.value().toUpperCase()).append(" "))
+            .andOnEndReturn(() -> buff.toString().trim())
+            .subscribe();
 
     toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
 
@@ -51,9 +58,10 @@ public class FunctionalStyleTest {
 
     StringBuffer buff = new StringBuffer();
 
-    Subscriber<String, String> upperCaseSubscriber = toUPPERCASEFlow.publishTo(ItemSubscriber.class)
-        .forEach(i -> buff.append(i.value().toUpperCase()).append(" "))
-        .ifPredicateExitAndReturn(p -> p.equals("value3"), () -> buff.toString().trim())
+    Subscriber<String, String> upperCaseSubscriber = toUPPERCASEFlow
+        .publishTo(ItemSubscriber.class)
+        .doForEach(i -> buff.append(i.value().toUpperCase()).append(" "))
+        .whenPredicateExitAndReturn(p -> p.equals("value3"), () -> buff.toString().trim())
         .subscribe();
 
     toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
@@ -70,16 +78,18 @@ public class FunctionalStyleTest {
     StringBuffer buff = new StringBuffer();
 
     Subscriber<String, String> upperCaseSubscriber =
-        toUPPERCASEFlow.publishTo(FutureItemSubscriber.class)
-            .forEachReturn(i -> i.value().toUpperCase()).onEnd(() -> System.out.println("hello"))
+        toUPPERCASEFlow
+            .publishTo(FutureItemSubscriber.class)
+            .onStart(() -> logger.info("I am starting"))
+            .returnForEach(i -> i.value().toUpperCase())
+            .finallyOnEnd(() -> logger.info("I am done"))
             .subscribe();
 
-    Assert.assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(),is(
-        "HELLO1"));
-    Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().get(0).get(),is(
-        "HELLO2"));
-    Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().get(0).get(),is(
-        "HELLO3"));
+    Assert
+        .assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(),
+            is("HELLO1"));
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().get(0).get(), is("HELLO2"));
+    Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().get(0).get(), is("HELLO3"));
 
     toUPPERCASEFlow.close(true);
 

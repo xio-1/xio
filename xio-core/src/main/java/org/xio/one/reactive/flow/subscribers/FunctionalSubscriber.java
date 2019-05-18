@@ -39,29 +39,29 @@ public class FunctionalSubscriber<R, T> {
     return this;
   }
 
-  public FunctionalSubscriber<R, T> onEnd(OnEndFunction onEnd) {
+  public FunctionalSubscriber<R, T> finallyOnEnd(OnEndFunction onEnd) {
     this.onEnd = onEnd;
     return this;
   }
 
-  public FunctionalSubscriber<R, T> onEndReturn(OnEndReturnFunction onEndReturn) {
+  public FunctionalSubscriber<R, T> andOnEndReturn(OnEndReturnFunction onEndReturn) {
     this.onEndReturn = onEndReturn;
     return this;
   }
 
-  public FunctionalSubscriber<R, T> ifPredicateExitAndReturn(Predicate<T> exitPredicate,
+  public FunctionalSubscriber<R, T> whenPredicateExitAndReturn(Predicate<T> exitPredicate,
       OnExitAndReturnFunction<R> onExitAndReturn) {
     this.onExitAndReturn = onExitAndReturn;
     this.exitPredicate = exitPredicate;
     return this;
   }
 
-  public FunctionalSubscriber<R, T> forEach(OnNextFunction<T, R> onNextItem) {
+  public FunctionalSubscriber<R, T> doForEach(OnNextFunction<T, R> onNextItem) {
     this.onNextItem = onNextItem;
     return this;
   }
 
-  public FunctionalSubscriber<R, T> forEachReturn(OnNextReturnFunction<T, R> onNextItemReturn) {
+  public FunctionalSubscriber<R, T> returnForEach(OnNextReturnFunction<T, R> onNextItemReturn) {
     this.onNextItemReturn = onNextItemReturn;
     return this;
   }
@@ -98,9 +98,10 @@ public class FunctionalSubscriber<R, T> {
 
     @Override
     public void initialise() {
-      super.initialise();
       if (onStart != null)
         onStart.onStart();
+      else
+        super.initialise();
     }
 
     @Override
