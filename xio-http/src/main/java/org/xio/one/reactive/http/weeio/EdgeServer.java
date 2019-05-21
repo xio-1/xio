@@ -6,6 +6,7 @@ import io.undertow.websockets.core.*;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
+import org.xio.one.reactive.http.weeio.internal.api.ChannelApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.request.PassthroughExpression;
@@ -34,17 +35,17 @@ import java.util.logging.Logger;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public class WeeIOTestClient {
+public class EdgeServer {
 
   private static String PING_CHAR_STRING = Character.toString('�');
-  private static Logger logger = Logger.getLogger(WeeIOTestClient.class.getCanonicalName());
+  private static Logger logger = Logger.getLogger(EdgeServer.class.getCanonicalName());
 
   public static void main(final String[] args) {
 
     try {
       String serverHostIPAddress;
       List<String> argList = Arrays.asList(args);
-      WeeIOTestClient eventServer = new WeeIOTestClient();
+      EdgeServer eventServer = new EdgeServer();
       final String channelName;
 
       if (argList.contains("--h") || argList.contains("--help")) {
@@ -53,7 +54,7 @@ public class WeeIOTestClient {
         System.out.println("[-ip ipaddress] ipaddress for master server default 0.0.0.0");
         System.out.println("[-ws port] port for master server web socket server default 7222");
         System.out.println(
-            "[-ap port] port for master server api port on which to register new subscription default 8080");
+            "[-ap port] port for master server api port on which to registerCompletableFuture new subscription default 8080");
         System.out.println();
         System.out.println("Example java WEEiOTestClient -n events -ip 0.0.0.0 -ws 7222 -ap 8080");
         System.exit(0);
@@ -78,23 +79,28 @@ public class WeeIOTestClient {
       if (argList.contains("-ws")) {
         serverPort = Integer.parseInt(argList.get((argList.indexOf("-ws") + 1)));
       } else
-        serverPort = 7222;
+        serverPort = 7000;
       logger.info("**** configuring client server port " + serverPort);
 
       int apiPort;
       if (argList.contains("-ap")) {
         apiPort = Integer.parseInt(argList.get((argList.indexOf("-ap") + 1)));
       } else
-        apiPort = 8080;
+        apiPort = 8001;
       logger.info("**** configuring client server api port " + serverPort);
+      ChannelApiBootstrap.startChannelAPI(serverHostIPAddress, apiPort);
+      logger.info(
+          "**** starting sever api @ http://" + serverHostIPAddress + ":" + apiPort + "/channel/"
+              + channelName);
 
+      int subscriptionPort=8000;
       final String remoteWSURL =
-          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName + "/publishTo/"
-              + subscribeToChannel(channelName, serverHostIPAddress, apiPort);
+          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName + "/subscribe/"
+              + subscribeToChannel(channelName, serverHostIPAddress, subscriptionPort);
 
       new Thread(() -> {
         try {
-          final Xnio xnio = Xnio.getInstance("nio", WeeIOTestClient.class.getClassLoader());
+          final Xnio xnio = Xnio.getInstance("nio", EdgeServer.class.getClassLoader());
           final XnioWorker worker = xnio.createWorker(
               OptionMap.builder().set(Options.WORKER_IO_THREADS, 1)
                   .set(Options.CONNECTION_HIGH_WATER, 10).set(Options.CONNECTION_LOW_WATER, 1)
@@ -129,7 +135,7 @@ public class WeeIOTestClient {
       int apiPort) {
     ResteasyClient client = new ResteasyClientBuilder().build();
     String uri =
-        "http://" + serverHostIPAddress + ":" + apiPort + "/channel/" + channelName + "/publishTo";
+        "http://" + serverHostIPAddress + ":" + apiPort + "/" + channelName + "/subscribe";
     logger.info("Subscribing to: " + uri);
     ResteasyWebTarget target = client.target(uri);
     Response response = target.request()

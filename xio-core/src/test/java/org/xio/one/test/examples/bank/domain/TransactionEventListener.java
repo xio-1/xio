@@ -16,15 +16,15 @@ public class TransactionEventListener extends ItemSubscriber<Boolean, Transactio
   }
 
   @Override
-  public void onNext(Item<Transaction, Boolean> transaction) throws InsufficientFundsException {
-    if (this.processTransaction(transaction.value()))
-      recordInLedger(transaction.value());
+  public void onNext(Item<Transaction, Boolean> item) throws InsufficientFundsException {
+    if (this.processTransaction(item.value()))
+      recordInLedger(item.value());
     else
       throw new RuntimeException("Error processing payment");
   }
 
   @Override
-  public void onError(Throwable error, Item<Transaction, Boolean> itemValue) {
+  public void onError(Throwable error, Item<Transaction, Boolean> item) {
     error.printStackTrace();
   }
 

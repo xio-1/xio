@@ -1,9 +1,12 @@
 package org.xio.one.reactive.http.weeio.internal.service;
 
+import io.undertow.server.handlers.sse.ServerSentEventConnection;
 import io.undertow.websockets.core.WebSocketChannel;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.http.weeio.internal.api.ChannelApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.domain.request.FilterExpression;
@@ -80,7 +83,7 @@ public class EventChannel {
     return clientID;
   }
 
-  public WebSocketStreamItemSubscriber getSubscriber(String subscriberId) {
+  public WebSocketStreamItemSubscriber getWebSocketSubscriber(String subscriberId) {
     if (clients.containsKey(subscriberId)) {
       WebSocketStreamItemSubscriber webSocketStreamItemSubscriber = clients.get(subscriberId);
       if (webSocketStreamItemSubscriber != null)
@@ -91,16 +94,27 @@ public class EventChannel {
       throw new SecurityException("Unauthorized");
   }
 
-  public ItemSubscriber<String, Event> newSubscriber(WebSocketChannel channel,
+  public ItemSubscriber<String, Event> newWebSocketSubscriber(WebSocketChannel channel,
       String subscriberId) {
     WebSocketStreamItemSubscriber webSocketStreamItemSubscriber =
         new WebSocketStreamItemSubscriber(channel);
     clients.replace(subscriberId, webSocketStreamItemSubscriber);
     return (ItemSubscriber<String, Event>) flow().addSubscriber(webSocketStreamItemSubscriber);
-
   }
 
-  public void removeSubscriber(String subscriberId) {
+  public void startSSEChannelClientSubscriber(String channelName) {
+    channels.get(channelName).flow().addSubscriber(new ItemSubscriber<String, Event>() {
+      @Override
+      public void onNext(Item<Event, String> item) {
+        for(ServerSentEventConnection h : ChannelApiBootstrap.getSseHandler().getConnections()) {
+          h.send(item.value().toSSECompact());
+        }
+
+      }
+    });
+  }
+
+  public void removeWebSocketSubscriber(String subscriberId) {
     WebSocketStreamItemSubscriber webSocketStreamItemSubscriber = clients.remove(subscriberId);
     flow().removeSubscriber(webSocketStreamItemSubscriber);
   }

@@ -15,9 +15,9 @@ public abstract class ItemSubscriber<R, T> extends AbstractSubscriber<R, T>
   }
 
   @Override
-  public abstract void onNext(Item<T, R> itemValue);
+  public abstract void onNext(Item<T, R> item);
 
-  public void onError(Throwable error, Item<T, R> itemValue) {
+  public void onError(Throwable error, Item<T, R> item) {
     return;
   }
 

@@ -517,6 +517,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
   public Future<R> subscribe(Subscriber<R, T> subscriber) {
     synchronized (lockSubscriberslist) {
+      subscriber.initialise();
       this.subscribers.add(subscriber);
       this.lastSeenItemMap.put(subscriber.getId(), VoidItem.VOID_ITEM);
       logger.info("Added subscriber " + subscriber.getId() + " flow " + name());
@@ -563,8 +564,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
           callableList = subscribers.stream().map(subscriber -> (Callable<Boolean>) () -> {
             try {
               Item lastSeenItem = lastSeenItemMap.get(subscriber.getId());
-              if (VoidItem.VOID_ITEM.equals(lastSeenItem))
-                subscriber.initialise();
+              //if (VoidItem.VOID_ITEM.equals(lastSeenItem))
+              //  subscriber.initialise();
               if (!subscriber.isDone() && !itemStream.isAtEnd()) {
                 Item last = processResults(subscriber, lastSeenItem);
                 lastSeenItemMap.replace(subscriber.getId(), lastSeenItem, last);

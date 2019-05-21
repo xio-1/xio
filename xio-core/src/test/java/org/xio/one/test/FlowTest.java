@@ -88,9 +88,9 @@ public class FlowTest {
           }
 
           @Override
-          public void onNext(Item<String, String> itemValue) {
-            logger.info("on next " + itemValue.value());
-            stringBuffer.append(itemValue.value().toUpperCase());
+          public void onNext(Item<String, String> item) {
+            logger.info("on next " + item.value());
+            stringBuffer.append(item.value().toUpperCase());
             stringBuffer.append(" ");
           }
 
@@ -127,8 +127,8 @@ public class FlowTest {
       private List<Integer> output = new ArrayList<>();
 
       @Override
-      public void onNext(Item<Integer, List<Integer>> flowItem) {
-        output.add(flowItem.value() * 10);
+      public void onNext(Item<Integer, List<Integer>> item) {
+        output.add(item.value() * 10);
       }
 
       @Override
@@ -189,7 +189,7 @@ public class FlowTest {
       private int count = 0;
 
       @Override
-      public void onNext(Item<String, Long> itemValue) {
+      public void onNext(Item<String, Long> item) {
         if (this.count < 4) {
           logger.info("got ping");
           pong_stream.putItemWithTTL(10, "pong");
@@ -207,7 +207,7 @@ public class FlowTest {
       private int count = 0;
 
       @Override
-      public void onNext(Item<String, Long> itemValue) {
+      public void onNext(Item<String, Long> item) {
         if (this.count < 4) {
           logger.info("got pong");
           ping_stream.putItemWithTTL(10, "ping");
@@ -244,7 +244,7 @@ public class FlowTest {
       }
 
       @Override
-      public void onNext(Item<String, Long> itemValue) {
+      public void onNext(Item<String, Long> item) {
         this.count++;
       }
 
@@ -283,7 +283,7 @@ public class FlowTest {
         }
 
         @Override
-        public void onNext(Item<String, Long> itemValue) {
+        public void onNext(Item<String, Long> item) {
           this.count++;
         }
 
@@ -418,14 +418,14 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(Item<Integer, List<Integer>> itemValue) {
+      public void onNext(Item<Integer, List<Integer>> item) {
         count++;
         if (count == 2)
           throw new RuntimeException("hello");
       }
 
       @Override
-      public void onError(Throwable error, Item<Integer, List<Integer>> itemValue) {
+      public void onError(Throwable error, Item<Integer, List<Integer>> item) {
         errors.add(error.getMessage());
       }
 
