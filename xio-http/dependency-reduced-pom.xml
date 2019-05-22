@@ -16,6 +16,7 @@
         <directory>src/main/resources</directory>
       </resource>
     </resources>
+    <finalName>app</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>

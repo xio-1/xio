@@ -7,15 +7,17 @@ import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 
 public class WebSocketStreamItemSubscriber extends ItemSubscriber<String, Event> {
 
+  private final String subscriberId;
   WebSocketChannel channel;
 
-  public WebSocketStreamItemSubscriber(WebSocketChannel webSocketChannel) {
-    this.channel = webSocketChannel;
+  public WebSocketStreamItemSubscriber(WebSocketChannel channel, String subscriberId) {
+    this.channel = channel;
+    this.subscriberId = subscriberId;
   }
 
   @Override
   public void onNext(Item<Event, String> item)  {
-    if (channel.isOpen())
+    if (channel.isOpen() && !item.value().get_originId().equals(subscriberId))
       WebSockets.sendText("data: " + item.value().toJSONString(), channel, null);
   }
 

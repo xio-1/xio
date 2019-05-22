@@ -97,7 +97,7 @@ public class EventChannel {
   public ItemSubscriber<String, Event> newWebSocketSubscriber(WebSocketChannel channel,
       String subscriberId) {
     WebSocketStreamItemSubscriber webSocketStreamItemSubscriber =
-        new WebSocketStreamItemSubscriber(channel);
+        new WebSocketStreamItemSubscriber(channel, subscriberId);
     clients.replace(subscriberId, webSocketStreamItemSubscriber);
     return (ItemSubscriber<String, Event>) flow().addSubscriber(webSocketStreamItemSubscriber);
   }

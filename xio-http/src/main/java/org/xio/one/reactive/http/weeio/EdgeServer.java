@@ -6,9 +6,14 @@ import io.undertow.websockets.core.*;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.subscribers.MultiItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.http.weeio.internal.api.ChannelApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
+import org.xio.one.reactive.http.weeio.internal.domain.EventNodeID;
 import org.xio.one.reactive.http.weeio.internal.domain.request.PassthroughExpression;
 import org.xio.one.reactive.http.weeio.internal.domain.response.SubscriptionResponse;
 import org.xio.one.reactive.http.weeio.internal.service.EventChannel;
@@ -23,6 +28,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -40,23 +47,26 @@ public class EdgeServer {
   private static String PING_CHAR_STRING = Character.toString('�');
   private static Logger logger = Logger.getLogger(EdgeServer.class.getCanonicalName());
 
-  public static void main(final String[] args) {
+  public static void main(final String[] args) throws InterruptedException {
+
+    Thread.sleep(10000);
 
     try {
       String serverHostIPAddress;
+      String wsHostIPAddress;
       List<String> argList = Arrays.asList(args);
-      EdgeServer eventServer = new EdgeServer();
+      //EdgeServer eventServer = new EdgeServer();
       final String channelName;
 
       if (argList.contains("--h") || argList.contains("--help")) {
         System.out.println("Usage Help");
         System.out.println("[-n name] : connect to stream with name, default name is events");
         System.out.println("[-ip ipaddress] ipaddress for master server default 0.0.0.0");
-        System.out.println("[-ws port] port for master server web socket server default 7222");
+        System.out.println("[-ws port] port for master server web socket server default 7000");
         System.out.println(
             "[-ap port] port for master server api port on which to registerCompletableFuture new subscription default 8080");
         System.out.println();
-        System.out.println("Example java WEEiOTestClient -n events -ip 0.0.0.0 -ws 7222 -ap 8080");
+        System.out.println("Example java WEEiOTestClient -n events -ip 0.0.0.0 -ws 7000 -ap 8080");
         System.exit(0);
       }
 
@@ -68,15 +78,22 @@ public class EdgeServer {
       logger.info("**** configuring client connect to channel " + channelName);
 
       EventChannel.channel(channelName);
+      EventChannel.channel(channelName + "_sink");
 
       if (argList.contains("-ip")) {
         serverHostIPAddress = argList.get((argList.indexOf("-ip") + 1));
       } else
         serverHostIPAddress = "0.0.0.0";
-      logger.info("**** configuring client connect to server host ip " + serverHostIPAddress);
+      logger.info("**** configuring client connect to edge ip " + serverHostIPAddress);
+
+      if (argList.contains("-wsh")) {
+        wsHostIPAddress = argList.get((argList.indexOf("-wsh") + 1));
+      } else
+        wsHostIPAddress = "0.0.0.0";
+      logger.info("**** configuring client connect to socket host ip " + serverHostIPAddress);
 
       int serverPort;
-      if (argList.contains("-ws")) {
+      if (argList.contains("-wsp")) {
         serverPort = Integer.parseInt(argList.get((argList.indexOf("-ws") + 1)));
       } else
         serverPort = 7000;
@@ -86,44 +103,20 @@ public class EdgeServer {
       if (argList.contains("-ap")) {
         apiPort = Integer.parseInt(argList.get((argList.indexOf("-ap") + 1)));
       } else
-        apiPort = 8001;
-      logger.info("**** configuring client server api port " + serverPort);
+        apiPort = 8080;
+      logger.info("**** configuring client server api port " + apiPort);
       ChannelApiBootstrap.startChannelAPI(serverHostIPAddress, apiPort);
       logger.info(
           "**** starting sever api @ http://" + serverHostIPAddress + ":" + apiPort + "/channel/"
               + channelName);
 
-      int subscriptionPort=8000;
+      int subscriptionPort = 8000;
       final String remoteWSURL =
-          "ws://" + serverHostIPAddress + ":" + serverPort + "/" + channelName + "/subscribe/"
-              + subscribeToChannel(channelName, serverHostIPAddress, subscriptionPort);
+          "ws://" + wsHostIPAddress + ":" + serverPort + "/" + channelName + "/subscribe/"
+              + subscribeToChannel(channelName, wsHostIPAddress, subscriptionPort);
 
-      new Thread(() -> {
-        try {
-          final Xnio xnio = Xnio.getInstance("nio", EdgeServer.class.getClassLoader());
-          final XnioWorker worker = xnio.createWorker(
-              OptionMap.builder().set(Options.WORKER_IO_THREADS, 1)
-                  .set(Options.CONNECTION_HIGH_WATER, 10).set(Options.CONNECTION_LOW_WATER, 1)
-                  .set(Options.WORKER_TASK_CORE_THREADS, 1).set(Options.WORKER_TASK_MAX_THREADS, 1)
-                  .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
+      spawnNewClient(remoteWSURL, channelName);
 
-          boolean connected = false;
-          while (!connected) {
-            try {
-              WebSocketChannel webSocketChannel =
-                  eventServer.withWebSocketEventClient(remoteWSURL, channelName, worker);
-              if (webSocketChannel != null && webSocketChannel.isOpen())
-                connected = true;
-              else
-                System.out.print(".");
-
-            } catch (Exception e) {
-              e.getMessage();
-            }
-          }
-        } catch (Exception e) {
-        }
-      }).start();
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(1);
@@ -131,33 +124,75 @@ public class EdgeServer {
 
   }
 
-  private static String subscribeToChannel(String channelName, String serverHostIPAddress,
+  private static void spawnNewClient(String remoteWSURL, String channelName) {
+    new Thread(() -> {
+      try {
+        final Xnio xnio = Xnio.getInstance("nio", EdgeServer.class.getClassLoader());
+        final XnioWorker worker = xnio.createWorker(
+            OptionMap.builder().set(Options.WORKER_IO_THREADS, 1)
+                .set(Options.CONNECTION_HIGH_WATER, 10).set(Options.CONNECTION_LOW_WATER, 1)
+                .set(Options.WORKER_TASK_CORE_THREADS, 1).set(Options.WORKER_TASK_MAX_THREADS, 1)
+                .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
+
+        boolean connected = false;
+        while (!connected) {
+          try {
+            WebSocketChannel webSocketChannel =
+                withWebSocketEventClient(remoteWSURL, worker, channelName);
+            if (webSocketChannel != null && webSocketChannel.isOpen())
+              connected = true;
+            else
+              System.out.print(".");
+
+          } catch (Exception e) {
+            e.getMessage();
+          }
+        }
+      } catch (Exception e) {
+      }
+    }).start();
+  }
+
+  private static String subscribeToChannel(String channelName, String wsHostIPAddress,
       int apiPort) {
     ResteasyClient client = new ResteasyClientBuilder().build();
-    String uri =
-        "http://" + serverHostIPAddress + ":" + apiPort + "/" + channelName + "/subscribe";
+    String uri = "http://" + wsHostIPAddress + ":" + apiPort + "/" + channelName + "/subscribe";
     logger.info("Subscribing to: " + uri);
     ResteasyWebTarget target = client.target(uri);
     Response response = target.request()
         .post(Entity.entity(new PassthroughExpression(), MediaType.APPLICATION_JSON_TYPE));
     SubscriptionResponse subscriptionResponse = response.readEntity(SubscriptionResponse.class);
     response.close();
+    EventNodeID.setNodeID(subscriptionResponse.getClientID());
     return subscriptionResponse.getClientID();
   }
 
 
-  public WebSocketChannel withWebSocketEventClient(String remoteURL, String eventStreamName,
-      XnioWorker worker) throws Exception {
+  private static WebSocketChannel withWebSocketEventClient(String remoteURL, XnioWorker worker,
+      String channelName) throws Exception {
     IoFuture<WebSocketChannel> connection;
+    Subscriber<String, Event> subscriber;
 
     connection = WebSocketClient
         .connectionBuilder(worker, new DefaultByteBufferPool(true, 32768), new URI(remoteURL))
         .connect();
     Thread.currentThread().sleep(1000);
     if (connection.getStatus() == IoFuture.Status.DONE) {
+
       logger.info(".");
       logger.info("Connected to cluster server@" + remoteURL);
       WebSocketChannel channel = connection.get();
+
+      subscriber = EventChannel.channel("events").flow()
+          .addSubscriber(new MultiItemSubscriber<String, Event>() {
+            @Override
+            public void onNext(Stream<Item<Event, String>> items) {
+              if (channel.isOpen())
+                items.forEach(i -> WebSockets.sendText(i.value().toFullJSONString(), channel, null));
+            }
+          });
+
+
       channel.getReceiveSetter().set(new AbstractReceiveListener() {
 
         @Override
@@ -165,20 +200,22 @@ public class EdgeServer {
             throws IOException {
           super.onClose(webSocketChannel, channel);
           logger.log(Level.WARNING, "close connection received from server");
-          System.exit(999);
+          subscriber.stop();
+          spawnNewClient(remoteURL, channelName);
         }
 
         @Override
         protected void onError(WebSocketChannel channel, Throwable error) {
           super.onError(channel, error);
           logger.log(Level.SEVERE, "error received from socket", error);
-          System.exit(999);
+          subscriber.stop();
+          spawnNewClient(remoteURL, channelName);
         }
 
         @Override
         protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message)
             throws IOException {
-          processMessageData(message);
+          processMessageData(message, channelName);
         }
       });
 
@@ -186,29 +223,32 @@ public class EdgeServer {
         while (channel.isOpen()) {
           try {
             WebSockets.sendTextBlocking(PING_CHAR_STRING, channel);
-          } catch (java.io.IOException e) {
+            Thread.sleep(1000);
+          } catch (Exception e) {
             logger.log(Level.WARNING, "channel IO exception", e);
           }
           channel.resumeReceives();
         }
+        logger.log(Level.SEVERE, "channel was closed");
       }).start();
       return channel;
     } else {
       connection.cancel();
     }
     return null;
-
   }
 
-  private void processMessageData(BufferedTextMessage message) {
+  private static void processMessageData(BufferedTextMessage message, String channelName) {
     String messageData = message.getData();
+    ItemFlowable<Event, String> itemFlowable = EventChannel.channel(channelName + "_sink").flow();
     messageData = messageData.replaceAll(PING_CHAR_STRING, "");
     {
       if (messageData.isEmpty())
         ;
       else {
         String[] events = messageData.split("data: ");
-        for (String event : events) {
+        for (int j = 0; j < events.length; j++) {
+          String event = events[j];
           try {
             if (!event.isEmpty()) {
               Event[] eventsToPut;
@@ -217,8 +257,7 @@ public class EdgeServer {
               else
                 eventsToPut = (Event[]) List.of(JSONUtil.fromJSONString(event, Event.class))
                     .toArray(new Event[0]);
-              Arrays.stream(eventsToPut)
-                  .forEach(e -> System.out.println("data:" + e.toJSONString()));
+              Arrays.stream(eventsToPut).forEach(itemFlowable::putItem);
               if (!message.isComplete())
                 logger.info("B");
             }

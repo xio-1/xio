@@ -1,0 +1,19 @@
+version: '3'
+services:
+  app:
+    image: weeio/app:latest
+    ports:
+      - "8000:8000"
+      - "7000:7000"
+  edge1:
+    image: weeio/edge:latest
+    ports:
+      - "8001:8080"
+  edge2:
+    image: weeio/edge:latest
+    ports:
+      - "8002:8080"
+  edge3:
+    image: weeio/edge:latest
+    ports:
+      - "8003:8080"

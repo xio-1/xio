@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.internal;
 
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,7 +16,7 @@ public class FlowHousekeepingTask implements Runnable {
   @Override
   public void run() {
     try {
-      if (Flow.numActiveFlows() > 0) {
+      if (Flow.numActiveFlows() > 0 || XIOService.isRunning()) {
         Flow.allFlows().parallelStream().forEach(Flow::housekeep);
       }
     } catch (Exception e) {

@@ -20,7 +20,7 @@ public class Event {
   private static final Object EMPTY_OBJECT = new Object();
   private long eventId = -1;
   private long eventTimestamp = -1;
-  private long eventNodeId;
+  private String originId;
   private Map<String, Object> eventValues = EMPTY_FIELD_VALUES;
   private HashMap<String, String> requestHeaders;
   private String requestMethod;
@@ -29,7 +29,7 @@ public class Event {
   public Event() {
     this.generateId();
     this.eventTimestamp = System.currentTimeMillis();
-    this.eventNodeId = EventNodeID.getNodeID();
+    this.originId = EventNodeID.getNodeID();
   }
 
   public Event(Object object) {
@@ -60,14 +60,14 @@ public class Event {
   protected Event(long eventid, long eventTimestamp) {
     this.eventId = eventid;
     this.eventTimestamp = eventTimestamp;
-    this.eventNodeId = EventNodeID.getNodeID();
+    this.originId = EventNodeID.getNodeID();
   }
 
   protected Event(long eventid, long eventTimestamp, Map<String, Object> eventValues) {
     this.eventId = eventid;
     this.eventTimestamp = eventTimestamp;
     this.eventValues = eventValues;
-    this.eventNodeId = EventNodeID.getNodeID();
+    this.originId = EventNodeID.getNodeID();
   }
 
   @JsonIgnore
@@ -154,12 +154,19 @@ public class Event {
     return this.eventId;
   }
 
-  public long get_eventNodeId() {
-    return eventNodeId;
+  public String get_originId() {
+    return originId;
+  }
+  public void set_originId(String originId) {
+    this.originId=originId;
   }
 
   public String get_eventType() {
-    return eventType;
+    Object eventTypeField = getFieldValue("_eventType");
+    if (eventTypeField==null || eventTypeField.equals(EMPTY_OBJECT))
+      return this.eventType;
+    else
+      return eventTypeField.toString();
   }
 
   public HashMap<String, String> get_httpRequestHeaders() {
@@ -168,6 +175,10 @@ public class Event {
 
   public String get_httpRequestMethod() {
     return requestMethod;
+  }
+
+  public void set_httpRequestHeaders(HashMap<String, String> requestHeaders) {
+    this.requestHeaders=requestHeaders;
   }
 
   @JsonAnySetter
@@ -231,7 +242,7 @@ public class Event {
     final StringBuffer sb = new StringBuffer("Event{");
     sb.append("eventId=").append(eventId);
     sb.append(", eventTimestamp=").append(eventTimestamp);
-    sb.append(", eventNodeId=").append(eventNodeId);
+    sb.append(", originId=").append(originId);
     sb.append(", eventValues=").append(eventValues);
     sb.append(", requestHeaders=").append(requestHeaders);
     sb.append(", requestMethod='").append(requestMethod).append('\'');

@@ -31,7 +31,6 @@ public class ChannelApi {
   private static SseBroadcaster sseBroadcaster;
   private static Subscriber sseSubscriber;
 
-
   @GET
   @Path("/{channelname}/_status")
   @Produces("application/json")
@@ -47,33 +46,35 @@ public class ChannelApi {
   @GET
   @POST
   @Path("/{channelname}/sse/enable")
+  @Produces("application/json")
   public Response enableSSE(@PathParam("channelname") String channelname, @Context Sse sse) {
     if (this.sseSubscriber == null || this.sseSubscriber.isDone()) {
       final OutboundSseEvent.Builder builder = sse.newEventBuilder();
-      this.sseSubscriber = EventChannel.channel(channelname).flow()
+      this.sseSubscriber = EventChannel.channel(channelname+"_sink").flow()
           .addSubscriber(new MultiItemSubscriber<String, Event>() {
 
             @Override
             public void initialise() {
-              if (getSseBroadcaster()==null)
+              if (getSseBroadcaster() == null)
                 setSseBroadcaster(sse.newBroadcaster());
             }
 
             @Override
             public void onNext(Stream<Item<Event, String>> items) {
-              items.forEach(i -> sseBroadcaster
-                  .broadcast(builder.data(String.class, i.value().toJSONString()).build()));
+              items.forEach(i -> sseBroadcaster.broadcast(
+                  builder.data(String.class, i.value().toJSONString())
+                      .mediaType(MediaType.APPLICATION_JSON_TYPE).build()));
             }
           });
       logger
           .info("Started SSE subscriber " + sseSubscriber.getId() + " for channel " + channelname);
     }
-    return Response.status(HttpStatus.SC_ACCEPTED)
-        .entity("{\"sse\":" + "\"enabled\"" + "}").build();
+    return Response.status(HttpStatus.SC_ACCEPTED).entity("{\"sse\":" + "\"enabled\"" + "}")
+        .build();
   }
 
   @GET
-  @Path("/{channelname}/sse")
+  @Path("/{channelname}/sse/subscribe")
   @Produces(SERVER_SENT_EVENTS)
   public void get(@PathParam("channelname") String channelname, @Context SseEventSink eventSink) {
     this.sseBroadcaster.register(eventSink);

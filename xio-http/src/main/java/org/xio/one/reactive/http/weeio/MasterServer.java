@@ -134,6 +134,7 @@ public class MasterServer {
           "**** started master server socket @ ws://" + serverHostIPAddress + ":" + serverPort
               + "/" + channelName + "/subscribe");
 
+      logger.info("**** Node id is " + EventNodeID.getNodeID());
 
       /*if (argList.contains("-c")) {
         final String clientURL =
@@ -389,14 +390,14 @@ public class MasterServer {
           String event = events[j];
           try {
             if (!event.isEmpty()) {
+              logger.info(event);
               Event[] eventsToPut;
               if (event.startsWith("["))
                 eventsToPut = JSONUtil.fromJSONString(event, Event[].class);
               else
                 eventsToPut = (Event[]) List.of(JSONUtil.fromJSONString(event, Event.class))
                     .toArray(new Event[0]);
-              Arrays.stream(eventsToPut).filter(
-                  s -> s.get_eventType() == null || s.get_eventNodeId() != EventNodeID.getNodeID())
+              Arrays.stream(eventsToPut)
                   .forEach(eventStream::putItem);
               if (!message.isComplete())
                 logger.info("B");

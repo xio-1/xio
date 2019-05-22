@@ -1,16 +1,16 @@
 package org.xio.one.reactive.http.weeio.internal.domain;
 
-import java.util.Random;
+import java.util.UUID;
 
 public class EventNodeID {
 
-  private static long nodeID = new Random().nextLong();
+  private static String nodeID = UUID.randomUUID().toString();
 
-  public static long getNodeID() {
+  public static String getNodeID() {
     return nodeID;
   }
 
-  public static void setNodeID(long nodeID) {
+  public static void setNodeID(String nodeID) {
     EventNodeID.nodeID = nodeID;
   }
 }
