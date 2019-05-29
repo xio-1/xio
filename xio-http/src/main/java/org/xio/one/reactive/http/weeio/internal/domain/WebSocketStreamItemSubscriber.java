@@ -3,9 +3,14 @@ package org.xio.one.reactive.http.weeio.internal.domain;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiItemSubscriber;
+import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 
-public class WebSocketStreamItemSubscriber extends ItemSubscriber<String, Event> {
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class WebSocketStreamItemSubscriber extends MultiItemSubscriber<String, Event> {
 
   private final String subscriberId;
   WebSocketChannel channel;
@@ -16,10 +21,13 @@ public class WebSocketStreamItemSubscriber extends ItemSubscriber<String, Event>
   }
 
   @Override
-  public void onNext(Item<Event, String> item)  {
-    if (channel.isOpen() && !item.value().get_originId().equals(subscriberId))
-      WebSockets.sendText("data: " + item.value().toJSONString(), channel, null);
+  public void onNext(Stream<Item<Event, String>> items) {
+    if (channel.isOpen()) {
+      List<Event> toSend;
+      toSend =
+          items.filter(i -> !i.value().get_originId().equals(subscriberId)).map(Item::value)
+          .collect(Collectors.toList());
+      WebSockets.sendText("data: " + JSONUtil.toJSONString(toSend), channel, null);
+    }
   }
-
-
 }

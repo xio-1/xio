@@ -6,6 +6,7 @@ import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.api.ChannelApiBootstrap;
 import org.xio.one.reactive.http.weeio.internal.domain.Event;
 import org.xio.one.reactive.http.weeio.internal.domain.WebSocketStreamItemSubscriber;
@@ -94,12 +95,12 @@ public class EventChannel {
       throw new SecurityException("Unauthorized");
   }
 
-  public ItemSubscriber<String, Event> newWebSocketSubscriber(WebSocketChannel channel,
+  public MultiItemSubscriber<String, Event> newWebSocketSubscriber(WebSocketChannel channel,
       String subscriberId) {
     WebSocketStreamItemSubscriber webSocketStreamItemSubscriber =
         new WebSocketStreamItemSubscriber(channel, subscriberId);
     clients.replace(subscriberId, webSocketStreamItemSubscriber);
-    return (ItemSubscriber<String, Event>) flow().addSubscriber(webSocketStreamItemSubscriber);
+    return (MultiItemSubscriber<String, Event>) flow().addSubscriber(webSocketStreamItemSubscriber);
   }
 
   public void startSSEChannelClientSubscriber(String channelName) {

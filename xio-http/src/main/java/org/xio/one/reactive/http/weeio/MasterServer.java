@@ -13,6 +13,7 @@ import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiItemSubscriber;
 import org.xio.one.reactive.http.weeio.internal.CORSResourceHeadersHandler;
 import org.xio.one.reactive.http.weeio.internal.api.JSONUtil;
 import org.xio.one.reactive.http.weeio.internal.api.SubscriptionApiBootstrap;
@@ -284,8 +285,8 @@ public class MasterServer {
     final Xnio xnio = Xnio.getInstance("nio", MasterServer.class.getClassLoader());
     final XnioWorker worker = xnio.createWorker(
         OptionMap.builder().set(Options.WORKER_IO_THREADS, 8)
-            .set(Options.CONNECTION_HIGH_WATER, 10000).set(Options.CONNECTION_LOW_WATER, 10)
-            .set(Options.WORKER_TASK_CORE_THREADS, 30).set(Options.WORKER_TASK_MAX_THREADS, 30)
+            .set(Options.CONNECTION_HIGH_WATER, 100).set(Options.CONNECTION_LOW_WATER, 10)
+            .set(Options.WORKER_TASK_CORE_THREADS, 10).set(Options.WORKER_TASK_MAX_THREADS, 100)
             .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
 
     Undertow server =
@@ -293,7 +294,7 @@ public class MasterServer {
             path().addPrefixPath("/" + eventStreamName + "/subscribe",
                 websocket(new WebSocketConnectionCallback() {
 
-                  ItemSubscriber<String, Event> streamItemSubscriber;
+                  MultiItemSubscriber<String, Event> streamItemSubscriber;
 
                   @Override
                   public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
@@ -390,7 +391,7 @@ public class MasterServer {
           String event = events[j];
           try {
             if (!event.isEmpty()) {
-              logger.info(event);
+              logger.fine(event);
               Event[] eventsToPut;
               if (event.startsWith("["))
                 eventsToPut = JSONUtil.fromJSONString(event, Event[].class);
@@ -400,10 +401,10 @@ public class MasterServer {
               Arrays.stream(eventsToPut)
                   .forEach(eventStream::putItem);
               if (!message.isComplete())
-                logger.info("B");
+                logger.log(Level.SEVERE,"Incomplete message " + messageData);
             }
           } catch (IOException e) {
-            logger.info(e.getMessage());
+            logger.log(Level.SEVERE,"Error processing message ", e);
           }
         }
       }

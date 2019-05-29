@@ -98,7 +98,7 @@ public class ChannelApi {
       event.addHTTPHeaders(headermap);
       event.addRequestMethod(request.getMethod());
       EventChannel.channel(channelname).flow().putItem(event);
-      logger.info(event.toSSEFull());
+      logger.fine(event.toSSEFull());
       return Response.status(HttpStatus.SC_ACCEPTED).build();
     } catch (Exception e) {
       return Response.status(HttpStatus.SC_METHOD_FAILURE).build();

@@ -3,6 +3,7 @@ package org.xio.one.reactive.http.weeio;
 import io.undertow.server.DefaultByteBufferPool;
 import io.undertow.websockets.client.WebSocketClient;
 import io.undertow.websockets.core.*;
+import io.undertow.websockets.extensions.PerMessageDeflateHandshake;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
@@ -26,6 +27,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -50,6 +53,7 @@ public class EdgeServer {
   public static void main(final String[] args) throws InterruptedException {
 
     Thread.sleep(10000);
+    Random randomApiPort = new Random();
 
     try {
       String serverHostIPAddress;
@@ -102,8 +106,10 @@ public class EdgeServer {
       int apiPort;
       if (argList.contains("-ap")) {
         apiPort = Integer.parseInt(argList.get((argList.indexOf("-ap") + 1)));
-      } else
-        apiPort = 8080;
+      } else {
+        int offset = Math.abs(randomApiPort.nextInt(1998));
+        apiPort = 8001+offset;
+      }
       logger.info("**** configuring client server api port " + apiPort);
       ChannelApiBootstrap.startChannelAPI(serverHostIPAddress, apiPort);
       logger.info(
@@ -130,8 +136,8 @@ public class EdgeServer {
         final Xnio xnio = Xnio.getInstance("nio", EdgeServer.class.getClassLoader());
         final XnioWorker worker = xnio.createWorker(
             OptionMap.builder().set(Options.WORKER_IO_THREADS, 1)
-                .set(Options.CONNECTION_HIGH_WATER, 10).set(Options.CONNECTION_LOW_WATER, 1)
-                .set(Options.WORKER_TASK_CORE_THREADS, 1).set(Options.WORKER_TASK_MAX_THREADS, 1)
+                .set(Options.CONNECTION_HIGH_WATER, 100).set(Options.CONNECTION_LOW_WATER, 1)
+                .set(Options.WORKER_TASK_CORE_THREADS, 10).set(Options.WORKER_TASK_MAX_THREADS, 100)
                 .set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
 
         boolean connected = false;
@@ -174,8 +180,8 @@ public class EdgeServer {
     Subscriber<String, Event> subscriber;
 
     connection = WebSocketClient
-        .connectionBuilder(worker, new DefaultByteBufferPool(true, 32768), new URI(remoteURL))
-        .connect();
+        .connectionBuilder(worker, new DefaultByteBufferPool(true, 65536), new URI(remoteURL))
+        .setClientExtensions(Set.of(new PerMessageDeflateHandshake(true, 6))).connect();
     Thread.currentThread().sleep(1000);
     if (connection.getStatus() == IoFuture.Status.DONE) {
 
@@ -251,6 +257,7 @@ public class EdgeServer {
           String event = events[j];
           try {
             if (!event.isEmpty()) {
+              logger.fine(event);
               Event[] eventsToPut;
               if (event.startsWith("["))
                 eventsToPut = JSONUtil.fromJSONString(event, Event[].class);
@@ -259,10 +266,10 @@ public class EdgeServer {
                     .toArray(new Event[0]);
               Arrays.stream(eventsToPut).forEach(itemFlowable::putItem);
               if (!message.isComplete())
-                logger.info("B");
+                logger.log(Level.SEVERE,"Incomplete message " + messageData);
             }
           } catch (IOException e) {
-            logger.info(e.getMessage());
+            logger.log(Level.SEVERE,"Error processing message ", e);
           }
         }
       }

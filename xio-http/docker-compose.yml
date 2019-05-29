@@ -13,7 +13,3 @@ services:
     image: weeio/edge:latest
     ports:
       - "8002:8080"
-  edge3:
-    image: weeio/edge:latest
-    ports:
-      - "8003:8080"
