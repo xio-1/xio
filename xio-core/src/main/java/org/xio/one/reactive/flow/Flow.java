@@ -49,8 +49,8 @@ import java.util.stream.Collectors;
 public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureItemFlowable<T, R>,
     CompletableItemFlowable<T, R> {
 
-  public static final int LOCK_PARK_NANOS = 100000;
-  public static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
+  private static final int LOCK_PARK_NANOS = 100000;
+  private static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
   private static final Object flowControlLock = new Object();
   private static Logger logger = Logger.getLogger(Flow.class.getName());
   // all flows
@@ -59,7 +59,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
   private final int queue_max_size = 16384;
   private final Object lockSubscriberslist = new Object();
-  ConcurrentHashMap<String, Item> lastSeenItemMap;
+  private ConcurrentHashMap<String, Item> lastSeenItemMap;
   // streamContentsSnapShot variables
   private FlowContents<T, R> flowContents;
   // constants
@@ -88,20 +88,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     synchronized (flowControlLock) {
       flowMap.put(id, this);
       if (XIOService.isRunning())
-        logger.info("XIO Service will be used to run flow " + name);
-
-      if (!XIOService.isRunning() && flowCount.incrementAndGet() == 1) {
-        InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor());
-        InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor());
-        InternalExecutors.schedulerThreadPoolInstance()
-            .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS);
-      }
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-
+        logger.info("XIO Service is running ");
+      else
+        XIOService.start();
       logger.info("Flow " + name + " id " + id + " has started");
     }
   }

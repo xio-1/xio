@@ -466,7 +466,6 @@ public class FlowTest {
       @Override
       public void completed(String result, String attachment) {
         logger.info(Thread.currentThread() + ":OnCallbackCompletion:" + result);
-
       }
 
       @Override

@@ -1,27 +1,15 @@
 package org.xio.one.test.examples.bank;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.xio.one.reactive.flow.XIOService;
+import org.xio.one.test.examples.bank.api.BankAPI;
 import org.xio.one.test.examples.bank.domain.Account;
-import org.xio.one.test.examples.bank.domain.Bank;
-import org.xio.one.test.examples.bank.domain.Transaction;
+import org.xio.one.test.examples.bank.domain.AccountTransaction;
 import org.xio.one.test.examples.bank.domain.TransactionType;
-
-import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
 
 public class BankTestMust {
-
-  Logger logger = Logger.getLogger(BankTestMust.class.getCanonicalName());
-
-  @BeforeClass
-  public static void setup() {
-    XIOService.start();
-  }
 
   @AfterClass
   public static void tearDown() {
@@ -30,111 +18,98 @@ public class BankTestMust {
 
   @Test
   public void bankOpensWithLiquidityOfZero() throws Exception {
-    Bank bank = new Bank();
-    bank.open();
-    bank.close();
-    Assert.assertThat(bank.getLiquidity(), is(0d));
+    BankAPI bank = new BankAPI();
+    Assert.assertThat(bank.calculateLiquidity(), is(0d));
   }
 
   @Test
   public void bankWithOneAccountWhenOneDepositSubmittedHasLiquidityEqualToDepositOnClose()
-      throws Exception {
-    Bank bank = new Bank();
-    bank.open();
+  {
+    BankAPI bank = new BankAPI();
     Account account = bank.newAccount("myaccount");
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, account.getAccountNumber(), 100d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, account.getAccountNumber(), 100d,
             TransactionType.CREDIT));
-    bank.close();
-    Assert.assertThat(bank.getLiquidity(), is(100d));
+    Assert.assertThat(bank.calculateLiquidity(), is(100d));
   }
 
   @Test
   public void bankWithOneAccountWhenTwoTransactionSubmittedHasCorrectLiquidityOnClose()
       throws Exception {
-    Bank bank = new Bank();
-    bank.open();
+    BankAPI bank = new BankAPI();
     Account account = bank.newAccount("myaccount");
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, account.getAccountNumber(), 1000d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, account.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
-        new Transaction("cash withdrawal", null, account.getAccountNumber(), 200d,
+    bank.submitTransaction(
+        new AccountTransaction("cash withdrawal", null, account.getAccountNumber(), 200d,
             TransactionType.DEBIT));
-    bank.close();
-
-    Assert.assertThat(bank.getLiquidity(), is(800d));
+    Assert.assertThat(bank.calculateLiquidity(), is(800d));
   }
 
   @Test
   public void bankWithMultipleAccountsHasCorrectLiquidityOnClose() throws Exception {
-    Bank bank = new Bank();
-    bank.open();
+    BankAPI bank = new BankAPI();
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, myaccount1.getAccountNumber(), 200d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, myaccount1.getAccountNumber(), 200d,
             TransactionType.DEBIT));
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, myaccount2.getAccountNumber(), 2000d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, myaccount2.getAccountNumber(), 2000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, myaccount2.getAccountNumber(), 200d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, myaccount2.getAccountNumber(), 200d,
             TransactionType.DEBIT));
-
-    bank.close();
-    Assert.assertThat(bank.getLiquidity(), is(2600d));
+    Assert.assertThat(bank.calculateLiquidity(), is(2600d));
   }
 
   @Test
   public void bankPerformance() throws Exception {
-    Bank bank = new Bank();
-    bank.open();
+    BankAPI bank = new BankAPI();
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
 
-    int no_transactions = 10000;
+    int no_transactions = 100000;
     for (int i = 0; i < no_transactions; i++) {
-      bank.submitTransactionRequest(
-          new Transaction("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
+      bank.submitTransaction(
+          new AccountTransaction("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
               TransactionType.CREDIT));
-      bank.submitTransactionRequest(
-          new Transaction("cash withdrawal", null, myaccount1.getAccountNumber(), 200d,
+      bank.submitTransaction(
+          new AccountTransaction("cash withdrawal", null, myaccount1.getAccountNumber(), 200d,
               TransactionType.DEBIT));
-      bank.submitTransactionRequest(
-          new Transaction("cash deposit", null, myaccount2.getAccountNumber(), 2000d,
+      bank.submitTransaction(
+          new AccountTransaction("cash deposit", null, myaccount2.getAccountNumber(), 2000d,
               TransactionType.CREDIT));
-      bank.submitTransactionRequest(
-          new Transaction("cash withdrawal", null, myaccount2.getAccountNumber(), 200d,
+      bank.submitTransaction(
+          new AccountTransaction("cash withdrawal", null, myaccount2.getAccountNumber(), 200d,
               TransactionType.DEBIT));
     }
 
-    bank.close();
-    Assert.assertThat(bank.getLiquidity(), is(2600d * no_transactions));
+    Assert.assertThat(bank.calculateLiquidity(), is(2600d * no_transactions));
   }
 
   @Test
   public void shouldTransferMoniesBetweenTwoAccountsInSameBank() throws Exception {
-    Bank bank = new Bank();
-    bank.open();
+    BankAPI bank = new BankAPI();
+
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, myaccount1.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(
-        new Transaction("cash deposit", null, myaccount2.getAccountNumber(), 1000d,
+    bank.submitTransaction(
+        new AccountTransaction("cash deposit", null, myaccount2.getAccountNumber(), 1000d,
             TransactionType.CREDIT));
-    bank.submitTransactionRequest(new Transaction("cash deposit", myaccount1.getAccountNumber(),
+    bank.submitTransaction(new AccountTransaction("cash deposit", myaccount1.getAccountNumber(),
         myaccount2.getAccountNumber(), 500d, TransactionType.TRANSFER));
-    bank.close();
 
-    Assert.assertThat(myaccount1.getBalance(), is(500d));
-    Assert.assertThat(myaccount2.getBalance(), is(1500d));
-    Assert.assertThat(bank.getLiquidity(), is(2000d));
+    Assert.assertThat(bank.getAccountBalance(myaccount1.getAccountNumber()), is(500d));
+    Assert.assertThat(bank.getAccountBalance(myaccount2.getAccountNumber()), is(1500d));
+    Assert.assertThat(bank.calculateLiquidity(), is(2000d));
   }
 
 

@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TransactionLedger {
-  private List<Transaction> transactionLedger = new ArrayList<>();
+  private List<AccountTransaction> transactionLedger = new ArrayList<>();
 
-  public void add(Transaction transaction) {
+  public void add(AccountTransaction transaction) {
     transactionLedger.add(transaction);
   }
 
-  public List<Transaction> getAll() {
+  public List<AccountTransaction> getAll() {
     return List.copyOf(transactionLedger);
   }
 }

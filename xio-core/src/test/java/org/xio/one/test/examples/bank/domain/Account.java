@@ -1,19 +1,14 @@
 package org.xio.one.test.examples.bank.domain;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Account {
   private String name;
   private String accountNumber;
   private double balance;
-  private List<Transaction> transactions;
 
   public Account(String name, String accountNumber) {
     this.name = name;
     this.accountNumber = accountNumber;
     this.balance = 0;
-    this.transactions = new ArrayList<>();
   }
 
   public double getBalance() {

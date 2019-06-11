@@ -58,7 +58,13 @@ public class XIOService {
             InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor()),
             InternalExecutors.schedulerThreadPoolInstance()
                 .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS));
-        logger.info("XIO loaded");
+        try {
+          //give boss threads a chance to start correctly
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+        logger.info("XIO loaded successfully");
       }
     }
 
