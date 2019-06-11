@@ -1,4 +1,4 @@
-### XIO Developer Guide
+# XIO Developer Guide
 
 XIO is a strictly ordered reactive flow and event sink that supports futures and micro batching 
 with zero dependencies on other frameworks.  
@@ -8,7 +8,7 @@ batching API calls and async I/O and futures.
 
 XIO is small, fast, lightweight and easy to use.
 
-#### ItemFlowable<T,R>  
+## ItemFlowable<T,R>  
 
 An async flow where you will put values to be processed by your subscriber. 
 
@@ -32,7 +32,7 @@ In order to process items in a flow you will need to write subscriber code to re
 values put into the Flow. You can get the actual value of T by calling the value() method on the 
 given Item<T> i.e ```itemValue.value();```
 
-#### Subscriber<R,T>  
+## Subscriber<R,T>  
 
 A subscriber to a Flowable must implement the Subscriber<R,T> interface, a subscriber recieves each Item<T> in sequence to process.  T is the type of the value you will put to the flow.  
 
@@ -50,7 +50,7 @@ Completeable Future subscribers are useful where the caller (item submitter) mus
 future) if an item was processed successfully (or not), a good example of this would be a 
 transaction log for example where it is crucial that every transaction is logged or on failure rolled back.
 
-#### ItemSubscriber<R,T> 
+### ItemSubscriber<R,T> 
 
 A subscriber that subscribes to each Item<T> in the flow in turn and on finalisation can return a value that has been computed (across all items if required).
 
@@ -111,7 +111,7 @@ Or if you prefer functional style programming then;
         is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
 ```
 
-#### FutureItemSubscriber<R,T>
+### FutureItemSubscriber<R,T>
 
 Where a future result for every item submitted is required then use the FutureItemSubscriber in 
 conjunction with the submitItem method to return a future Promise for each item submitted to the 
@@ -164,7 +164,7 @@ Or if you prefer functional style programming then;
     
     toUPPERCASEFlow.close(true);
     
-#### CompletableItemSubscriber<R,T>
+### CompletableItemSubscriber<R,T>
 
 XIO also supports async callbacks i.e. where after an async task you want some code to be called 
 back e.g. to return a result to another process
@@ -208,7 +208,7 @@ back e.g. to return a result to another process
     asyncFlow.close(true);
 ```
 
-### Example projects
+## Example projects
 
 There are to examples given in the test package
 
