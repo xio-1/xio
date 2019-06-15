@@ -1,15 +1,19 @@
 # XIO-Core Developer Guide
 
 XIO-Core library is a strictly ordered reactive flow and event sink that supports futures and micro 
-batching 
-with zero dependencies on other frameworks.  
+batching.  
 
 You can use XIO for your async requirements such as event loops, realtime flow processing, 
 batching API calls and async I/O and futures.   
 
-XIO is small, fast, lightweight and easy to use.
+XIO is small, fast, lightweight and easy to use with with zero dependencies on other frameworks!
 
 To build xio-core go to the directory xio-core ```mvn clean package```
+
+This s/w is still in beta phase and so minor changes are expected to some method signatures.
+
+Once ready we will be publishing to maven central, until then please reference the unit tests for
+ the latest syntax and examples thanks!
 
 ## ItemFlowable<T,R>  
 
