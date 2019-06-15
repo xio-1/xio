@@ -14,6 +14,8 @@ This s/w is still in beta phase and so minor changes are expected to some method
 
 Once ready we will be publishing to maven central, until then please reference the unit tests for
  the latest syntax and examples thanks!
+ 
+The xio-http module is in alpha and can be used for distributed eventing with websockets.
 
 ## ItemFlowable<T,R>  
 
