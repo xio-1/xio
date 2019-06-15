@@ -1,12 +1,15 @@
-# XIO Developer Guide
+# XIO-Core Developer Guide
 
-XIO is a strictly ordered reactive flow and event sink that supports futures and micro batching 
+XIO-Core library is a strictly ordered reactive flow and event sink that supports futures and micro 
+batching 
 with zero dependencies on other frameworks.  
 
 You can use XIO for your async requirements such as event loops, realtime flow processing, 
 batching API calls and async I/O and futures.   
 
 XIO is small, fast, lightweight and easy to use.
+
+To build xio-core go to the directory xio-core ```mvn clean package```
 
 ## ItemFlowable<T,R>  
 
@@ -70,7 +73,7 @@ For example the below code will log every value put to the flow and transform ea
           }
 
           @Override
-          public void onNext(Item<String, String> item) {
+          public void onNext(Item<String> item) {
             logger.info("on next " + item.value());
             stringBuffer.append(item.value().toUpperCase());
             stringBuffer.append(" ");

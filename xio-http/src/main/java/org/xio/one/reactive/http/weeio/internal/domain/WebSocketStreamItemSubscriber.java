@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class WebSocketStreamItemSubscriber extends MultiItemSubscriber<String, Event> {
+public class WebSocketStreamItemSubscriber extends MultiItemSubscriber<String,Event> {
 
   private final String subscriberId;
   WebSocketChannel channel;
@@ -21,7 +21,7 @@ public class WebSocketStreamItemSubscriber extends MultiItemSubscriber<String, E
   }
 
   @Override
-  public void onNext(Stream<Item<Event, String>> items) {
+  public void onNext(Stream<? extends Item<Event>> items) {
     if (channel.isOpen()) {
       List<Event> toSend;
       toSend =

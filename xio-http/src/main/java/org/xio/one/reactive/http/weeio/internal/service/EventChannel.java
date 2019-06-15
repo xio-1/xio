@@ -106,7 +106,7 @@ public class EventChannel {
   public void startSSEChannelClientSubscriber(String channelName) {
     channels.get(channelName).flow().addSubscriber(new ItemSubscriber<String, Event>() {
       @Override
-      public void onNext(Item<Event, String> item) {
+      public void onNext(Item<Event> item) {
         for(ServerSentEventConnection h : ChannelApiBootstrap.getSseHandler().getConnections()) {
           h.send(item.value().toSSECompact());
         }

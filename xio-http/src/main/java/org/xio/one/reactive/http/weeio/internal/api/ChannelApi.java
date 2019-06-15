@@ -60,7 +60,7 @@ public class ChannelApi {
             }
 
             @Override
-            public void onNext(Stream<Item<Event, String>> items) {
+            public void onNext(Stream<? extends Item<Event>> items) {
               items.forEach(i -> sseBroadcaster.broadcast(
                   builder.data(String.class, i.value().toJSONString())
                       .mediaType(MediaType.APPLICATION_JSON_TYPE).build()));

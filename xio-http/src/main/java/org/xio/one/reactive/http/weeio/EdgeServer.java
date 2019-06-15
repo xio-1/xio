@@ -192,7 +192,7 @@ public class EdgeServer {
       subscriber = EventChannel.channel("events").flow()
           .addSubscriber(new MultiItemSubscriber<String, Event>() {
             @Override
-            public void onNext(Stream<Item<Event, String>> items) {
+            public void onNext(Stream<? extends Item<Event>> items) {
               if (channel.isOpen())
                 items.forEach(i -> WebSockets.sendText(i.value().toFullJSONString(), channel, null));
             }
