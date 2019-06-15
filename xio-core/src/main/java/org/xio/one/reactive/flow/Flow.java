@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  * <p>
  * Flow is implemented with a Command Query Responsibility Segregation external objects,
  * json etc can be put into the anItemFlow and are then asynchronously loaded in memory to a
- * contents store that is used to provide a sequenced view of the flowing items to downstream
+ * getSink store that is used to provide a sequenced view of the flowing items to downstream
  * futureSubscriber
  *
  * @Author Richard Durley
@@ -56,7 +56,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private final Object lockFlowContents = new Object();
   private ConcurrentHashMap<String, Item> lastSeenItemMap;
   // streamContentsSnapShot variables
-  private FlowContents<T, R> flowContents;
+  private ItemSink<T> flowContents;
   // constants
   private int count_down_latch = 10;
   // input parameters
@@ -180,7 +180,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     this.indexFieldName = indexFieldName;
     if (maxTTLSeconds >= 0)
       this.maxTTLSeconds = maxTTLSeconds;
-    this.flowContents = new FlowContents<>(this);
+    this.flowContents = new ItemSink<>(this);
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
     this.subscribers = new ArrayList<>();
@@ -229,7 +229,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
    * @return
    */
   @Override
-  public String uuid() {
+  public String getUUID() {
     return this.id;
   }
 
@@ -244,7 +244,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   /**
-   * Put a putItem value into the contents
+   * Put a putItem value into the getSink
    */
 
   @Override
@@ -253,7 +253,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   /**
-   * Puts list anItemFlow values into the contents
+   * Puts list anItemFlow values into the getSink
    *
    * @param values
    * @return
@@ -265,7 +265,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   /**
-   * Puts list anItemFlow values into the contents with ttlSeconds
+   * Puts list anItemFlow values into the getSink with ttlSeconds
    *
    * @param values
    * @return
@@ -347,7 +347,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   @Override
-  public FlowContents contents() {
+  public ItemSink getSink() {
     return flowContents;
   }
 
@@ -405,9 +405,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
   public boolean housekeep() {
     if (this.maxTTLSeconds() > 0) {
-      long count = flowService().itemStoreContents.stream()
+      long count = flowContents().itemStoreContents.stream()
           .filter(i -> !i.readyForHouseKeeping(this.maxTTLSeconds))
-          .map(d -> flowService().itemStoreContents.remove(d)).count();
+          .map(d -> flowContents().itemStoreContents.remove(d)).count();
       if (count > 0)
         logger.info("cleaned flow " + this.name() + " : removed " + count + " items");
       return true;
@@ -480,14 +480,14 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   public int size() {
-    return this.item_queue.size() + this.contents().allValues().length;
+    return this.item_queue.size() + this.getSink().allValues().length;
   }
 
   public boolean isEmpty() {
     return this.size() == 0;
   }
 
-  public FlowContents<T, R> flowService() {
+  private ItemSink<T> flowContents() {
     return flowContents;
   }
 
@@ -500,12 +500,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     return isEnd && this.item_queue.size() == 0;
   }
 
-  public Item[] snapshot() {
+  public Item[] takeSinkSnapshot() {
     long start = System.currentTimeMillis();
     while (true) {
       synchronized (lockFlowContents) {
-        if (this.size() == contents().size()) {
-          return contents().allItems();
+        if (this.size() == getSink().size()) {
+          return getSink().allItems();
         }
       }
       if (start + 10000 <= System.currentTimeMillis())
@@ -609,7 +609,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     private void processFinalResults(Subscriber<R, T> subscriber, Item lastSeenItem) {
-      Item lastItemInStream = itemStream.contents().last();
+      Item lastItemInStream = itemStream.getSink().lastItem();
       while (lastSeenItem == null | (!lastItemInStream.equals(lastSeenItem) && !lastItemInStream
           .equals(EmptyItem.EMPTY_ITEM))) {
         NavigableSet<Item<T>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
@@ -618,7 +618,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
           lastSeenItem = streamContents.last();
           streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
         }
-        lastItemInStream = itemStream.contents().last();
+        lastItemInStream = itemStream.getSink().lastItem();
       }
       logger.info(
           "Subscriber " + subscriber.getId() + " finished subscribing to flow " + this.itemStream
@@ -641,7 +641,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       if (subscriber.delayMS() > 0)
         LockSupport.parkUntil(System.currentTimeMillis() + subscriber.delayMS());
       NavigableSet<Item<T>> streamContents =
-          Collections.unmodifiableNavigableSet(this.itemStream.contents().allAfter(lastSeenItem));
+          Collections.unmodifiableNavigableSet(this.itemStream.getSink().allAfter(lastSeenItem));
       return streamContents;
     }
 

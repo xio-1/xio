@@ -8,13 +8,13 @@ import org.xio.one.reactive.flow.domain.item.Item;
 
 import static org.hamcrest.core.Is.is;
 
-public class QueryTest {
+public class FlowQueryTest {
 
   @Test
   public void shouldReturnSize0WhenEmpty() throws InterruptedException {
     ItemFlowable<Integer,Integer> flowable = Flow.anItemFlow();
     Thread.sleep(100);
-    Assert.assertThat(flowable.contents().size(), is(0L));
+    Assert.assertThat(flowable.getSink().size(), is(0L));
   }
 
   @Test
@@ -22,7 +22,7 @@ public class QueryTest {
     ItemFlowable<Integer,Integer> flowable = Flow.anItemFlow();
     flowable.putItem(1,2,3);
     Thread.sleep(100);
-    Item<Integer>  item = flowable.contents().last();
+    Item<Integer>  item = flowable.getSink().lastItem();
     Assert.assertThat(item.value(), is(3));
   }
 
@@ -31,7 +31,7 @@ public class QueryTest {
     ItemFlowable<Integer,Integer> flowable = Flow.anItemFlow();
     flowable.putItem(1,2,3);
     Thread.sleep(100);
-    Item<Integer>  item = flowable.contents().first();
+    Item<Integer>  item = flowable.getSink().firstItem();
     Assert.assertThat(item.value(), is(1));
   }
 
@@ -40,7 +40,7 @@ public class QueryTest {
     ItemFlowable<Integer,Integer> flowable = Flow.anItemFlow();
     flowable.putItem(1,2,3);
     Thread.sleep(100);
-    Item<Integer>[]  items = flowable.contents().allItems();
+    Item<Integer>[]  items = flowable.getSink().allItems();
     Assert.assertThat(items[0].value(), is(1));
     Assert.assertThat(items[1].value(), is(2));
     Assert.assertThat(items[2].value(), is(3));
@@ -50,7 +50,7 @@ public class QueryTest {
   public void shouldReturnConsistentSnapshot() {
     ItemFlowable<Integer,Integer> flowable = Flow.anItemFlow();
     flowable.putItem(1,2,3);
-    Assert.assertThat(flowable.snapshot().length,is(3));
+    Assert.assertThat(flowable.takeSinkSnapshot().length,is(3));
   }
 
 

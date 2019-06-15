@@ -7,7 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Removes seen dead domain from the contents store
+ * Removes seen dead domain from the getSink store
  */
 public class FlowHousekeepingTask implements Runnable {
 

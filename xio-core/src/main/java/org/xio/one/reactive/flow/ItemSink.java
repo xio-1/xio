@@ -14,7 +14,7 @@ import java.util.concurrent.locks.LockSupport;
 import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 
 /**
- * FlowContents (Query Store)
+ * ItemSink (in memory Sink item store for flowable itmes)
  *
  * @Author Richard Durley
  * @OringinalWork XIO
@@ -23,17 +23,17 @@ import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
  * @LicenceType Non-Profit Open Software License 3.0 (NPOSL-3.0)
  * @LicenceReference @https://opensource.org/licenses/NPOSL-3.0
  */
-public final class FlowContents<T, R> {
+public final class ItemSink<T> {
 
 
-  public final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
+  private final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   //protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
   private volatile ConcurrentHashMap<Object, Item<T>> itemStoreIndexContents;
   volatile NavigableSet<Item<T>> itemStoreContents = null;
   private String itemStoreIndexFieldName;
   private Flow itemFlow;
 
-  public FlowContents(Flow itemStream) {
+  public ItemSink(Flow itemStream) {
     this.itemFlow = itemStream;
     itemStoreContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
     itemStoreIndexContents = new ConcurrentHashMap<>();
@@ -80,7 +80,7 @@ public final class FlowContents<T, R> {
           if (!items.isEmpty()) {
             Item newFirstItem = items.first();
             if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
-              // if last domain is in correct sequence then
+              // if lastItem domain is in correct sequence then
               final int size = items.size();
               if (newLastItem.itemId() == newFirstItem.itemId() + size - 1)
                 // if the size anItemFlow the domain to return is correct i.e. allItems in sequence
@@ -102,27 +102,6 @@ public final class FlowContents<T, R> {
     return EMPTY_ITEM_SET;
   }
 
-  public NavigableSet<Item<T>> getAllAfterWithDelayMS(int delayMS, Item lastseen) {
-    long startTime = System.currentTimeMillis();
-    NavigableSet<Item<T>> toreturn = new ConcurrentSkipListSet<>();
-    NavigableSet<Item<T>> contents = this.allAfter(lastseen);
-    toreturn.addAll(contents);
-    if (contents.size() > 0) {
-      lastseen = contents.last();
-      while (System.currentTimeMillis() < startTime + delayMS) {
-        contents = this.allAfter(lastseen);
-        if (contents.size() > 0)
-          toreturn.addAll(contents);
-        else
-          return EMPTY_ITEM_SET;
-        LockSupport.parkNanos(100000);
-      }
-    } else {
-      return EMPTY_ITEM_SET;
-    }
-    return toreturn;
-  }
-
   private NavigableSet<Item<T>> extractItemsThatAreInSequence(Item lastItem,
       NavigableSet<Item<T>> items, Item newFirstItem) {
     Item[] items1 = items.toArray(new Item[items.size()]);
@@ -138,7 +117,7 @@ public final class FlowContents<T, R> {
     return items.subSet(newFirstItem, true, last, true);
   }
 
-  public Item<T> last() {
+  public Item<T> lastItem() {
     NavigableSet<Item<T>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
     if (querystorecontents.isEmpty())
@@ -164,7 +143,7 @@ public final class FlowContents<T, R> {
     return EMPTY_ITEM;
   }*/
 
-  public Item<T> first() {
+  public Item<T> firstItem() {
     return this.itemStoreContents.first();
   }
 
@@ -243,11 +222,13 @@ public final class FlowContents<T, R> {
     return domain.toArray(new Item[domain.size()]);
   }
 
-  */
+
 
   public NavigableSet<Item<T>> getTimeWindowSet(long from, long to) throws FlowException {
-    // Get first and last domain in the window
+    // Get firstItem and lastItem domain in the window
     // otherwise return empty set as nothing found in the window
     return EMPTY_ITEM_SET;
   }
+  */
+
 }

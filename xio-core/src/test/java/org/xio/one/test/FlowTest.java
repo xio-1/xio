@@ -69,7 +69,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
     Thread.sleep(100);
-    assertThat(asyncFlow.contents().last().value().toString(), is("Hello world"));
+    assertThat(asyncFlow.getSink().lastItem().value().toString(), is("Hello world"));
     asyncFlow.close(true);
 
   }
@@ -342,7 +342,7 @@ public class FlowTest {
 
     Thread.sleep(11100);
     assertThat(asyncFlow.size(), is(2));
-    assertThat(asyncFlow.contents().last().value(), is("test60"));
+    assertThat(asyncFlow.getSink().lastItem().value(), is("test60"));
     asyncFlow.close(true);
   }
 
@@ -354,7 +354,7 @@ public class FlowTest {
     TestObject testObject3 = new TestObject("hello3");
     asyncFlow.putItem(testObject1, testObject2, testObject3);
     asyncFlow.close(true);
-    Assert.assertThat(asyncFlow.contents().item("hello1").value(), is(testObject1));
+    Assert.assertThat(asyncFlow.getSink().item("hello1").value(), is(testObject1));
   }
 
   @Test
@@ -366,7 +366,7 @@ public class FlowTest {
     TestObject testObject3 = new TestObject("hello3");
     long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
     Thread.sleep(100);
-    Assert.assertThat(asyncFlow.contents().item(itemIds[1]).value(), is(testObject2));
+    Assert.assertThat(asyncFlow.getSink().item(itemIds[1]).value(), is(testObject2));
     asyncFlow.close(true);
   }
 

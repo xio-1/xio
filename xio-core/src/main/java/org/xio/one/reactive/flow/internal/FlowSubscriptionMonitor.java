@@ -14,7 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Gets allItems the input from the Xio.contents.domain itemStream and persists it to the contents store
+ * Gets allItems the input from the Xio.getSink.domain itemStream and persists it to the getSink store
  */
 public class FlowSubscriptionMonitor implements Runnable {
 
