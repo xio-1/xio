@@ -10,14 +10,14 @@ public abstract class ItemSubscriber<R, T> extends AbstractSubscriber<R, T>
     implements OnNextFunction<T, R> {
 
   @Override
-  public final void process(NavigableSet<Item<T, R>> e) {
+  public final void process(NavigableSet<? extends Item<T>> e) {
     e.forEach(this::accept);
   }
 
   @Override
-  public abstract void onNext(Item<T, R> item);
+  public abstract void onNext(Item<T> item);
 
-  public void onError(Throwable error, Item<T, R> item) {
+  public void onError(Throwable error, Item<T> item) {
     return;
   }
 
@@ -30,7 +30,7 @@ public abstract class ItemSubscriber<R, T> extends AbstractSubscriber<R, T>
     return null;
   }
 
-  private void accept(Item<T, R> item) {
+  private void accept(Item<T> item) {
     try {
       onNext(item);
     } catch (Throwable e) {

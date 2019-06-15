@@ -7,13 +7,7 @@ package org.xio.one.reactive.flow;
 
 import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.flow.*;
-import org.xio.one.reactive.flow.domain.item.EmptyItem;
-import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
-import org.xio.one.reactive.flow.domain.item.VoidItem;
-import org.xio.one.reactive.flow.internal.FlowHousekeepingTask;
-import org.xio.one.reactive.flow.internal.FlowInputMonitor;
-import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
+import org.xio.one.reactive.flow.domain.item.*;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
@@ -53,12 +47,13 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
   private static final Object flowControlLock = new Object();
   private static Logger logger = Logger.getLogger(Flow.class.getName());
-  // all flows
+  // allItems flows
   private volatile static Map<String, Flow> flowMap = new ConcurrentHashMap<>();
   private static AtomicInteger flowCount = new AtomicInteger();
 
   private final int queue_max_size = 16384;
   private final Object lockSubscriberslist = new Object();
+  private final Object lockFlowContents = new Object();
   private ConcurrentHashMap<String, Item> lastSeenItemMap;
   // streamContentsSnapShot variables
   private FlowContents<T, R> flowContents;
@@ -71,7 +66,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private long maxTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
   private Map<String, FlowSubscriptionTask> subscriberSubscriptions = new ConcurrentHashMap<>();
   // Queue control
-  private BlockingQueue<Item<T, R>> item_queue;
+  private BlockingQueue<Item<T>> item_queue;
   private volatile boolean isEnd = false;
   private volatile boolean flush = false;
   private ItemIdSequence itemIDSequence;
@@ -283,7 +278,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
-        Item<T, R> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
+        Item<T> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
         ids[i] = item.itemId();
         addToStreamWithBlock(item, flushImmediately);
         if (slowDownNanos > 0)
@@ -315,7 +310,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       FlowItemCompletionHandler<R, T> completionHandler) {
     if (ttlSeconds > this.maxTTLSeconds)
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
-    Item<T, R> item = new Item<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+    Item<T> item = new CompletableItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithBlock(item, flushImmediately);
   }
 
@@ -451,7 +446,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     int ticks = count_down_latch;
     while (!hasEnded() && ticks >= 0) {
       if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
-        this.item_queue.drainTo(this.flowContents.itemStoreContents);
+        synchronized (lockFlowContents) {
+          this.item_queue.drainTo(this.flowContents.itemStoreContents);
+        }
       }
       ticks--;
       LockSupport.parkNanos(100000);
@@ -466,7 +463,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
 
-  private boolean addToStreamWithBlock(Item<T, R> item, boolean immediately) {
+  private boolean addToStreamWithBlock(Item<T> item, boolean immediately) {
     try {
       if (!this.item_queue.offer(item)) {
         this.flush = immediately;
@@ -503,6 +500,20 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     return isEnd && this.item_queue.size() == 0;
   }
 
+  public Item[] snapshot() {
+    long start = System.currentTimeMillis();
+    while (true) {
+      synchronized (lockFlowContents) {
+        if (this.size() == contents().size()) {
+          return contents().allItems();
+        }
+      }
+      if (start + 10000 <= System.currentTimeMillis())
+        throw new FlowException("Snapshot failed");
+      else
+        LockSupport.parkNanos(LOCK_PARK_NANOS);
+    }
+  }
 
   public Future<R> subscribe(Subscriber<R, T> subscriber) {
     synchronized (lockSubscriberslist) {
@@ -580,7 +591,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream()
                     .map(f -> {
                       try {
-                        //block for all subscriber tasks to finish
+                        //block for allItems subscriber tasks to finish
                         return f.get(1, TimeUnit.SECONDS);
                       } catch (InterruptedException | ExecutionException | TimeoutException e) {
                         logger.log(Level.WARNING, "subscriber execution error", e);
@@ -601,7 +612,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       Item lastItemInStream = itemStream.contents().last();
       while (lastSeenItem == null | (!lastItemInStream.equals(lastSeenItem) && !lastItemInStream
           .equals(EmptyItem.EMPTY_ITEM))) {
-        NavigableSet<Item<T, R>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
+        NavigableSet<Item<T>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
         while (streamContents.size() > 0) {
           subscriber.emit(streamContents);
           lastSeenItem = streamContents.last();
@@ -615,7 +626,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     private Item processResults(Subscriber<R, T> subscriber, Item lastSeenItem) {
-      NavigableSet<Item<T, R>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
+      NavigableSet<Item<T>> streamContents = streamContentsSnapShot(subscriber, lastSeenItem);
       if (streamContents.size() > 0) {
         subscriber.emit(streamContents);
         if (streamContents.size() > 0)
@@ -625,11 +636,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       return lastSeenItem;
     }
 
-    private NavigableSet<Item<T, R>> streamContentsSnapShot(Subscriber<R, T> subscriber,
+    private NavigableSet<Item<T>> streamContentsSnapShot(Subscriber<R, T> subscriber,
         Item lastSeenItem) {
       if (subscriber.delayMS() > 0)
         LockSupport.parkUntil(System.currentTimeMillis() + subscriber.delayMS());
-      NavigableSet<Item<T, R>> streamContents =
+      NavigableSet<Item<T>> streamContents =
           Collections.unmodifiableNavigableSet(this.itemStream.contents().allAfter(lastSeenItem));
       return streamContents;
     }

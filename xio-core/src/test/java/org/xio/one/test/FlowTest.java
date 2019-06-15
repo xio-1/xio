@@ -8,6 +8,7 @@ import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
@@ -88,7 +89,7 @@ public class FlowTest {
           }
 
           @Override
-          public void onNext(Item<String, String> item) {
+          public void onNext(Item<String> item) {
             logger.info("on next " + item.value());
             stringBuffer.append(item.value().toUpperCase());
             stringBuffer.append(" ");
@@ -127,7 +128,7 @@ public class FlowTest {
       private List<Integer> output = new ArrayList<>();
 
       @Override
-      public void onNext(Item<Integer, List<Integer>> item) {
+      public void onNext(Item<Integer> item) {
         output.add(item.value() * 10);
       }
 
@@ -156,13 +157,13 @@ public class FlowTest {
     FutureItemFlowable<String, String> asyncFlow = Flow.aFutureItemFlow(HELLO_WORLD_FLOW, 100,
         helloWorldSubscriber = new FutureItemSubscriber<>() {
           @Override
-          public String onNext(Item<String, String> item) {
+          public String onNext(Item<String> item) {
             logger.info("Completing future");
             return item.value() + " world";
           }
 
           @Override
-          public void onError(Throwable error, Item<String, String> itemValue) {
+          public void onError(Throwable error, Item<String> itemValue) {
             error.printStackTrace();
           }
         });
@@ -189,7 +190,7 @@ public class FlowTest {
       private int count = 0;
 
       @Override
-      public void onNext(Item<String, Long> item) {
+      public void onNext(Item<String> item) {
         if (this.count < 4) {
           logger.info("got ping");
           pong_stream.putItemWithTTL(10, "pong");
@@ -207,7 +208,7 @@ public class FlowTest {
       private int count = 0;
 
       @Override
-      public void onNext(Item<String, Long> item) {
+      public void onNext(Item<String> item) {
         if (this.count < 4) {
           logger.info("got pong");
           ping_stream.putItemWithTTL(10, "ping");
@@ -244,7 +245,7 @@ public class FlowTest {
       }
 
       @Override
-      public void onNext(Item<String, Long> item) {
+      public void onNext(Item<String> item) {
         this.count++;
       }
 
@@ -283,7 +284,7 @@ public class FlowTest {
         }
 
         @Override
-        public void onNext(Item<String, Long> item) {
+        public void onNext(Item<String> item) {
           this.count++;
         }
 
@@ -376,7 +377,7 @@ public class FlowTest {
         Flow.aFutureItemFlow(HELLO_WORLD_FLOW, new FutureItemSubscriber<String, String>() {
 
           @Override
-          public String onNext(Item<String, String> itemValue) {
+          public String onNext(Item<String> itemValue) {
             return functionalThrow(itemValue.value());
           }
 
@@ -388,7 +389,7 @@ public class FlowTest {
           }
 
           @Override
-          public void onError(Throwable error, Item<String, String> itemValue) {
+          public void onError(Throwable error, Item<String> itemValue) {
             assert (error.getMessage().equals("hello"));
           }
         });
@@ -418,14 +419,14 @@ public class FlowTest {
       int count = 0;
 
       @Override
-      public void onNext(Item<Integer, List<Integer>> item) {
+      public void onNext(Item<Integer> item) {
         count++;
         if (count == 2)
           throw new RuntimeException("hello");
       }
 
       @Override
-      public void onError(Throwable error, Item<Integer, List<Integer>> item) {
+      public void onError(Throwable error, Item<Integer> item) {
         errors.add(error.getMessage());
       }
 
@@ -447,7 +448,7 @@ public class FlowTest {
         Flow.aCompletableItemFlow(HELLO_WORLD_FLOW, new CompletableItemSubscriber<>() {
 
           @Override
-          public void onNext(Item<String, String> itemValue) throws Throwable {
+          public void onNext(CompletableItem<String,String> itemValue) throws Throwable {
             logger.info(Thread.currentThread() + ":OnNext" + itemValue.value());
             InternalExecutors.subscribersThreadPoolInstance().submit(new FutureTask<Void>(() -> {
               itemValue.completionHandler()
@@ -457,7 +458,7 @@ public class FlowTest {
           }
 
           @Override
-          public void onError(Throwable error, Item<String, String> itemValue) {
+          public void onError(Throwable error, Item<String> itemValue) {
 
           }
         });

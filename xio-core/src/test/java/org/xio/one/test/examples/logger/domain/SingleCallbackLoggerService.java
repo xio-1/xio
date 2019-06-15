@@ -4,6 +4,7 @@ import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.IOCompletionHandler;
+import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
@@ -38,7 +39,7 @@ public class SingleCallbackLoggerService {
           }
 
           @Override
-          public void onNext(Item<String, Integer> entry) {
+          public void onNext(CompletableItem<String, Integer> entry) {
 
             try {
               CompletionHandler<Integer, String> completionHandler =
@@ -54,7 +55,7 @@ public class SingleCallbackLoggerService {
           }
 
           @Override
-          public void onError(Throwable error, Item<String, Integer> itemValue) {
+          public void onError(Throwable error, Item<String> itemValue) {
 
           }
 

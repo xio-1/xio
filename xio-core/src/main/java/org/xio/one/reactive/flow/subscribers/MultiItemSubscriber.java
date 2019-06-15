@@ -19,7 +19,7 @@ public abstract class MultiItemSubscriber<R, T> extends AbstractSubscriber<R, T>
   }
 
   @Override
-  public final void process(NavigableSet<Item<T, R>> e) {
+  public final void process(NavigableSet<? extends Item<T>> e) {
     try {
       onNext(e.stream());
     } catch (Throwable ex) {
@@ -27,9 +27,9 @@ public abstract class MultiItemSubscriber<R, T> extends AbstractSubscriber<R, T>
     }
   }
 
-  public abstract void onNext(Stream<Item<T, R>> items);
+  public abstract void onNext(Stream<? extends Item<T>> items);
 
-  public void onError(Throwable ex, Iterator<Item<T, R>> flowItems) {
+  public void onError(Throwable ex, Iterator<? extends Item<T>> flowItems) {
   }
 
   @Override

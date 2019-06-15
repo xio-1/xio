@@ -17,7 +17,7 @@ import java.util.concurrent.Future;
  */
 public interface Subscriber<R, T> {
 
-  void emit(NavigableSet<Item<T, R>> e);
+  void emit(NavigableSet<Item<T>> e);
 
   boolean stop();
 
@@ -37,5 +37,5 @@ public interface Subscriber<R, T> {
 
   R finalise();
 
-  void process(NavigableSet<Item<T, R>> e);
+  void process(NavigableSet<? extends Item<T>> e);
 }

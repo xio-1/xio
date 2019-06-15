@@ -50,14 +50,14 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
   }
 
   @Override
-  public final void emit(NavigableSet<Item<T, R>> e) {
+  public final void emit(NavigableSet<Item<T>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<Item<T, R>> e);
+  public abstract void process(NavigableSet<? extends Item<T>> e);
 
 
   @Override
@@ -111,6 +111,6 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
     return futures;
   }
 
-  public abstract void onError(Throwable error, Item<T, R> itemValue);
+  public abstract void onError(Throwable error, Item<T> itemValue);
 
 }

@@ -5,7 +5,7 @@ import java.util.Comparator;
 /**
  * Created by Admin on 09/09/2014.
  */
-public class ItemSequenceComparator<T, R> implements Comparator<Item<T, R>> {
+public class ItemSequenceComparator<T> implements Comparator<Item<T>> {
   @Override
   public int compare(Item o1, Item o2) {
     if (o1 == o2)

@@ -5,5 +5,5 @@ import org.xio.one.reactive.flow.domain.item.Item;
 
 @FunctionalInterface
 public interface OnNextFunction<T, R> {
-  void onNext(Item<T, R> itemValue) throws RuntimeException;
+  void onNext(Item<T> itemValue) throws RuntimeException;
 }

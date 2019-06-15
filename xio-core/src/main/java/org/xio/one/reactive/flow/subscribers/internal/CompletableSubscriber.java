@@ -44,15 +44,14 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
   }
 
   @Override
-  public final void emit(NavigableSet<Item<T, R>> e) {
+  public final void emit(NavigableSet<Item<T>> e) {
     synchronized (lock) {
       process(e);
       lock.notify();
     }
   }
 
-  public abstract void process(NavigableSet<Item<T, R>> e);
-
+  public abstract void process(NavigableSet<? extends Item<T>> e);
 
   @Override
   public final R getNext() {

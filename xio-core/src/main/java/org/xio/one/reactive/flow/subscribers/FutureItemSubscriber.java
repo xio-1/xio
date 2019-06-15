@@ -24,13 +24,13 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
   }
 
   @Override
-  public final void process(NavigableSet<Item<T, R>> e) {
+  public final void process(NavigableSet<? extends Item<T>> e) {
     if (e != null)
       e.parallelStream().forEach(this::submitNext);
 
   }
 
-  private void submitNext(Item<T, R> item) {
+  private void submitNext(Item<T> item) {
     CompletableFuture<R> future = getFutures().get(item.itemId());
     future.completeAsync(() -> {
       try {
@@ -43,9 +43,9 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
 
   }
 
-  public abstract R onNext(Item<T, R> itemValue) throws RuntimeException;
+  public abstract R onNext(Item<T> itemValue) throws RuntimeException;
 
-  public abstract void onError(Throwable error, Item<T, R> itemValue);
+  public abstract void onError(Throwable error, Item<T> itemValue);
 
   @Override
   public R finalise() {

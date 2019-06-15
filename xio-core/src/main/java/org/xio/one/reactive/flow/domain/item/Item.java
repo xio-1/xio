@@ -19,14 +19,14 @@ import java.lang.reflect.Method;
  *
  * @author Xio
  */
-public class Item<T, R> {
+public class Item<T> {
   protected T itemValue;
   private long itemId;
   private long itemTimestamp;
   private long itemNodeId;
   private Object indexKeyValue;
   private long itemTTLSeconds;
-  private FlowItemCompletionHandler<R, T> callback;
+
 
   public Item() {
     this.itemNodeId = NodeID.getNodeID();
@@ -60,14 +60,9 @@ public class Item<T, R> {
     this.itemTTLSeconds = itemTTLSeconds;
   }
 
-  public Item(T value, long itemId, long itemTTLSeconds, FlowItemCompletionHandler<R, T> callback) {
-    this(value, itemId, itemTTLSeconds);
-    this.callback = callback;
-  }
 
-  public FlowItemCompletionHandler<R, T> completionHandler() {
-    return callback;
-  }
+
+
 
 
   public long itemTimestamp() {

@@ -26,10 +26,10 @@ import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 public final class FlowContents<T, R> {
 
 
-  public final NavigableSet<Item<T, R>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
-  //protected volatile ConcurrentSkipListSet<Item<T, R>> itemRepositoryContents;
-  protected volatile ConcurrentHashMap<Object, Item<T, R>> itemStoreIndexContents;
-  protected volatile NavigableSet<Item<T, R>> itemStoreContents = null;
+  public final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
+  //protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
+  private volatile ConcurrentHashMap<Object, Item<T>> itemStoreIndexContents;
+  volatile NavigableSet<Item<T>> itemStoreContents = null;
   private String itemStoreIndexFieldName;
   private Flow itemFlow;
 
@@ -42,11 +42,11 @@ public final class FlowContents<T, R> {
     }
   }
 
-  public NavigableSet<Item<T, R>> getItemStoreContents() {
-    return this.itemStoreContents;
+  public long size() {
+    return itemStoreContents.stream().filter(Item::alive).count();
   }
 
-  public Item<T, R> item(long id) {
+  public Item<T> item(long id) {
     return itemStoreContents.higher(new ItemComparator(id - 1));
   }
 
@@ -54,7 +54,7 @@ public final class FlowContents<T, R> {
     return itemStoreIndexContents.get(index);
   }
 
-  public Item[] all() {
+  public Item<T>[] allItems() {
     List<Item> items = new ArrayList<>(itemStoreContents);
     return items.toArray(new Item[items.size()]);
   }
@@ -63,19 +63,19 @@ public final class FlowContents<T, R> {
     return itemStoreContents.stream().filter(Item::alive).map(Item::value).toArray();
   }
 
-  public NavigableSet<Item<T, R>> allBefore(Item lastItem) {
+  public NavigableSet<Item<T>> allBefore(Item lastItem) {
     return this.itemStoreContents.subSet(this.itemStoreContents.first(), true, lastItem, false);
   }
 
 
-  public final NavigableSet<Item<T, R>> allAfter(Item lastItem) {
+  public final NavigableSet<Item<T>> allAfter(Item lastItem) {
     try {
-      NavigableSet<Item<T, R>> querystorecontents =
+      NavigableSet<Item<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (!querystorecontents.isEmpty())
         if (!EmptyItem.EMPTY_ITEM.equals(lastItem) && lastItem != null) {
           Item newLastItem = querystorecontents.last();
-          NavigableSet<Item<T, R>> items = Collections.unmodifiableNavigableSet(
+          NavigableSet<Item<T>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));
           if (!items.isEmpty()) {
             Item newFirstItem = items.first();
@@ -83,7 +83,7 @@ public final class FlowContents<T, R> {
               // if last domain is in correct sequence then
               final int size = items.size();
               if (newLastItem.itemId() == newFirstItem.itemId() + size - 1)
-                // if the size anItemFlow the domain to return is correct i.e. all in sequence
+                // if the size anItemFlow the domain to return is correct i.e. allItems in sequence
                 if (size == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
                   return items;
                 }
@@ -102,10 +102,10 @@ public final class FlowContents<T, R> {
     return EMPTY_ITEM_SET;
   }
 
-  public NavigableSet<Item<T, R>> getAllAfterWithDelayMS(int delayMS, Item lastseen) {
+  public NavigableSet<Item<T>> getAllAfterWithDelayMS(int delayMS, Item lastseen) {
     long startTime = System.currentTimeMillis();
-    NavigableSet<Item<T, R>> toreturn = new ConcurrentSkipListSet<>();
-    NavigableSet<Item<T, R>> contents = this.allAfter(lastseen);
+    NavigableSet<Item<T>> toreturn = new ConcurrentSkipListSet<>();
+    NavigableSet<Item<T>> contents = this.allAfter(lastseen);
     toreturn.addAll(contents);
     if (contents.size() > 0) {
       lastseen = contents.last();
@@ -123,8 +123,8 @@ public final class FlowContents<T, R> {
     return toreturn;
   }
 
-  private NavigableSet<Item<T, R>> extractItemsThatAreInSequence(Item lastItem,
-      NavigableSet<Item<T, R>> items, Item newFirstItem) {
+  private NavigableSet<Item<T>> extractItemsThatAreInSequence(Item lastItem,
+      NavigableSet<Item<T>> items, Item newFirstItem) {
     Item[] items1 = items.toArray(new Item[items.size()]);
     int index = 0;
     Item last = lastItem;
@@ -138,13 +138,13 @@ public final class FlowContents<T, R> {
     return items.subSet(newFirstItem, true, last, true);
   }
 
-  public Item<T, R> last() {
-    NavigableSet<Item<T, R>> querystorecontents =
+  public Item<T> last() {
+    NavigableSet<Item<T>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
     if (querystorecontents.isEmpty())
       return EMPTY_ITEM;
     else {
-      Optional<Item<T, R>> last =
+      Optional<Item<T>> last =
           querystorecontents.descendingSet().stream().filter(Item::alive).findFirst();
       return last.orElse(EMPTY_ITEM);
     }
@@ -164,7 +164,7 @@ public final class FlowContents<T, R> {
     return EMPTY_ITEM;
   }*/
 
-  public Item first() {
+  public Item<T> first() {
     return this.itemStoreContents.first();
   }
 
@@ -245,7 +245,7 @@ public final class FlowContents<T, R> {
 
   */
 
-  public NavigableSet<Item<T, R>> getTimeWindowSet(long from, long to) throws FlowException {
+  public NavigableSet<Item<T>> getTimeWindowSet(long from, long to) throws FlowException {
     // Get first and last domain in the window
     // otherwise return empty set as nothing found in the window
     return EMPTY_ITEM_SET;

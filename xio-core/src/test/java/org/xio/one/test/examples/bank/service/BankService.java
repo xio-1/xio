@@ -60,7 +60,7 @@ public class BankService extends ItemSubscriber<Boolean, AccountTransaction> {
   }
 
   @Override
-  public void onNext(Item<AccountTransaction, Boolean> item) {
+  public void onNext(Item<AccountTransaction> item) {
     AccountTransaction transaction = item.value();
     if (transaction.getTransactionType().equals(TransactionType.CREDIT))
       creditAccount(transaction.getToAccount(), transaction);

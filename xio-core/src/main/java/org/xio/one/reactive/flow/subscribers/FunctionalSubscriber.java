@@ -78,7 +78,7 @@ public class FunctionalSubscriber<R, T> {
 
   private class FunctionalItemSubscriber extends ItemSubscriber<R, T> {
     @Override
-    public void onNext(Item<T, R> item) {
+    public void onNext(Item<T> item) {
       if (onExitAndReturn != null && exitPredicate.test(item.value()))
         exitAndReturn(onExitAndReturn.onExit());
       if (onNextItem != null)
@@ -89,7 +89,7 @@ public class FunctionalSubscriber<R, T> {
     }
 
     @Override
-    public void onError(Throwable error, Item<T, R> item) {
+    public void onError(Throwable error, Item<T> item) {
       if (onErrorItem == null)
         super.onError(error, item);
       else
@@ -117,7 +117,7 @@ public class FunctionalSubscriber<R, T> {
 
   private class FunctionalFutureItemSubscriber extends FutureItemSubscriber<R, T> {
     @Override
-    public R onNext(Item<T, R> item) {
+    public R onNext(Item<T> item) {
       if (onExitAndReturn != null && exitPredicate.test(item.value()))
         exitAndReturn(onExitAndReturn.onExit());
       if (onNextItemReturn != null)
@@ -129,7 +129,7 @@ public class FunctionalSubscriber<R, T> {
     }
 
     @Override
-    public void onError(Throwable error, Item<T, R> item) {
+    public void onError(Throwable error, Item<T> item) {
       if (onErrorItem != null)
         onErrorItem.onError(error, item);
     }

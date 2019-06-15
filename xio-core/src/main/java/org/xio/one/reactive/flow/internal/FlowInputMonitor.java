@@ -7,7 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Gets all the input from the Xio.contents.domain itemStream and persists it to the contents store
+ * Gets allItems the input from the Xio.contents.domain itemStream and persists it to the contents store
  */
 public class FlowInputMonitor implements Runnable {
 

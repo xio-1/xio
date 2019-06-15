@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.domain.flow;
 
 import org.xio.one.reactive.flow.FlowContents;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 
 public interface Flowable<T, R> {
@@ -11,7 +12,9 @@ public interface Flowable<T, R> {
 
   Flowable<T, R> enableImmediateFlushing();
 
-  FlowContents contents();
+  Item[] snapshot();
+
+  FlowContents<T,R> contents();
 
   void close(boolean waitForEnd);
 
