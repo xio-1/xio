@@ -76,6 +76,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   //subscription control
   private ArrayList<Subscriber<R, T>> subscribers;
   private ArrayList<FutureSubscriber<R, T>> futureSubscribers;
+  private int defaultMaxTakeSize =Integer.MAX_VALUE;
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.id = UUID.randomUUID().toString();
@@ -641,7 +642,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       if (subscriber.delayMS() > 0)
         LockSupport.parkUntil(System.currentTimeMillis() + subscriber.delayMS());
       NavigableSet<Item<T>> streamContents =
-          Collections.unmodifiableNavigableSet(this.itemStream.getSink().allAfter(lastSeenItem));
+          Collections.unmodifiableNavigableSet(this.itemStream.getSink().allAfter(lastSeenItem,
+              defaultMaxTakeSize));
       return streamContents;
     }
 

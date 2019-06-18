@@ -9,7 +9,6 @@
 package org.xio.one.reactive.flow.domain.item;
 
 import org.xio.one.reactive.flow.domain.NodeID;
-import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -59,9 +58,6 @@ public class Item<T> {
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
-
-
-
 
 
 
@@ -138,7 +134,9 @@ public class Item<T> {
   @Override
   public String toString() {
     final StringBuffer sb = new StringBuffer("Item{");
-    sb.append("itemValue=").append(itemValue.toString());
+    if (itemValue != null) {
+      sb.append("itemValue=").append(itemValue.toString());
+    }
     sb.append('}');
     return sb.toString();
   }

@@ -1,6 +1,5 @@
 package org.xio.one.reactive.flow;
 
-import org.xio.one.reactive.flow.domain.FlowException;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemComparator;
@@ -68,7 +67,46 @@ public final class ItemSink<T> {
   }
 
 
-  public final NavigableSet<Item<T>> allAfter(Item lastItem) {
+  public final NavigableSet<Item<T>> allAfter(Item lastItem, int maxSize) {
+    try {
+      NavigableSet<Item<T>> querystorecontents =
+          Collections.unmodifiableNavigableSet(this.itemStoreContents);
+      if (!querystorecontents.isEmpty())
+        if (!EmptyItem.EMPTY_ITEM.equals(lastItem) && lastItem != null) {
+          Item newLastItem = querystorecontents.last();
+          NavigableSet<Item<T>> items = Collections.unmodifiableNavigableSet(
+              querystorecontents.subSet(lastItem, false, newLastItem, true));
+          if (!items.isEmpty()) {
+            Item newFirstItem = items.first();
+            if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
+              // if lastItem domain is in correct sequence then
+              final int size = items.size();
+              if (newLastItem.itemId() == newFirstItem.itemId() + size - 1)
+                // if the size anItemFlow the domain to return is correct i.e. allItems in sequence
+                if (size == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
+                  if (size<=maxSize)
+                    return items;
+                  else {
+                    Item e = new Item(newFirstItem.itemId() + maxSize);
+                    return items.subSet(lastItem, false, e, false);
+                  }
+                }
+              return extractItemsThatAreInSequence(lastItem, items, newFirstItem, maxSize);
+            } else
+              LockSupport.parkNanos(100000);
+          } else
+            LockSupport.parkNanos(100000);
+        } else
+          return extractItemsThatAreInSequence(querystorecontents.last(), querystorecontents,
+              querystorecontents.first(),maxSize);
+      else
+        LockSupport.parkNanos(100000);
+    } catch (NoSuchElementException | IllegalArgumentException e) {
+    }
+    return EMPTY_ITEM_SET;
+  }
+
+ /* public final NavigableSet<Item<T>> allAfter(Item lastItem) {
     try {
       NavigableSet<Item<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
@@ -100,15 +138,15 @@ public final class ItemSink<T> {
     } catch (NoSuchElementException | IllegalArgumentException e) {
     }
     return EMPTY_ITEM_SET;
-  }
+  }*/
 
   private NavigableSet<Item<T>> extractItemsThatAreInSequence(Item lastItem,
-      NavigableSet<Item<T>> items, Item newFirstItem) {
+      NavigableSet<Item<T>> items, Item newFirstItem, int maxSize) {
     Item[] items1 = items.toArray(new Item[items.size()]);
     int index = 0;
     Item last = lastItem;
     Item current = items1[0];
-    while (current.itemId() == last.itemId() + 1 && index <= items1.length) {
+    while (current.itemId() == last.itemId() + 1 && index <= items1.length && index<maxSize+1) {
       last = current;
       index++;
       if (index < items1.length)
