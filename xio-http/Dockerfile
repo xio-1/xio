@@ -4,10 +4,9 @@ RUN apt-get -y install iputils-ping
 
 RUN mkdir /artifacts
 COPY target/app.jar /artifacts/app.jar
-COPY entrypoint.sh /artifacts/start.sh
+COPY entrypoint_edge.sh /artifacts/start.sh
 
 RUN  chmod a+x /artifacts/start.sh
-EXPOSE 8000
-EXPOSE 7000
+EXPOSE 8080
 
 ENTRYPOINT /artifacts/start.sh
