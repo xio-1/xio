@@ -30,7 +30,8 @@ public class XIOService {
 
   static {
     try {
-      InputStream stream = XIOService.class.getResourceAsStream("/logger.properties");
+      InputStream stream = XIOService.class.getResourceAsStream(
+          "/logger.properties");
       if (stream != null)
         LogManager.getLogManager().readConfiguration(stream);
     } catch (Exception e) {
