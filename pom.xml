@@ -8,7 +8,6 @@
     <version>0.1-MAMBA</version>
     <modules>
         <module>xio-core</module>
-        <module>xio-http</module>
     </modules>
     <packaging>pom</packaging>
     <build>

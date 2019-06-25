@@ -1,6 +1,7 @@
-# XIO-Core Developer Guide
+# XIO-Core Guide
 
-XIO-Core library is a strictly ordered reactive flow and event sink that supports futures and micro 
+The xio-core library is a strictly ordered reactive flow and event sink that supports futures and 
+micro 
 batching.  
 
 You can use XIO for your async requirements such as event loops, realtime flow processing, 
