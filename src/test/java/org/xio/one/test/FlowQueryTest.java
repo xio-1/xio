@@ -1,14 +1,27 @@
 package org.xio.one.test;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 
 import static org.hamcrest.core.Is.is;
 
 public class FlowQueryTest {
+
+  @BeforeClass
+  public static void setup() {
+    XIOService.start();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    XIOService.stop();
+  }
 
   @Test
   public void shouldReturnSize0WhenEmpty() throws InterruptedException {

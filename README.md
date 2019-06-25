@@ -1,4 +1,4 @@
-# XIO-Core Guide
+# XIO Guide
 
 The xio-core library is a strictly ordered reactive flow and event sink that supports futures and 
 micro 
@@ -132,13 +132,13 @@ flow.
     FutureItemFlowable<String, String> asyncFlow = Flow.aFutureItemFlow(HELLO_WORLD_FLOW, 100,
         helloWorldSubscriber = new FutureItemSubscriber<>() {
           @Override
-          public String onNext(Item<String, String> item) {
+          public String onNext(Item<String> item) {
             logger.info("Completing future");
             return item.value() + " world";
           }
 
           @Override
-          public void onError(Throwable error, Item<String, String> itemValue) {
+          public void onError(Throwable error, Item<String> itemValue) {
             error.printStackTrace();
           }
         });
@@ -194,7 +194,7 @@ back e.g. to return a result to another process
           }
 
           @Override
-          public void onError(Throwable error, Item<String, String> itemValue) {
+          public void onError(Throwable error, Item<String> itemValue) {
 
           }
         });
