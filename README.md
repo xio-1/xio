@@ -1,4 +1,4 @@
-# XIO Guide
+# XIO Developer Guide
 
 The xio-core library is a strictly ordered reactive flow and event sink that supports futures and 
 micro 
@@ -220,10 +220,8 @@ back e.g. to return a result to another process
 
 ## Example projects
 
-There are to examples given in the test package
+There are two examples given in the test package
 
-Bank - demonstrates how XIO can be used to implement a simple async event loop, see the BankService 
-class. 
+Bank - demonstrates how XIO can be used to implement a simple async event loop, see the class.  
 
-Logger - shows how async IO can be batched using XIO, see public class 
-AsyncMultiplexCallbackLoggerService.
+Logger - shows how async IO can be batched using XIO, see public class AsyncMultiplexCallbackLoggerService.
