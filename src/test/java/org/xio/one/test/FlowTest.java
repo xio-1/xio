@@ -68,8 +68,8 @@ public class FlowTest {
     ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
-    Thread.sleep(100);
-    assertThat(asyncFlow.getSink().lastItem().value().toString(), is("Hello world"));
+    Item<String>[] snapshot = asyncFlow.takeSinkSnapshot();
+    assertThat(snapshot[snapshot.length-1].value(), is("Hello world"));
     asyncFlow.close(true);
 
   }
@@ -304,8 +304,6 @@ public class FlowTest {
       asyncFlow.putItem("Hello world" + i);
     }
 
-
-    Thread.sleep(1000);
     asyncFlow.close(true);
 
     subscriberInterfaceMap.stream().map(s -> {

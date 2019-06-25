@@ -77,7 +77,7 @@ public class XIOService {
         XIOService oldBoss = xioBoss;
         xioBoss = null;
         try {
-          //give boss threads a chance to end correctly
+          //give in-flight data a chance to end correctly
           Thread.sleep(1000);
         } catch (InterruptedException e) {
           e.printStackTrace();

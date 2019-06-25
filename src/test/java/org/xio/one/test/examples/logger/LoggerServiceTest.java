@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class LoggerServiceTest {
 
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
-  private static int ONE_MILLION = 1000000;
+  private static int LOOP = 10000;
 
   Logger logger = Logger.getLogger(LoggerServiceTest.class.getCanonicalName());
 
@@ -65,17 +65,17 @@ public class LoggerServiceTest {
 
         };
 
-    for (int i = 0; i < ONE_MILLION; i++)
+    for (int i = 0; i < LOOP; i++)
       loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
-    while (count.get() < ONE_MILLION) {
+    while (count.get() < LOOP) {
       Thread.sleep(100);
     }
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
     logger
-        .info("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
+        .info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -105,17 +105,17 @@ public class LoggerServiceTest {
 
         };
 
-    for (int i = 0; i < ONE_MILLION; i++)
+    for (int i = 0; i < LOOP; i++)
       loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
-    while (count.get() < ONE_MILLION) {
+    while (count.get() < LOOP) {
       Thread.sleep(100);
     }
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
     logger
-        .info("items per milli-second " + ONE_MILLION / ((System.currentTimeMillis() + 1 - start)));
+        .info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
