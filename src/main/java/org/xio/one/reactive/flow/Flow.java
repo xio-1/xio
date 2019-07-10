@@ -448,7 +448,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     while (!hasEnded() && ticks >= 0) {
       if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
         synchronized (lockFlowContents) {
-          this.item_queue.drainTo(this.flowContents.itemStoreContents);
+          if (this.item_queue.drainTo(this.flowContents.itemStoreContents)>0)
+            XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
         }
       }
       ticks--;

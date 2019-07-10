@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,6 +20,12 @@ import java.util.logging.Logger;
 public class FlowSubscriptionMonitor implements Runnable {
 
   Logger logger = Logger.getLogger(FlowSubscriptionMonitor.class.getCanonicalName());
+
+  final Thread parkedThread = Thread.currentThread();
+
+  public void unpark() {
+    LockSupport.unpark(parkedThread);
+  }
 
   @Override
   public void run() {
@@ -35,9 +42,8 @@ public class FlowSubscriptionMonitor implements Runnable {
 
         if (callables.size() == 0) {
           //sleep if nothing to do
-          Thread.sleep(1);
+          Thread.sleep(100);
         } else {
-
           List<Future<Boolean>> result =
               InternalExecutors.subscriptionsThreadPoolInstance().invokeAll(callables);
 
@@ -51,7 +57,7 @@ public class FlowSubscriptionMonitor implements Runnable {
           }).filter(Boolean::booleanValue).findFirst();
           //if nothing was processed then sleep
           if (anyexecuted.isEmpty()) {
-            Thread.sleep(1);
+            LockSupport.parkUntil(Thread.currentThread(),System.currentTimeMillis()+100);
           }
         }
       }

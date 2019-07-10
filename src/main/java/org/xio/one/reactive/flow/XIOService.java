@@ -30,8 +30,7 @@ public class XIOService {
 
   static {
     try {
-      InputStream stream = XIOService.class.getResourceAsStream(
-          "/logger.properties");
+      InputStream stream = XIOService.class.getResourceAsStream("/logger.properties");
       if (stream != null)
         LogManager.getLogManager().readConfiguration(stream);
     } catch (Exception e) {
@@ -43,22 +42,30 @@ public class XIOService {
   private Future flowInputMonitorFuture;
   private Future flowSubscriptionMonitorFuture;
   private Future flowHousekeepingDaemonFuture;
+  private FlowInputMonitor flowInputMonitor;
+  private FlowSubscriptionMonitor flowSubscriptionMonitor;
 
-  private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2) {
-    flowInputMonitorFuture = submit;
-    flowSubscriptionMonitorFuture = submit1;
-    flowHousekeepingDaemonFuture = submit2;
+  private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2,
+      FlowInputMonitor flowInputMonitor, FlowSubscriptionMonitor flowSubscriptionMonitor) {
+    this.flowInputMonitorFuture = submit;
+    this.flowSubscriptionMonitorFuture = submit1;
+    this.flowHousekeepingDaemonFuture = submit2;
+    this.flowInputMonitor = flowInputMonitor;
+    this.flowSubscriptionMonitor = flowSubscriptionMonitor;
   }
 
   public static void start() {
     synchronized (lock) {
       if (xioBoss == null) {
         logger.info(banner);
+        FlowInputMonitor flowInputMonitor = new FlowInputMonitor();
+        FlowSubscriptionMonitor flowSubscriptionMonitor = new FlowSubscriptionMonitor();
         xioBoss = new XIOService(
-            InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowInputMonitor()),
-            InternalExecutors.controlFlowThreadPoolInstance().submit(new FlowSubscriptionMonitor()),
+            InternalExecutors.controlFlowThreadPoolInstance().submit(flowInputMonitor),
+            InternalExecutors.controlFlowThreadPoolInstance().submit(flowSubscriptionMonitor),
             InternalExecutors.schedulerThreadPoolInstance()
-                .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS));
+                .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS),
+            flowInputMonitor, flowSubscriptionMonitor);
         try {
           //give boss threads a chance to start correctly
           Thread.sleep(1000);
@@ -69,6 +76,10 @@ public class XIOService {
       }
     }
 
+  }
+
+  public static XIOService getXioBoss() {
+    return xioBoss;
   }
 
   public static void stop() {
@@ -107,5 +118,22 @@ public class XIOService {
   private Future getFlowHousekeepingDaemonFuture() {
     return flowHousekeepingDaemonFuture;
   }
+
+  public FlowInputMonitor getFlowInputMonitor() {
+    return flowInputMonitor;
+  }
+
+  public void setFlowInputMonitor(FlowInputMonitor flowInputMonitor) {
+    this.flowInputMonitor = flowInputMonitor;
+  }
+
+  public FlowSubscriptionMonitor getFlowSubscriptionMonitor() {
+    return flowSubscriptionMonitor;
+  }
+
+  public void setFlowSubscriptionMonitor(FlowSubscriptionMonitor flowSubscriptionMonitor) {
+    this.flowSubscriptionMonitor = flowSubscriptionMonitor;
+  }
+
 
 }
