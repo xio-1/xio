@@ -61,8 +61,8 @@ public class XIOService {
         FlowInputMonitor flowInputMonitor = new FlowInputMonitor();
         FlowSubscriptionMonitor flowSubscriptionMonitor = new FlowSubscriptionMonitor();
         xioBoss = new XIOService(
-            InternalExecutors.controlFlowThreadPoolInstance().submit(flowInputMonitor),
-            InternalExecutors.controlFlowThreadPoolInstance().submit(flowSubscriptionMonitor),
+            InternalExecutors.daemonThreadPoolInstance().submit(flowInputMonitor),
+            InternalExecutors.daemonThreadPoolInstance().submit(flowSubscriptionMonitor),
             InternalExecutors.schedulerThreadPoolInstance()
                 .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS),
             flowInputMonitor, flowSubscriptionMonitor);
@@ -89,7 +89,7 @@ public class XIOService {
         xioBoss = null;
         try {
           //give in-flight data a chance to end correctly
-          Thread.sleep(2000);
+          Thread.sleep(3000);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }

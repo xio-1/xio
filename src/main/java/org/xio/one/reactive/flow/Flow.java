@@ -76,7 +76,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   //subscription control
   private ArrayList<Subscriber<R, T>> subscribers;
   private ArrayList<FutureSubscriber<R, T>> futureSubscribers;
-  private int DEFAULT_MAX_TAKE_SIZE =Integer.MAX_VALUE;
+  private int DEFAULT_MAX_TAKE_SIZE = Integer.MAX_VALUE;
 
   private Flow(String name, String indexFieldName, long ttlSeconds) {
     this.id = UUID.randomUUID().toString();
@@ -311,7 +311,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       FlowItemCompletionHandler<R, T> completionHandler) {
     if (ttlSeconds > this.maxTTLSeconds)
       throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
-    Item<T> item = new CompletableItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+    Item<T> item =
+        new CompletableItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
     addToStreamWithBlock(item, flushImmediately);
   }
 
@@ -372,7 +373,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
           e.printStackTrace();
         }
         InternalExecutors.schedulerThreadPoolInstance().shutdown();
-        InternalExecutors.controlFlowThreadPoolInstance().shutdown();
+        InternalExecutors.daemonThreadPoolInstance().shutdown();
       }
       this.reset();
     }
@@ -417,7 +418,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
   }
 
-
   public boolean hasEnded() {
     return this.isEnd && this.buffer_size() == 0 && !activeSubscribers();
   }
@@ -443,19 +443,53 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     return slowDownNanos;
   }
 
-  public void acceptAll() {
+  private CountDownLatch countDownLatch = new CountDownLatch(count_down_latch);
+
+ /* public void acceptAll() {
+    //int ticks = count_down_latch;
+    while (!hasEnded()) {
+      try {
+        if (flush || item_queue.size() == queue_max_size || this.isEnd) {
+          drainToSink();
+        } else {
+          countDownLatch.await(100000, TimeUnit.NANOSECONDS);
+          drainToSink();
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } finally {
+        countDownLatch = new CountDownLatch(count_down_latch);
+        LockSupport.parkNanos(100000);
+      }
+    }
+  }
+
+  private void drainToSink() {
+    synchronized (lockFlowContents) {
+      if (this.item_queue.drainTo(this.flowContents.itemStoreContents) > 0)
+        XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
+    }
+  }*/
+
+
+  public boolean acceptAll() {
     int ticks = count_down_latch;
+    boolean processed=false;
     while (!hasEnded() && ticks >= 0) {
       if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
         synchronized (lockFlowContents) {
           if (this.item_queue.drainTo(this.flowContents.itemStoreContents)>0)
             XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
+            processed=true;
         }
       }
       ticks--;
       LockSupport.parkNanos(100000);
     }
+    return processed;
   }
+
+
 
   private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
     if (!futureSubscribers.contains(subscriber)) {
@@ -471,13 +505,14 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         this.flush = immediately;
         this.item_queue.put(item);
       }
+      //countDownLatch.countDown();
     } catch (InterruptedException e) {
       return false;
     }
     return true;
   }
 
-  private int buffer_size() {
+  public int buffer_size() {
     return this.item_queue.size();
   }
 
@@ -590,7 +625,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
           try {
             Collections.shuffle(callableList);
             Optional<Boolean> atLeastOnehasExecuted =
-                InternalExecutors.subscribersThreadPoolInstance().invokeAll(callableList).stream()
+                InternalExecutors.subscribersTaskThreadPoolInstance().invokeAll(callableList).stream()
                     .map(f -> {
                       try {
                         //block for allItems subscriber tasks to finish
@@ -642,9 +677,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         Item lastSeenItem) {
       if (subscriber.delayMS() > 0)
         LockSupport.parkUntil(System.currentTimeMillis() + subscriber.delayMS());
-      NavigableSet<Item<T>> streamContents =
-          Collections.unmodifiableNavigableSet(this.itemStream.getSink().allAfter(lastSeenItem,
-              DEFAULT_MAX_TAKE_SIZE));
+      NavigableSet<Item<T>> streamContents = Collections.unmodifiableNavigableSet(
+          this.itemStream.getSink().allAfter(lastSeenItem, DEFAULT_MAX_TAKE_SIZE));
       return streamContents;
     }
 

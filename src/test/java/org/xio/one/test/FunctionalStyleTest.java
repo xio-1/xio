@@ -12,6 +12,7 @@ import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -86,7 +87,7 @@ public class FunctionalStyleTest {
             .subscribe();
 
     Assert
-        .assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(),
+        .assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(100, TimeUnit.MILLISECONDS),
             is("HELLO1"));
     Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().get(0).get(), is("HELLO2"));
     Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().get(0).get(), is("HELLO3"));

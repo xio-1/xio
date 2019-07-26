@@ -17,8 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class InternalExecutors {
 
-  private static ExecutorService subscriptionsThreadPoolexec;
-  private static ExecutorService itemLoopThreadPoolexec;
+  private static ExecutorService flowInputThreadPoolexec;
+  private static ExecutorService bossThreadPoolexec;
   private static ExecutorService computeThreadPoolexec;
   private static ExecutorService ioThreadPoolexec;
   private static ScheduledExecutorService schedulerThreadPoolexec;
@@ -28,16 +28,16 @@ public class InternalExecutors {
    *
    * @return
    */
-  public static synchronized ExecutorService subscriptionsThreadPoolInstance() {
-    if (subscriptionsThreadPoolexec == null)
-      subscriptionsThreadPoolexec = Executors
+  public static synchronized ExecutorService flowInputTaskThreadPoolInstance() {
+    if (flowInputThreadPoolexec == null)
+      flowInputThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
               new XIOThreadFactory("flow"));
-    else if (subscriptionsThreadPoolexec.isShutdown() || subscriptionsThreadPoolexec.isTerminated())
-      subscriptionsThreadPoolexec = Executors
+    else if (flowInputThreadPoolexec.isShutdown() || flowInputThreadPoolexec.isTerminated())
+      flowInputThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
               new XIOThreadFactory("flow"));
-    return subscriptionsThreadPoolexec;
+    return flowInputThreadPoolexec;
   }
 
   public static synchronized ScheduledExecutorService schedulerThreadPoolInstance() {
@@ -48,7 +48,7 @@ public class InternalExecutors {
     return schedulerThreadPoolexec;
   }
 
-  public static synchronized ExecutorService subscribersThreadPoolInstance() {
+  public static synchronized ExecutorService subscribersTaskThreadPoolInstance() {
     if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown() || computeThreadPoolexec
         .isTerminated())
       computeThreadPoolexec = Executors
@@ -57,12 +57,12 @@ public class InternalExecutors {
     return computeThreadPoolexec;
   }
 
-  public static synchronized ExecutorService controlFlowThreadPoolInstance() {
-    if (itemLoopThreadPoolexec == null || itemLoopThreadPoolexec.isShutdown()
-        || itemLoopThreadPoolexec.isTerminated())
-      itemLoopThreadPoolexec = Executors
+  public static synchronized ExecutorService daemonThreadPoolInstance() {
+    if (bossThreadPoolexec == null || bossThreadPoolexec.isShutdown()
+        || bossThreadPoolexec.isTerminated())
+      bossThreadPoolexec = Executors
           .newFixedThreadPool(2, new XIOThreadFactory("boss", Thread.NORM_PRIORITY + 1, true));
-    return itemLoopThreadPoolexec;
+    return bossThreadPoolexec;
   }
 
 

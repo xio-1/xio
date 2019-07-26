@@ -45,7 +45,7 @@ public class FlowSubscriptionMonitor implements Runnable {
           Thread.sleep(100);
         } else {
           List<Future<Boolean>> result =
-              InternalExecutors.subscriptionsThreadPoolInstance().invokeAll(callables);
+              InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
 
           Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
             try {

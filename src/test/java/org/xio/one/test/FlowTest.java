@@ -363,8 +363,7 @@ public class FlowTest {
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
     long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
-    Thread.sleep(100);
-    Assert.assertThat(asyncFlow.getSink().item(itemIds[1]).value(), is(testObject2));
+    Assert.assertThat(asyncFlow.takeSinkSnapshot()[1].value(), is(testObject2));
     asyncFlow.close(true);
   }
 
@@ -448,7 +447,7 @@ public class FlowTest {
           @Override
           public void onNext(CompletableItem<String,String> itemValue) throws Throwable {
             logger.info(Thread.currentThread() + ":OnNext" + itemValue.value());
-            InternalExecutors.subscribersThreadPoolInstance().submit(new FutureTask<Void>(() -> {
+            InternalExecutors.subscribersTaskThreadPoolInstance().submit(new FutureTask<Void>(() -> {
               itemValue.completionHandler()
                   .completed(itemValue.value() + "World", itemValue.value());
               return null;
