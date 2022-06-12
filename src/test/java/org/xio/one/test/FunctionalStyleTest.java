@@ -12,7 +12,6 @@ import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -34,7 +33,7 @@ public class FunctionalStyleTest {
 
   @Test
   public void toUpperCaseWithFunctionalStyle() throws Exception {
-    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
+    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow("1");
 
     StringBuffer buff = new StringBuffer();
 
@@ -55,7 +54,7 @@ public class FunctionalStyleTest {
 
   @Test
   public void toUpperCaseWithFunctionalWithPredicateExit() throws Exception {
-    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
+    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow("2");
 
     StringBuffer buff = new StringBuffer();
 
@@ -76,8 +75,6 @@ public class FunctionalStyleTest {
   public void toUpperCaseFutureResult() throws Exception {
     FutureItemFlowable<String, String> toUPPERCASEFlow = Flow.aFutureItemFlow();
 
-    StringBuffer buff = new StringBuffer();
-
     Subscriber<String, String> upperCaseSubscriber =
         toUPPERCASEFlow
             .publishTo(FutureItemSubscriber.class)
@@ -87,7 +84,7 @@ public class FunctionalStyleTest {
             .subscribe();
 
     Assert
-        .assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(100, TimeUnit.MILLISECONDS),
+        .assertThat(toUPPERCASEFlow.submitItem("hello1").result(upperCaseSubscriber.getId()).get(),
             is("HELLO1"));
     Assert.assertThat(toUPPERCASEFlow.submitItem("hello2").results().get(0).get(), is("HELLO2"));
     Assert.assertThat(toUPPERCASEFlow.submitItem("hello3").results().get(0).get(), is("HELLO3"));

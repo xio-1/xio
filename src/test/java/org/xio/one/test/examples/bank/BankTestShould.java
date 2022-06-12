@@ -9,7 +9,7 @@ import org.xio.one.test.examples.bank.domain.TransactionType;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class BankTestMust {
+public class BankTestShould {
 
   @AfterClass
   public static void tearDown() {
