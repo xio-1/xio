@@ -7,7 +7,7 @@ import org.xio.one.test.examples.bank.domain.InsufficientFundsException;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class AccountTestMust {
+public class AccountTestShould {
 
   @Test
   public void returnBalanceOfZeroOnNewAccount() {

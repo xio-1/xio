@@ -14,12 +14,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-public class LoggerServiceTest {
+public class LoggerServiceTestShould {
 
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
   private static int LOOP = 10000;
 
-  Logger logger = Logger.getLogger(LoggerServiceTest.class.getCanonicalName());
+  Logger logger = Logger.getLogger(LoggerServiceTestShould.class.getCanonicalName());
 
   @BeforeClass
   public static void setup() {
