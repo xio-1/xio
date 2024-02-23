@@ -27,18 +27,12 @@ public final class ItemSink<T> {
 
   private final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   //protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
-  private volatile ConcurrentHashMap<Object, Item<T>> itemStoreIndexContents;
   volatile NavigableSet<Item<T>> itemStoreContents = null;
-  private String itemStoreIndexFieldName;
   private Flow itemFlow;
 
   public ItemSink(Flow itemStream) {
     this.itemFlow = itemStream;
     itemStoreContents = new ConcurrentSkipListSet<>(new ItemSequenceComparator<>());
-    itemStoreIndexContents = new ConcurrentHashMap<>();
-    if (itemFlow.indexFieldName() != null) {
-      itemStoreIndexFieldName = itemFlow.indexFieldName();
-    }
   }
 
   public long size() {
@@ -47,10 +41,6 @@ public final class ItemSink<T> {
 
   public Item<T> item(long id) {
     return itemStoreContents.higher(new ItemComparator(id - 1));
-  }
-
-  public Item item(Object index) {
-    return itemStoreIndexContents.get(index);
   }
 
   public Item<T>[] allItems() {

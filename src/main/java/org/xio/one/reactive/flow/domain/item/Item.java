@@ -114,8 +114,16 @@ public class Item<T> {
               null);
       toreturn = f.invoke(this.itemValue, null);
     } catch (NoSuchMethodException e2) {
-    } catch (IllegalAccessException e3) {
-    } catch (InvocationTargetException e4) {
+      try {
+        f = this.itemValue.getClass()
+            .getMethod("is" + fieldname.substring(0, 1).toUpperCase() + fieldname.substring(1),
+                null);
+        toreturn = f.invoke(this.itemValue, null);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    } catch (Exception e3) {
+      throw new RuntimeException(e3);
     }
 
     return toreturn;

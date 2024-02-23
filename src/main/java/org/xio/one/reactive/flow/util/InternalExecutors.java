@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class InternalExecutors {
 
   private static ExecutorService flowInputThreadPoolexec;
+  private static ExecutorService microFlowInputThreadPoolexec;
   private static ExecutorService bossThreadPoolexec;
   private static ExecutorService computeThreadPoolexec;
   private static ExecutorService ioThreadPoolexec;
@@ -37,6 +38,14 @@ public class InternalExecutors {
       flowInputThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
               new XIOThreadFactory("flow"));
+    return flowInputThreadPoolexec;
+  }
+
+  public static synchronized ExecutorService microFlowInputTaskThreadPoolInstance() {
+    if (microFlowInputThreadPoolexec == null)
+      microFlowInputThreadPoolexec = Executors.newVirtualThreadPerTaskExecutor();
+    else if (microFlowInputThreadPoolexec.isShutdown() || microFlowInputThreadPoolexec.isTerminated())
+      microFlowInputThreadPoolexec = Executors.newVirtualThreadPerTaskExecutor();
     return flowInputThreadPoolexec;
   }
 
@@ -83,15 +92,8 @@ public class InternalExecutors {
     private int priority = Thread.NORM_PRIORITY;
     private boolean areDeamonThreads = false;
 
-    XIOThreadFactory() {
-      SecurityManager s = System.getSecurityManager();
-      group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-      namePrefix = "xio-" + poolNumber.getAndIncrement() + "-thread-";
-    }
-
     XIOThreadFactory(String name) {
-      SecurityManager s = System.getSecurityManager();
-      group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+      group = Thread.currentThread().getThreadGroup();
       namePrefix = "xio-" + name + "-thread-";
     }
 
@@ -99,8 +101,7 @@ public class InternalExecutors {
     XIOThreadFactory(String name, int priority, boolean areDeamonThreads) {
       this.priority = priority;
       this.areDeamonThreads = areDeamonThreads;
-      SecurityManager s = System.getSecurityManager();
-      group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+      group = Thread.currentThread().getThreadGroup();
       namePrefix = "xio-" + name + "-thread-";
     }
 

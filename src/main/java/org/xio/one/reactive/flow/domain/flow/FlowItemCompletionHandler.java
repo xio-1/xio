@@ -25,7 +25,7 @@
 
 package org.xio.one.reactive.flow.domain.flow;
 
-public interface FlowItemCompletionHandler<R, T> {
+public interface FlowItemCompletionHandler<R, A> {
 
   /**
    * Invoked when an operation has completed.
@@ -33,7 +33,7 @@ public interface FlowItemCompletionHandler<R, T> {
    * @param result     The getFutureResult of the async operation.
    * @param attachment The object attached to the async operation when it was initiated.
    */
-  void completed(R result, T attachment);
+  void completed(R result, A attachment);
 
   /**
    * Invoked when an operation fails.
@@ -41,5 +41,5 @@ public interface FlowItemCompletionHandler<R, T> {
    * @param exc        The exception to indicate why the I/O operation failed
    * @param attachment The object attached to the I/O operation when it was initiated.
    */
-  void failed(Throwable exc, T attachment);
+  void failed(Throwable exc, A attachment);
 }

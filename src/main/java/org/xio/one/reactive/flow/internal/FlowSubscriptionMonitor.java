@@ -44,8 +44,16 @@ public class FlowSubscriptionMonitor implements Runnable {
           //sleep if nothing to do
           Thread.sleep(100);
         } else {
-          List<Future<Boolean>> result =
-              InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+          List<Future<Boolean>> result;
+          try {
+            Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
+            logger.info("XIOService Is Using Virtual Threads For Subscribers");
+            result =
+                InternalExecutors.microFlowInputTaskThreadPoolInstance().invokeAll(callables);
+          } catch (NoSuchMethodException e) {
+            result =
+                InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+          }
 
           Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
             try {
@@ -62,7 +70,9 @@ public class FlowSubscriptionMonitor implements Runnable {
         }
       }
     } catch (Exception e) {
-      logger.log(Level.SEVERE, "Flow Subscription monitor was interrupted", e);
+      logger.log(Level.SEVERE,
+          "Flow Subscription monitor was interrupted" + e);
+      e.printStackTrace();
     }
     logger.log(Level.INFO, "Flow Subscription monitor stopped");
   }

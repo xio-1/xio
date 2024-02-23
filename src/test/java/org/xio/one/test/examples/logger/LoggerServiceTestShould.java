@@ -5,7 +5,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
-import org.xio.one.test.examples.logger.domain.AsyncMultiplexCallbackLoggerService;
+import org.xio.one.test.examples.logger.domain.AsyncCallbackItemLoggerService;
 import org.xio.one.test.examples.logger.domain.LogLevel;
 import org.xio.one.test.examples.logger.domain.SingleCallbackLoggerService;
 
@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class LoggerServiceTestShould {
 
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
-  private static int LOOP = 10000;
+  private static int LOOP = 1000000;
 
   Logger logger = Logger.getLogger(LoggerServiceTestShould.class.getCanonicalName());
 
@@ -85,8 +85,8 @@ public class LoggerServiceTestShould {
   public void logs1MillionEntriesToFileAndMultiplexWithCallback() throws InterruptedException {
 
     long start = System.currentTimeMillis();
-    AsyncMultiplexCallbackLoggerService loggerService =
-        AsyncMultiplexCallbackLoggerService.logger(this.getClass());
+    AsyncCallbackItemLoggerService loggerService =
+        AsyncCallbackItemLoggerService.logger(this.getClass());
 
     AtomicLong count = new AtomicLong();
 
@@ -118,7 +118,7 @@ public class LoggerServiceTestShould {
         .info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
-    loggerService.close();
+    loggerService.close(true);
   }
 
 

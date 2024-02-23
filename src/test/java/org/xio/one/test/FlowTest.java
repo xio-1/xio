@@ -32,6 +32,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
+import static org.xio.one.reactive.flow.Flow.aCompletableItemFlow;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class FlowTest {
@@ -147,6 +148,13 @@ public class FlowTest {
       subscriber.getFutureResult().get().forEach(s -> logger.info(s.toString()));
     }
     assertArrayEquals(intList, subscriber.getFutureResult().get().toArray());
+
+  }
+
+
+
+  @Test
+  public void shouldLogItemsToFile() throws InterruptedException {
 
   }
 
@@ -342,17 +350,6 @@ public class FlowTest {
     assertThat(asyncFlow.size(), is(2));
     assertThat(asyncFlow.getSink().lastItem().value(), is("test60"));
     asyncFlow.close(true);
-  }
-
-  @Ignore
-  public void shouldReturnItemUsingIndexField() {
-    ItemFlowable<TestObject, TestObject> asyncFlow = anItemFlow("test_index", "testField");
-    TestObject testObject1 = new TestObject("hello1");
-    TestObject testObject2 = new TestObject("hello2");
-    TestObject testObject3 = new TestObject("hello3");
-    asyncFlow.putItem(testObject1, testObject2, testObject3);
-    asyncFlow.close(true);
-    Assert.assertThat(asyncFlow.getSink().item("hello1").value(), is(testObject1));
   }
 
   @Test

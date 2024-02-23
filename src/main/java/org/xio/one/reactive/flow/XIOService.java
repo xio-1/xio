@@ -5,17 +5,15 @@ import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedSourceVersion;
-import javax.lang.model.SourceVersion;
 import java.io.InputStream;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-@SupportedAnnotationTypes("org.xio.one.reactive.flow.annotations.EnableXIO")
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
+
 public class XIOService {
 
   private static final Object lock = new Object();
@@ -33,9 +31,16 @@ public class XIOService {
       InputStream stream = XIOService.class.getResourceAsStream("/logger.properties");
       if (stream != null)
         LogManager.getLogManager().readConfiguration(stream);
+      List<Future<Boolean>> result;
     } catch (Exception e) {
     } finally {
       logger = Logger.getLogger(Flow.class.getName());
+      try {
+        Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
+        logger.log(Level.INFO,"XIO will use Virtual Threads For Subscribers");
+      } catch (NoSuchMethodException e) {
+      }
+
     }
   }
 

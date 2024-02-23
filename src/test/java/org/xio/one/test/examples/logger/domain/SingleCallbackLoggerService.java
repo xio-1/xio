@@ -56,7 +56,7 @@ public class SingleCallbackLoggerService {
 
           @Override
           public void onError(Throwable error, Item<String> itemValue) {
-
+            throw new RuntimeException(error);
           }
 
           @Override
