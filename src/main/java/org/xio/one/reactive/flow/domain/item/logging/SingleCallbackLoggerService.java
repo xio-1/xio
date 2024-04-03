@@ -1,4 +1,4 @@
-package org.xio.one.test.examples.logger.domain;
+package org.xio.one.reactive.flow.domain.item.logging;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
@@ -43,7 +43,7 @@ public class SingleCallbackLoggerService {
 
             try {
               CompletionHandler<Integer, String> completionHandler =
-                  IOCompletionHandler.aIOCompletionHandler(entry.completionHandler());
+                  IOCompletionHandler.aIOCompletionHandler(entry.flowItemCompletionHandler());
               ByteBuffer buffer = ByteBuffer.wrap((entry.value() + "\n").getBytes());
               //buffer = buffer.flip();
               fileChannel.write(buffer, position, null, completionHandler);

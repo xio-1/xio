@@ -1,4 +1,4 @@
-package org.xio.one.test.examples.logger.domain;
+package org.xio.one.reactive.flow.domain.item.logging;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
@@ -13,33 +13,30 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.nio.file.StandardOpenOption.WRITE;
 
 public class AsyncCallbackItemLoggerService<T,R> {
-
   private static Logger logger =
       Logger.getLogger(AsyncCallbackItemLoggerService.class.getCanonicalName());
   private final File logFile;
   private CompletableItemFlowable<T, R> logEntryFlow;
   private Path logFilePath;
-
+  private static DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH':'mm'Z'"); // Quoted "Z" to
+  // indicate UTC, no timezone offset
   private static String getDate() {
     TimeZone tz = TimeZone.getTimeZone("UTC");
-    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH':'mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
-    df.setTimeZone(tz);
-    return df.format(new Date());
+    DATE_FORMAT.setTimeZone(tz);
+    return DATE_FORMAT.format(new Date());
   }
 
   public AsyncCallbackItemLoggerService(String fileName) throws IOException {
-    this.logFile = createLogFile(fileName);
+    this.logFile = createReplayLogFile(fileName);
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
         new CompletableMultiItemSubscriber<R,T>(20) {
@@ -54,21 +51,18 @@ public class AsyncCallbackItemLoggerService<T,R> {
 
           @Override
           public void onNext(Stream<CompletableItem<T, R>> entries) {
-
             List<FlowItemCompletionHandler<R, T>> callbacks = new ArrayList<>();
-
             entries.forEach(entry -> {
               buffer.put((entry.value() + "\r\n").getBytes());
-              callbacks.add(entry.completionHandler());
+              callbacks.add(entry.flowItemCompletionHandler());
             });
             buffer.flip();
             ByteBuffer toWrite = ByteBuffer.wrap(Arrays.copyOf(buffer.array(), buffer.limit()));
 
-            CompletionHandler<Integer, T> completionHandler = new CompletionHandler<>() {
-
+            CompletionHandler<Integer, T> fileWriteCompletionHandler = new CompletionHandler<>() {
 
               @Override
-              public void completed(Integer result, T attachment) {
+              public void completed(Integer value, T attachment) {
                 callbacks.forEach(c -> c.completed(null, attachment));
               }
 
@@ -79,7 +73,7 @@ public class AsyncCallbackItemLoggerService<T,R> {
             };
 
             try {
-              fileChannel.write(toWrite, position, null, completionHandler);
+              fileChannel.write(toWrite, position, null, fileWriteCompletionHandler);
               position = position + buffer.limit();
             } catch (Exception e) {
               e.printStackTrace();
@@ -112,10 +106,11 @@ public class AsyncCallbackItemLoggerService<T,R> {
     return null;
   }
 
-  private static File createLogFile(String filename) throws IOException {
+  private static File createReplayLogFile(String filename) throws IOException {
     String home = System.getProperty("user.home");
     new File(home + "/logs").mkdir();
-    File logFile = new File(home + "/logs/",  filename + "-" + getDate() + ".log");
+    new File(home + "/logs/replay").mkdir();
+    File logFile = new File(home + "/logs/replay",  filename + "-" + getDate() + ".log");
     logFile.createNewFile();
     return logFile;
   }

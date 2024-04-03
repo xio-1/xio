@@ -47,7 +47,6 @@ public class FlowSubscriptionMonitor implements Runnable {
           List<Future<Boolean>> result;
           try {
             Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
-            logger.info("XIOService Is Using Virtual Threads For Subscribers");
             result =
                 InternalExecutors.microFlowInputTaskThreadPoolInstance().invokeAll(callables);
           } catch (NoSuchMethodException e) {

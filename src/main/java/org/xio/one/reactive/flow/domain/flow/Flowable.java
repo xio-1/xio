@@ -30,4 +30,6 @@ public interface Flowable<T, R> {
 
   FunctionalSubscriber<R, T> publishTo(Class clazz);
 
+  void resetLastSeenItem(String subscriberID, Item<T> lastSeenItem);
+
 }

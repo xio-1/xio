@@ -52,7 +52,7 @@ public class FlowQueryTest {
   public void shouldReturnAllItems() throws InterruptedException {
     ItemFlowable<Integer,Integer> flowable = Flow.anItemFlow();
     flowable.putItem(1,2,3);
-    Thread.sleep(100);
+    Thread.sleep(500);
     Item<Integer>[]  items = flowable.getSink().allItems();
     Assert.assertThat(items[0].value(), is(1));
     Assert.assertThat(items[1].value(), is(2));

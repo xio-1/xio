@@ -15,7 +15,7 @@ public class CompletableItem<T,R> extends Item<T> {
     this.callback = callback;
   }
 
-  public FlowItemCompletionHandler<R, T> completionHandler() {
+  public FlowItemCompletionHandler<R, T> flowItemCompletionHandler() {
     return callback;
   }
 

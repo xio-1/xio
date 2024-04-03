@@ -9,7 +9,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
-
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private final CompletableFuture<R> completableFuture;

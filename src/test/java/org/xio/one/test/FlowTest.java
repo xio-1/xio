@@ -9,6 +9,7 @@ import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
+import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
@@ -24,15 +25,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
-import static org.xio.one.reactive.flow.Flow.aCompletableItemFlow;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class FlowTest {
@@ -70,7 +72,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
     Item<String>[] snapshot = asyncFlow.takeSinkSnapshot();
-    assertThat(snapshot[snapshot.length-1].value(), is("Hello world"));
+    assertThat(snapshot[snapshot.length - 1].value(), is("Hello world"));
     asyncFlow.close(true);
 
   }
@@ -106,7 +108,7 @@ public class FlowTest {
 
     toUPPERCASEFlow.close(true);
 
-    Assert.assertThat(upperCaseSubscriber.getFutureResult().get(),
+    assertThat(upperCaseSubscriber.getFutureResult().get(),
         is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
   }
 
@@ -114,8 +116,8 @@ public class FlowTest {
 
   @Test
   public void shouldCountWords() {
-    countWords(Arrays.stream("The quick quick brown fox".split(" ")))
-        .forEach((key, value) -> logger.info(key + "," + value));
+    countWords(Arrays.stream("The quick quick brown fox".split(" "))).forEach(
+        (key, value) -> logger.info(key + "," + value));
   }
 
 
@@ -177,9 +179,10 @@ public class FlowTest {
         });
     Promise<String> promise = asyncFlow.submitItem("Hello");
     try {
-      assertThat(promise.result(helloWorldSubscriber.getId()).get(1,
-          TimeUnit.SECONDS), is("Hello world"));
+      assertThat(promise.result(helloWorldSubscriber.getId()).get(1, TimeUnit.SECONDS),
+          is("Hello world"));
     } catch (Exception e) {
+      e.printStackTrace();
       fail();
     } finally {
       asyncFlow.close(true);
@@ -360,7 +363,7 @@ public class FlowTest {
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
     long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
-    Assert.assertThat(asyncFlow.takeSinkSnapshot()[1].value(), is(testObject2));
+    assertThat(asyncFlow.takeSinkSnapshot()[1].value(), is(testObject2));
     asyncFlow.close(true);
   }
 
@@ -432,8 +435,8 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem(1, 2, 3, 4);
     asyncFlow.close(true);
-    Assert.assertThat(errors.size(), is(1));
-    Assert.assertThat(errors.get(0), is("hello"));
+    assertThat(errors.size(), is(1));
+    assertThat(errors.get(0), is("hello"));
   }
 
   @Test
@@ -442,13 +445,14 @@ public class FlowTest {
         Flow.aCompletableItemFlow(HELLO_WORLD_FLOW, new CompletableItemSubscriber<>() {
 
           @Override
-          public void onNext(CompletableItem<String,String> itemValue) throws Throwable {
+          public void onNext(CompletableItem<String, String> itemValue) throws Throwable {
             logger.info(Thread.currentThread() + ":OnNext" + itemValue.value());
-            InternalExecutors.subscribersTaskThreadPoolInstance().submit(new FutureTask<Void>(() -> {
-              itemValue.completionHandler()
-                  .completed(itemValue.value() + "World", itemValue.value());
-              return null;
-            }));
+            InternalExecutors.subscribersTaskThreadPoolInstance()
+                .submit(new FutureTask<Void>(() -> {
+                  itemValue.flowItemCompletionHandler()
+                      .completed(itemValue.value() + "World", itemValue.value());
+                  return null;
+                }));
           }
 
           @Override
@@ -474,6 +478,42 @@ public class FlowTest {
     for (int i = 0; i < 10; i++)
       asyncFlow.submitItem("Hello" + i, myHandler);
     asyncFlow.close(true);
+  }
+
+  @Test
+  public void shouldReprocessAfterResettingTheLastSeenItem() throws InterruptedException
+  {
+    ItemFlowable<Integer, List<Item<Integer>>> asyncFlow = anItemFlow(INT_FLOW,100);
+    ArrayList<Item<Integer>> itemStore = new ArrayList<>();
+    AtomicInteger count = new AtomicInteger(0);
+    Subscriber<List<Item<Integer>>, Integer> subscriber =
+        asyncFlow.addSubscriber(new ItemSubscriber<>() {
+
+      @Override
+      public void onNext(Item<Integer> item) {
+        itemStore.add(item);
+        count.incrementAndGet();
+      }
+
+      @Override
+      public void onError(Throwable error, Item<Integer> item) {
+
+      }
+
+      @Override
+      public List<Item<Integer>> finalise() {
+        return itemStore;
+      }
+    });
+    asyncFlow.enableImmediateFlushing();
+    asyncFlow.putItem(1, 2, 3, 4);
+    Thread.sleep(1000);
+    asyncFlow.resetLastSeenItem(subscriber.getId(), EmptyItem.EMPTY_ITEM);
+    asyncFlow.close(true);
+
+    assertThat(count.get(), is(8));
+    asyncFlow.close(true);
+
   }
 
 

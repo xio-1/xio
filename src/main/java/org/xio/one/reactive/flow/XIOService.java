@@ -26,7 +26,7 @@ public class XIOService {
           + "| **  \\ ** /******|  ******/\n" + "|__/  |__/|______/ \\______/ \n"
           + "                            \n";
 
-  static {
+  static  {
     try {
       InputStream stream = XIOService.class.getResourceAsStream("/logger.properties");
       if (stream != null)
@@ -35,12 +35,6 @@ public class XIOService {
     } catch (Exception e) {
     } finally {
       logger = Logger.getLogger(Flow.class.getName());
-      try {
-        Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
-        logger.log(Level.INFO,"XIO will use Virtual Threads For Subscribers");
-      } catch (NoSuchMethodException e) {
-      }
-
     }
   }
 
@@ -78,6 +72,11 @@ public class XIOService {
           e.printStackTrace();
         }
         logger.info("XIO loaded successfully");
+        try {
+          Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
+          logger.log(Level.INFO,"XIO is using Virtual Threads For Subscribers");
+        } catch (NoSuchMethodException e) {
+        }
       }
     }
 
