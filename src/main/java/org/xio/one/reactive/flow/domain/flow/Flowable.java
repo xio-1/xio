@@ -12,7 +12,7 @@ public interface Flowable<T, R> {
 
   Flowable<T, R> enableImmediateFlushing();
 
-  Item[] takeSinkSnapshot();
+  Item<T>[] takeSinkSnapshot();
 
   ItemSink<T> getSink();
 

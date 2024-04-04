@@ -68,7 +68,7 @@ public class FlowTest {
 
   @Test
   public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
-    ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
+    ItemFlowable<String, Void> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
     asyncFlow.enableImmediateFlushing();
     asyncFlow.putItem("Hello world");
     Item<String>[] snapshot = asyncFlow.takeSinkSnapshot();
