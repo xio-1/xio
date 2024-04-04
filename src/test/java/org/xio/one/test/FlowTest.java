@@ -357,8 +357,8 @@ public class FlowTest {
 
   @Test
   public void shouldReturnItemUsingItemId() throws InterruptedException {
-    ItemFlowable<TestObject, TestObject> asyncFlow;
-    asyncFlow = Flow.<TestObject, TestObject>anItemFlow("test_item_id");
+    ItemFlowable<TestObject, Void> asyncFlow;
+    asyncFlow = Flow.<TestObject, Void>anItemFlow("test_item_id");
     TestObject testObject1 = new TestObject("hello1");
     TestObject testObject2 = new TestObject("hello2");
     TestObject testObject3 = new TestObject("hello3");
