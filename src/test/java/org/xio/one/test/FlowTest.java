@@ -11,12 +11,14 @@ import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -75,6 +77,19 @@ public class FlowTest {
     assertThat(snapshot[snapshot.length - 1].value(), is("Hello world"));
     asyncFlow.close(true);
 
+  }
+
+  @Test
+  public void flowItemLoggerTest() throws IOException {
+    ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
+    asyncFlow.enableImmediateFlushing();
+    AsyncCallbackItemLoggerService<String> asyncFlowLogger =
+        new AsyncCallbackItemLoggerService<String>("log_hello");
+    asyncFlow.addItemLogger(asyncFlowLogger);
+    for (int i = 0; i < 1000; i++)
+      asyncFlow.putItem("Hello world }}}" + i);
+    asyncFlow.close(true);
+    assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), (long) 1000);
   }
 
   @Test

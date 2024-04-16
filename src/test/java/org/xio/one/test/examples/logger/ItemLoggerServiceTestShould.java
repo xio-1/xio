@@ -153,17 +153,4 @@ public class ItemLoggerServiceTestShould {
     assertEquals(itemLoggerService.getNumberOfItemsWritten(), (long) LOOP);
   }
 
-  @Test
-  public void flowItemLoggerTest() throws IOException {
-    ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
-    asyncFlow.enableImmediateFlushing();
-    AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-        new AsyncCallbackItemLoggerService<String>("log_hello");
-    asyncFlow.addItemLogger(asyncFlowLogger);
-    for (int i = 0; i < LOOP; i++)
-      asyncFlow.putItem("Hello world }}}" + i);
-    asyncFlow.close(true);
-    assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), (long) LOOP);
-  }
-
 }
