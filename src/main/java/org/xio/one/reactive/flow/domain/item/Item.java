@@ -142,9 +142,12 @@ public class Item<T> {
   @Override
   public String toString() {
     final StringBuffer sb = new StringBuffer("Item{");
-    if (itemValue != null) {
-      sb.append("itemValue=").append(itemValue.toString());
-    }
+    sb.append("itemValue={").append(itemValue.toString()).append('}');
+    sb.append(", itemId=").append(itemId);
+    sb.append(", itemTimestamp=").append(itemTimestamp);
+    sb.append(", itemNodeId=").append(itemNodeId);
+    sb.append(", indexKeyValue=").append(indexKeyValue);
+    sb.append(", itemTTLSeconds=").append(itemTTLSeconds);
     sb.append('}');
     return sb.toString();
   }

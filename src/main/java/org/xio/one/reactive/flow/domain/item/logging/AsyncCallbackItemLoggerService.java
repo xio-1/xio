@@ -4,6 +4,7 @@ import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
+import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableMultiItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -16,17 +17,20 @@ import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.nio.file.StandardOpenOption.WRITE;
 
-public class AsyncCallbackItemLoggerService<T,R> {
+public class AsyncCallbackItemLoggerService<T> {
   private static Logger logger =
       Logger.getLogger(AsyncCallbackItemLoggerService.class.getCanonicalName());
   private final File logFile;
-  private CompletableItemFlowable<T, R> logEntryFlow;
+  private CompletableItemFlowable<Item<T>, Void> logEntryFlow;
   private Path logFilePath;
+  AtomicLong numberOfEntries = new AtomicLong(0);
+  AtomicLong numberOfFileWrites = new AtomicLong(0);
   private static DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH':'mm'Z'"); // Quoted "Z" to
   // indicate UTC, no timezone offset
   private static String getDate() {
@@ -36,11 +40,10 @@ public class AsyncCallbackItemLoggerService<T,R> {
   }
 
   public AsyncCallbackItemLoggerService(String fileName) throws IOException {
-    this.logFile = createReplayLogFile(fileName);
+    this.logFile = createItemLogFile(fileName);
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
-        new CompletableMultiItemSubscriber<R,T>(20) {
-
+        new CompletableMultiItemSubscriber<Void,Item<T>>(20) {
           final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
               .open(logFile.toPath(), Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
           long position = 0;
@@ -50,24 +53,26 @@ public class AsyncCallbackItemLoggerService<T,R> {
           }
 
           @Override
-          public void onNext(Stream<CompletableItem<T, R>> entries) {
-            List<FlowItemCompletionHandler<R, T>> callbacks = new ArrayList<>();
+          public void onNext(Stream<CompletableItem<Item<T>, Void>> entries) {
+            List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
+            AtomicLong newEntries= new AtomicLong();
             entries.forEach(entry -> {
-              buffer.put((entry.value() + "\r\n").getBytes());
+              buffer.put((entry.value().toString() + "\r\n").getBytes());
               callbacks.add(entry.flowItemCompletionHandler());
+              newEntries.getAndIncrement();
             });
             buffer.flip();
             ByteBuffer toWrite = ByteBuffer.wrap(Arrays.copyOf(buffer.array(), buffer.limit()));
 
-            CompletionHandler<Integer, T> fileWriteCompletionHandler = new CompletionHandler<>() {
+            CompletionHandler<Integer, Item<T>> fileWriteCompletionHandler = new CompletionHandler<>() {
 
               @Override
-              public void completed(Integer value, T attachment) {
+              public void completed(Integer value, Item<T> attachment) {
                 callbacks.forEach(c -> c.completed(null, attachment));
               }
 
               @Override
-              public void failed(Throwable exc, T attachment) {
+              public void failed(Throwable exc, Item<T> attachment) {
                 callbacks.stream().forEach(c -> c.failed(exc, attachment));
               }
             };
@@ -75,8 +80,11 @@ public class AsyncCallbackItemLoggerService<T,R> {
             try {
               fileChannel.write(toWrite, position, null, fileWriteCompletionHandler);
               position = position + buffer.limit();
+              numberOfEntries.addAndGet(newEntries.get());
             } catch (Exception e) {
-              e.printStackTrace();
+              logger.severe(e.getMessage());
+              callbacks.stream().forEach(c -> c.failed(e, null));
+              throw new RuntimeException(e);
             } finally {
               buffer.clear();
             }
@@ -85,7 +93,7 @@ public class AsyncCallbackItemLoggerService<T,R> {
 
 
           @Override
-          public R finalise() {
+          public Void finalise() {
             try {
               fileChannel.close();
             } catch (IOException e) {
@@ -97,16 +105,23 @@ public class AsyncCallbackItemLoggerService<T,R> {
 
   }
 
-  public static AsyncCallbackItemLoggerService logger(Class clazz) {
+  public static <T> AsyncCallbackItemLoggerService logger(Class clazz) {
     try {
-      return new AsyncCallbackItemLoggerService(clazz.getCanonicalName());
+      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName());
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
-    return null;
   }
 
-  private static File createReplayLogFile(String filename) throws IOException {
+  public static <T> AsyncCallbackItemLoggerService logger(String filename) {
+    try {
+      return new AsyncCallbackItemLoggerService<T>(filename);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static File createItemLogFile(String filename) throws IOException {
     String home = System.getProperty("user.home");
     new File(home + "/logs").mkdir();
     new File(home + "/logs/replay").mkdir();
@@ -115,9 +130,23 @@ public class AsyncCallbackItemLoggerService<T,R> {
     return logFile;
   }
 
-  public void logAsync(LogLevel logLevel, T entry,
-      FlowItemCompletionHandler<R, T> flowItemCompletionHandler) {
+  public void logItemAsync(LogLevel logLevel, Item<T> entry,
+      FlowItemCompletionHandler<Void, Item<T>> flowItemCompletionHandler) {
     logEntryFlow.submitItem(entry, flowItemCompletionHandler);
+  }
+
+  public void logItemAsync(LogLevel logLevel, Item<T> entry) {
+    logEntryFlow.submitItem(entry, new FlowItemCompletionHandler<Void, Item<T>>() {
+      @Override
+      public void completed(Void result, Item<T> attachment) {
+
+      }
+
+      @Override
+      public void failed(Throwable exc, Item<T> attachment) {
+
+      }
+    });
   }
 
   public Path getLogFilePath() {
@@ -128,4 +157,9 @@ public class AsyncCallbackItemLoggerService<T,R> {
     this.
         logEntryFlow.close(waitForEnd);
   }
+
+  public long getNumberOfItemsWritten() {
+    return numberOfEntries.get();
+  }
+
 }
