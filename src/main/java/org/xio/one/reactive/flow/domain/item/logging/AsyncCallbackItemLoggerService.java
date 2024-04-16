@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import static java.nio.file.StandardOpenOption.WRITE;
 
-public class AsyncCallbackItemLoggerService<T> {
+public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   private static Logger logger =
       Logger.getLogger(AsyncCallbackItemLoggerService.class.getCanonicalName());
   private final File logFile;
@@ -130,12 +130,12 @@ public class AsyncCallbackItemLoggerService<T> {
     return logFile;
   }
 
-  public void logItemAsync(LogLevel logLevel, Item<T> entry,
+  public void logItem(Item<T> entry,
       FlowItemCompletionHandler<Void, Item<T>> flowItemCompletionHandler) {
     logEntryFlow.submitItem(entry, flowItemCompletionHandler);
   }
 
-  public void logItemAsync(LogLevel logLevel, Item<T> entry) {
+  public void logItem(Item<T> entry) {
     logEntryFlow.submitItem(entry, new FlowItemCompletionHandler<Void, Item<T>>() {
       @Override
       public void completed(Void result, Item<T> attachment) {

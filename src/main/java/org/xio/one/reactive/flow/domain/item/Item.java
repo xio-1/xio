@@ -12,6 +12,8 @@ import org.xio.one.reactive.flow.domain.NodeID;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Abstract Item to be extended by user defined Items
@@ -141,14 +143,15 @@ public class Item<T> {
 
   @Override
   public String toString() {
-    final StringBuffer sb = new StringBuffer("Item{");
-    sb.append("itemValue={").append(itemValue.toString()).append('}');
-    sb.append(", itemId=").append(itemId);
-    sb.append(", itemTimestamp=").append(itemTimestamp);
-    sb.append(", itemNodeId=").append(itemNodeId);
-    sb.append(", indexKeyValue=").append(indexKeyValue);
-    sb.append(", itemTTLSeconds=").append(itemTTLSeconds);
-    sb.append('}');
+    final StringBuffer sb = new StringBuffer("{\"item\":{");
+    sb.append("\"encodedItemValueAsString\":").append("\"").append( URLEncoder.encode(itemValue.toString(),
+        StandardCharsets.UTF_8)).append("\"");
+    sb.append(", \"itemClass\":").append("\"").append(this.itemValue.getClass().getCanonicalName()).append("\"");
+    sb.append(", \"itemId\":").append(itemId);
+    sb.append(", \"itemTimestamp\":").append(itemTimestamp);
+    sb.append(", \"itemNodeId\":").append(itemNodeId);
+    sb.append(", \"itemTTLSeconds\":").append(itemTTLSeconds);
+    sb.append("}}");
     return sb.toString();
   }
 }

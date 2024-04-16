@@ -312,6 +312,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     return ids;
   }
 
+  @Override
+  public void addItemLogger(ItemLogger<T> logger) {
+    this.itemLogger = logger;
+    this.loggingEnabled=true;
+  }
+
   /**
    * Submit an item to be processed by the FutureSubscriber and completionHandler to the completion handler
    *
@@ -383,6 +389,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
           while (!this.hasEnded()) {
             Thread.sleep(100);
           }
+        if (loggingEnabled)
+          itemLogger.close(waitForEnd);
       } catch (InterruptedException e) {
       }
 

@@ -5,17 +5,23 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
+import org.xio.one.reactive.flow.domain.item.logging.ItemLogger;
 import org.xio.one.reactive.flow.domain.item.logging.LogLevel;
 import org.xio.one.reactive.flow.domain.item.logging.SingleCallbackLoggerService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class ItemLoggerServiceTestShould {
 
@@ -77,8 +83,7 @@ public class ItemLoggerServiceTestShould {
     }
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    logger
-        .info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
+    logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(loggerService.getLogFilePath().toString());
     loggerService.close();
@@ -110,7 +115,7 @@ public class ItemLoggerServiceTestShould {
 
     for (int i = 0; i < LOOP; i++) {
       Item<String> loggedItem = new Item("test" + i, i);
-      itemLoggerService.logItemAsync(LogLevel.INFO, loggedItem, itemCompletionHandler);
+      itemLoggerService.logItem(loggedItem, itemCompletionHandler);
     }
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
@@ -119,8 +124,7 @@ public class ItemLoggerServiceTestShould {
     }
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    logger
-        .info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
+    logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(itemLoggerService.getLogFilePath().toString());
     itemLoggerService.close(true);
@@ -135,19 +139,31 @@ public class ItemLoggerServiceTestShould {
 
     for (int i = 0; i < LOOP; i++) {
       Item<String> loggedItem = new Item<>("test" + i, i);
-      itemLoggerService.logItemAsync(LogLevel.INFO, loggedItem);
+      itemLoggerService.logItem(loggedItem);
     }
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     itemLoggerService.close(true);
 
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
-    logger
-        .info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
+    logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(itemLoggerService.getLogFilePath().toString());
     itemLoggerService.close(true);
-    assertEquals(itemLoggerService.getNumberOfItemsWritten(),(long) LOOP);
+    assertEquals(itemLoggerService.getNumberOfItemsWritten(), (long) LOOP);
+  }
+
+  @Test
+  public void flowItemLoggerTest() throws IOException {
+    ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
+    asyncFlow.enableImmediateFlushing();
+    AsyncCallbackItemLoggerService<String> asyncFlowLogger =
+        new AsyncCallbackItemLoggerService<String>("log_hello");
+    asyncFlow.addItemLogger(asyncFlowLogger);
+    for (int i = 0; i < LOOP; i++)
+      asyncFlow.putItem("Hello world }}}" + i);
+    asyncFlow.close(true);
+    assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), (long) LOOP);
   }
 
 }
