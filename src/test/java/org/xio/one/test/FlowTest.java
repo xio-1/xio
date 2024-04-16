@@ -89,6 +89,7 @@ public class FlowTest {
     for (int i = 0; i < 1000; i++)
       asyncFlow.putItem("Hello world }}}" + i);
     asyncFlow.close(true);
+    asyncFlowLogger.close(true);
     assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), (long) 1000);
   }
 

@@ -46,7 +46,7 @@
                 <configuration>
                     <argLine>--enable-preview</argLine>
                     <parallelOptimized>false</parallelOptimized>
-                    <forkCount>1</forkCount>
+                    <forkCount>0</forkCount>
                     <reuseForks>false</reuseForks>
                     <threadCount>1</threadCount>
                     <includes>
