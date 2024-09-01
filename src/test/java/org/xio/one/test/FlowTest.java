@@ -12,6 +12,7 @@ import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
+import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
@@ -19,15 +20,10 @@ import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -78,6 +74,24 @@ public class FlowTest {
     asyncFlow.close(true);
 
   }
+
+  @Test
+  public void shouldReturnRecoverySnapshot() throws InterruptedException {
+    ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
+    asyncFlow.enableImmediateFlushing();
+    asyncFlow.putItem("Hello world");
+    asyncFlow.addSubscriber(new ItemSubscriber<String, String>() {
+      @Override
+      public void onNext(Item<String> item) {
+        logger.log(Level.INFO,item.toString());
+      }
+    });
+    RecoverySnapshot<String,String> snapshot = asyncFlow.takeRecoverySnapshot();
+    assertThat(snapshot.getContents()[0].value(), is("Hello world"));
+    assertThat(snapshot.getSubscribers().length, is(1));
+    asyncFlow.close(true);
+  }
+
 
   @Test
   public void flowItemLoggerTest() throws IOException {

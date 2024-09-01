@@ -1,6 +1,7 @@
 package org.xio.one.reactive.flow.domain.flow;
 
 import org.xio.one.reactive.flow.ItemSink;
+import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 
@@ -13,6 +14,8 @@ public interface Flowable<T, R> {
   Flowable<T, R> enableImmediateFlushing();
 
   Item<T>[] takeSinkSnapshot();
+
+  RecoverySnapshot<R,T> takeRecoverySnapshot();
 
   ItemSink<T> getSink();
 
