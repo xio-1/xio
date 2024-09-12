@@ -24,6 +24,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Flow
@@ -585,16 +586,19 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
     public RecoverySnapshot<R, T> takeRecoverySnapshot() {
         long start = System.currentTimeMillis();
-        Item[] contents;
-        Subscriber<R, T>[] subscribers;
+        NavigableSet<Item<T>> contents;
+        ArrayList<Subscriber<R, T>> subscribers = new ArrayList<>();
+        Map<String, Item> lastSeenItemMap = new ConcurrentHashMap<>();
         while (true) {
             synchronized (lockFlowContents) {
+                this.item_queue.drainTo(this.flowContents.itemStoreContents);
                 if (this.size() == getSink().size()) {
-                    contents = getSink().allItems();
+                    contents = getSink().getItemStoreContents();
                     synchronized ((lockSubscriberslist)) {
-                        subscribers = this.subscribers.stream().toArray(Subscriber[]::new);
+                        subscribers.addAll(this.subscribers);
+                        lastSeenItemMap.putAll(this.lastSeenItemMap);
                     }
-                    return new RecoverySnapshot(contents, subscribers);
+                    return new RecoverySnapshot(itemIDSequence.getCurrent(),contents, subscribers,lastSeenItemMap);
                 }
             }
             if (start + 10000 <= System.currentTimeMillis())
@@ -604,9 +608,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
     }
 
-    public void restoreSinkSnapshot() {
-
-
+    public void restoreSinkSnapshot(RecoverySnapshot<R, T> recoverySnapshot) {
+        this.flowContents.setItemStoreContents(recoverySnapshot.getContents());
     }
 
 

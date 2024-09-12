@@ -56,6 +56,13 @@ public final class ItemSink<T> {
     return this.itemStoreContents.subSet(this.itemStoreContents.first(), true, lastItem, false);
   }
 
+  public NavigableSet<Item<T>> getItemStoreContents() {
+    return itemStoreContents;
+  }
+
+  public void setItemStoreContents( NavigableSet<Item<T>> itemStoreContents) {
+    this.itemStoreContents=itemStoreContents;
+  }
 
   public final NavigableSet<Item<T>> allAfter(Item lastItem, int maxSize) {
     try {

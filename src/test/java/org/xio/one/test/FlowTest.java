@@ -37,527 +37,530 @@ import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 public class FlowTest {
 
-  public static final int NUMBER_OF_ITEMS = 1000000;
-  final Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
-  String HELLO_WORLD_FLOW = "helloWorldFlow";
-  String INT_FLOW = "integerFlow";
+    public static final int NUMBER_OF_ITEMS = 1000000;
+    final Logger logger = Logger.getLogger(FlowTest.class.getCanonicalName());
+    String HELLO_WORLD_FLOW = "helloWorldFlow";
+    String INT_FLOW = "integerFlow";
 
-  public static Map<String, Long> countWords(Stream<String> names) {
-    return names.collect(groupingBy(name -> name, counting()));
-  }
-
-  @BeforeClass
-  public static void setup() {
-    XIOService.start();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    XIOService.stop();
-  }
-
-  @Test
-  public void HelloWorld() {
-    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.value())).subscribe();
-    asyncFlow.putItem("Hello World!!!");
-    asyncFlow.close(true);
-  }
-
-  @Test
-  public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
-    ItemFlowable<String, Void> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
-    asyncFlow.enableImmediateFlushing();
-    asyncFlow.putItem("Hello world");
-    Item<String>[] snapshot = asyncFlow.takeSinkSnapshot();
-    assertThat(snapshot[snapshot.length - 1].value(), is("Hello world"));
-    asyncFlow.close(true);
-
-  }
-
-  @Test
-  public void shouldReturnRecoverySnapshot() throws InterruptedException {
-    ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
-    asyncFlow.enableImmediateFlushing();
-    asyncFlow.putItem("Hello world");
-    asyncFlow.addSubscriber(new ItemSubscriber<String, String>() {
-      @Override
-      public void onNext(Item<String> item) {
-        logger.log(Level.INFO,item.toString());
-      }
-    });
-    RecoverySnapshot<String,String> snapshot = asyncFlow.takeRecoverySnapshot();
-    assertThat(snapshot.getContents()[0].value(), is("Hello world"));
-    assertThat(snapshot.getSubscribers().length, is(1));
-    asyncFlow.close(true);
-  }
-
-
-  @Test
-  public void flowItemLoggerTest() throws IOException {
-    ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
-    asyncFlow.enableImmediateFlushing();
-    AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-        new AsyncCallbackItemLoggerService<String>("log_hello");
-    asyncFlow.addItemLogger(asyncFlowLogger);
-    for (int i = 0; i < 1000; i++)
-      asyncFlow.putItem("Hello world }}}" + i);
-    asyncFlow.close(true);
-    asyncFlowLogger.close(true);
-    assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), (long) 1000);
-  }
-
-  @Test
-  public void toUpperCaseSubscriberExample() throws Exception {
-    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
-    Subscriber<String, String> upperCaseSubscriber =
-        toUPPERCASEFlow.addSubscriber(new ItemSubscriber<>() {
-
-          StringBuffer stringBuffer;
-
-          @Override
-          public void initialise() {
-            logger.info("initialising");
-            stringBuffer = new StringBuffer();
-          }
-
-          @Override
-          public void onNext(Item<String> item) {
-            logger.info("on next " + item.value());
-            stringBuffer.append(item.value().toUpperCase());
-            stringBuffer.append(" ");
-          }
-
-          @Override
-          public String finalise() {
-            logger.info("finalising");
-            return stringBuffer.toString().trim();
-          }
-        });
-    toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
-
-    toUPPERCASEFlow.close(true);
-
-    assertThat(upperCaseSubscriber.getFutureResult().get(),
-        is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
-  }
-
-
-
-  @Test
-  public void shouldCountWords() {
-    countWords(Arrays.stream("The quick quick brown fox".split(" "))).forEach(
-        (key, value) -> logger.info(key + "," + value));
-  }
-
-
-  @Test
-  public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
-
-    ItemFlowable<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
-
-    ItemSubscriber<List<Integer>, Integer> subscriber = new ItemSubscriber<>() {
-
-      private List<Integer> output = new ArrayList<>();
-
-      @Override
-      public void onNext(Item<Integer> item) {
-        output.add(item.value() * 10);
-      }
-
-      @Override
-      public List<Integer> finalise() {
-        return output;
-      }
-    };
-
-    asyncFlow.enableImmediateFlushing();
-    asyncFlow.addSubscriber(subscriber);
-    asyncFlow.putItem(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-    Integer[] intList = new Integer[] {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-    asyncFlow.close(true);
-    if (subscriber.getFutureResult().get().toArray().length > 10) {
-      subscriber.getFutureResult().get().forEach(s -> logger.info(s.toString()));
-    }
-    assertArrayEquals(intList, subscriber.getFutureResult().get().toArray());
-
-  }
-
-
-
-  @Test
-  public void shouldLogItemsToFile() throws InterruptedException {
-
-  }
-
-
-  @Test
-  public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
-    FutureItemSubscriber<String, String> helloWorldSubscriber;
-    FutureItemFlowable<String, String> asyncFlow = Flow.aFutureItemFlow(HELLO_WORLD_FLOW, 100,
-        helloWorldSubscriber = new FutureItemSubscriber<>() {
-          @Override
-          public String onNext(Item<String> item) {
-            logger.info("Completing future");
-            return item.value() + " world";
-          }
-
-          @Override
-          public void onError(Throwable error, Item<String> itemValue) {
-            error.printStackTrace();
-          }
-        });
-    Promise<String> promise = asyncFlow.submitItem("Hello");
-    try {
-      assertThat(promise.result(helloWorldSubscriber.getId()).get(1, TimeUnit.SECONDS),
-          is("Hello world"));
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail();
-    } finally {
-      asyncFlow.close(true);
+    public static Map<String, Long> countWords(Stream<String> names) {
+        return names.collect(groupingBy(name -> name, counting()));
     }
 
-  }
+    @BeforeClass
+    public static void setup() {
+        XIOService.start();
+    }
 
-  @Test
-  public void shouldPingAndPong() throws ExecutionException, InterruptedException {
-    ItemFlowable<String, Long> ping_stream = anItemFlow("ping_stream", 30);
-    ItemFlowable<String, Long> pong_stream = anItemFlow("pong_stream", 30);
-    ping_stream.enableImmediateFlushing();
-    pong_stream.enableImmediateFlushing();
-    ItemSubscriber<Long, String> pingSubscriber = new ItemSubscriber<Long, String>() {
+    @AfterClass
+    public static void tearDown() {
+        XIOService.stop();
+    }
 
-      private int count = 0;
+    @Test
+    public void HelloWorld() {
+        ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
+        asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.value())).subscribe();
+        asyncFlow.putItem("Hello World!!!");
+        asyncFlow.close(true);
+    }
 
-      @Override
-      public void onNext(Item<String> item) {
-        if (this.count < 4) {
-          logger.info("got ping");
-          pong_stream.putItemWithTTL(10, "pong");
-          logger.info("sent pong");
-          this.count++;
+    @Test
+    public void shouldReturnHelloWorldItemFromFlowContents() throws InterruptedException {
+        ItemFlowable<String, Void> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.putItem("Hello world");
+        Item<String>[] snapshot = asyncFlow.takeSinkSnapshot();
+        assertThat(snapshot[snapshot.length - 1].value(), is("Hello world"));
+        asyncFlow.close(true);
+
+    }
+
+    @Test
+    public void shouldReturnRecoverySnapshot() throws InterruptedException {
+        ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.putItem("Hello world");
+        asyncFlow.putItem("World hello");
+        ItemSubscriber<String, String> subscriber = new ItemSubscriber<String, String>() {
+            @Override
+            public void onNext(Item<String> item) {
+                logger.log(Level.INFO, item.toString());
+            }
+        };
+        asyncFlow.addSubscriber(subscriber);
+        Thread.sleep(1000);
+        RecoverySnapshot<String, String> snapshot = asyncFlow.takeRecoverySnapshot();
+        assertThat(snapshot.getContents().first().value(), is("Hello world"));
+        assertThat(snapshot.getContents().last().value(), is("World hello"));
+        assertThat(snapshot.getSubscribers().size(), is(1));
+        assertThat(snapshot.getItemID(), is(2L));
+        assertThat(snapshot.getLastSeenItemMap().get(subscriber.getId()).value(),is("World hello"));
+        asyncFlow.close(true);
+    }
+
+
+    @Test
+    public void flowItemLoggerTest() throws IOException {
+        ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
+        asyncFlow.enableImmediateFlushing();
+        AsyncCallbackItemLoggerService<String> asyncFlowLogger =
+                new AsyncCallbackItemLoggerService<String>("log_hello");
+        asyncFlow.addItemLogger(asyncFlowLogger);
+        for (int i = 0; i < 1000; i++)
+            asyncFlow.putItem("Hello world }}}" + i);
+        asyncFlow.close(true);
+        asyncFlowLogger.close(true);
+        assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), (long) 1000);
+    }
+
+    @Test
+    public void toUpperCaseSubscriberExample() throws Exception {
+        ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
+        Subscriber<String, String> upperCaseSubscriber =
+                toUPPERCASEFlow.addSubscriber(new ItemSubscriber<>() {
+
+                    StringBuffer stringBuffer;
+
+                    @Override
+                    public void initialise() {
+                        logger.info("initialising");
+                        stringBuffer = new StringBuffer();
+                    }
+
+                    @Override
+                    public void onNext(Item<String> item) {
+                        logger.info("on next " + item.value());
+                        stringBuffer.append(item.value().toUpperCase());
+                        stringBuffer.append(" ");
+                    }
+
+                    @Override
+                    public String finalise() {
+                        logger.info("finalising");
+                        return stringBuffer.toString().trim();
+                    }
+                });
+        toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
+
+        toUPPERCASEFlow.close(true);
+
+        assertThat(upperCaseSubscriber.getFutureResult().get(),
+                is("VALUE1 VALUE2 VALUE3 VALUE4 VALUE5"));
+    }
+
+
+    @Test
+    public void shouldCountWords() {
+        countWords(Arrays.stream("The quick quick brown fox".split(" "))).forEach(
+                (key, value) -> logger.info(key + "," + value));
+    }
+
+
+    @Test
+    public void shouldReturnInSequenceForFlowSubscriber() throws Exception {
+
+        ItemFlowable<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
+
+        ItemSubscriber<List<Integer>, Integer> subscriber = new ItemSubscriber<>() {
+
+            private List<Integer> output = new ArrayList<>();
+
+            @Override
+            public void onNext(Item<Integer> item) {
+                output.add(item.value() * 10);
+            }
+
+            @Override
+            public List<Integer> finalise() {
+                return output;
+            }
+        };
+
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.addSubscriber(subscriber);
+        asyncFlow.putItem(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        Integer[] intList = new Integer[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+        asyncFlow.close(true);
+        if (subscriber.getFutureResult().get().toArray().length > 10) {
+            subscriber.getFutureResult().get().forEach(s -> logger.info(s.toString()));
         }
-        if (count == 4)
-          exitAndReturn(System.currentTimeMillis());
-      }
+        assertArrayEquals(intList, subscriber.getFutureResult().get().toArray());
 
-    };
-
-    ItemSubscriber<Long, String> pongSubscriber = new ItemSubscriber<>() {
-
-      private int count = 0;
-
-      @Override
-      public void onNext(Item<String> item) {
-        if (this.count < 4) {
-          logger.info("got pong");
-          ping_stream.putItemWithTTL(10, "ping");
-          logger.info("sent ping");
-          this.count++;
-        }
-        if (count == 4)
-          exitAndReturn(System.currentTimeMillis());
-      }
-
-    };
-    ping_stream.addSubscriber(pingSubscriber);
-    pong_stream.addSubscriber(pongSubscriber);
-    ping_stream.putItem("ping");
-    Thread.sleep(1000);
-    logger.info(
-        "Latency Ms = " + (pongSubscriber.getFutureResult().get() - pingSubscriber.getFutureResult()
-            .get()));
-    ping_stream.close(true);
-    pong_stream.close(true);
-  }
-
-  @Test
-  public void shouldSustainThroughputPerformanceTest() throws Exception {
-    logger.info("Thread priority " + Thread.currentThread().getPriority());
-    long start = System.currentTimeMillis();
-    ItemFlowable<String, Long> asyncFlow = anItemFlow("sustainedPerformanceTest", 1);
-    final ItemSubscriber<Long, String> subscriber = new ItemSubscriber<Long, String>() {
-      long count;
-
-      @Override
-      public void initialise() {
-        this.count = 0;
-      }
-
-      @Override
-      public void onNext(Item<String> item) {
-        this.count++;
-      }
-
-      @Override
-      public Long finalise() {
-        logger.info("Put " + this.count + " Items");
-        return this.count;
-      }
-    };
-    long loops = 10000000;
-    asyncFlow.addSubscriber(subscriber);
-    for (int i = 0; i < loops; i++) {
-      asyncFlow.putItemWithTTL(1, "Hello world" + i);
     }
-    asyncFlow.close(true);
-    assertThat(subscriber.getFutureResult().get(), is(loops));
-    logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
-  }
 
 
-  @Test
-  public void shouldSustainThroughputPerformanceTestForMultipleSubscribers() throws Exception {
-    long start = System.currentTimeMillis();
-    ItemFlowable<String, Long> asyncFlow = anItemFlow("multisubcriberperformance", 0);
+    @Test
+    public void shouldLogItemsToFile() throws InterruptedException {
 
-    List<Subscriber<Long, String>> subscriberInterfaceMap = new ArrayList<>();
+    }
 
-    for (int i = 0; i < 100; i++) {
 
-      final ItemSubscriber<Long, String> subscriber = new ItemSubscriber<Long, String>() {
-        long count;
+    @Test
+    public void shouldReturnHelloWorldFutureForSingleFutureSubscriber() throws Exception {
+        FutureItemSubscriber<String, String> helloWorldSubscriber;
+        FutureItemFlowable<String, String> asyncFlow = Flow.aFutureItemFlow(HELLO_WORLD_FLOW, 100,
+                helloWorldSubscriber = new FutureItemSubscriber<>() {
+                    @Override
+                    public String onNext(Item<String> item) {
+                        logger.info("Completing future");
+                        return item.value() + " world";
+                    }
 
-        @Override
-        public void initialise() {
-          this.count = 0;
+                    @Override
+                    public void onError(Throwable error, Item<String> itemValue) {
+                        error.printStackTrace();
+                    }
+                });
+        Promise<String> promise = asyncFlow.submitItem("Hello");
+        try {
+            assertThat(promise.result(helloWorldSubscriber.getId()).get(1, TimeUnit.SECONDS),
+                    is("Hello world"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            asyncFlow.close(true);
         }
 
-        @Override
-        public void onNext(Item<String> item) {
-          this.count++;
+    }
+
+    @Test
+    public void shouldPingAndPong() throws ExecutionException, InterruptedException {
+        ItemFlowable<String, Long> ping_stream = anItemFlow("ping_stream", 30);
+        ItemFlowable<String, Long> pong_stream = anItemFlow("pong_stream", 30);
+        ping_stream.enableImmediateFlushing();
+        pong_stream.enableImmediateFlushing();
+        ItemSubscriber<Long, String> pingSubscriber = new ItemSubscriber<Long, String>() {
+
+            private int count = 0;
+
+            @Override
+            public void onNext(Item<String> item) {
+                if (this.count < 4) {
+                    logger.info("got ping");
+                    pong_stream.putItemWithTTL(10, "pong");
+                    logger.info("sent pong");
+                    this.count++;
+                }
+                if (count == 4)
+                    exitAndReturn(System.currentTimeMillis());
+            }
+
+        };
+
+        ItemSubscriber<Long, String> pongSubscriber = new ItemSubscriber<>() {
+
+            private int count = 0;
+
+            @Override
+            public void onNext(Item<String> item) {
+                if (this.count < 4) {
+                    logger.info("got pong");
+                    ping_stream.putItemWithTTL(10, "ping");
+                    logger.info("sent ping");
+                    this.count++;
+                }
+                if (count == 4)
+                    exitAndReturn(System.currentTimeMillis());
+            }
+
+        };
+        ping_stream.addSubscriber(pingSubscriber);
+        pong_stream.addSubscriber(pongSubscriber);
+        ping_stream.putItem("ping");
+        Thread.sleep(1000);
+        logger.info(
+                "Latency Ms = " + (pongSubscriber.getFutureResult().get() - pingSubscriber.getFutureResult()
+                        .get()));
+        ping_stream.close(true);
+        pong_stream.close(true);
+    }
+
+    @Test
+    public void shouldSustainThroughputPerformanceTest() throws Exception {
+        logger.info("Thread priority " + Thread.currentThread().getPriority());
+        long start = System.currentTimeMillis();
+        ItemFlowable<String, Long> asyncFlow = anItemFlow("sustainedPerformanceTest", 1);
+        final ItemSubscriber<Long, String> subscriber = new ItemSubscriber<Long, String>() {
+            long count;
+
+            @Override
+            public void initialise() {
+                this.count = 0;
+            }
+
+            @Override
+            public void onNext(Item<String> item) {
+                this.count++;
+            }
+
+            @Override
+            public Long finalise() {
+                logger.info("Put " + this.count + " Items");
+                return this.count;
+            }
+        };
+        long loops = 10000000;
+        asyncFlow.addSubscriber(subscriber);
+        for (int i = 0; i < loops; i++) {
+            asyncFlow.putItemWithTTL(1, "Hello world" + i);
+        }
+        asyncFlow.close(true);
+        assertThat(subscriber.getFutureResult().get(), is(loops));
+        logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
+    }
+
+
+    @Test
+    public void shouldSustainThroughputPerformanceTestForMultipleSubscribers() throws Exception {
+        long start = System.currentTimeMillis();
+        ItemFlowable<String, Long> asyncFlow = anItemFlow("multisubcriberperformance", 0);
+
+        List<Subscriber<Long, String>> subscriberInterfaceMap = new ArrayList<>();
+
+        for (int i = 0; i < 100; i++) {
+
+            final ItemSubscriber<Long, String> subscriber = new ItemSubscriber<Long, String>() {
+                long count;
+
+                @Override
+                public void initialise() {
+                    this.count = 0;
+                }
+
+                @Override
+                public void onNext(Item<String> item) {
+                    this.count++;
+                }
+
+                @Override
+                public Long finalise() {
+                    return this.count;
+                }
+            };
+            subscriberInterfaceMap.add(subscriber);
+            asyncFlow.addSubscriber(subscriber);
         }
 
-        @Override
-        public Long finalise() {
-          return this.count;
+
+        long loops = 1000000;
+
+        for (int i = 0; i < loops; i++) {
+            asyncFlow.putItem("Hello world" + i);
         }
-      };
-      subscriberInterfaceMap.add(subscriber);
-      asyncFlow.addSubscriber(subscriber);
+
+        asyncFlow.close(true);
+
+        subscriberInterfaceMap.stream().map(s -> {
+            try {
+                return s.getFutureResult().get();
+            } catch (InterruptedException | ExecutionException e) {
+                return 0;
+            }
+        }).forEach(s -> assertThat(s, is(loops)));
+
+        logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
     }
 
-
-    long loops = 1000000;
-
-    for (int i = 0; i < loops; i++) {
-      asyncFlow.putItem("Hello world" + i);
+    @Test
+    public void stability() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            shouldHandleExceptionForFutureSubscriber();
+            shouldReturnHelloWorldItemFromFlowContents();
+            shouldReturnHelloWorldFutureForSingleFutureSubscriber();
+            shouldReturnInSequenceForFlowSubscriber();
+            shouldSustainThroughputPerformanceTestForMultipleSubscribers();
+        }
     }
 
-    asyncFlow.close(true);
-
-    subscriberInterfaceMap.stream().map(s -> {
-      try {
-        return s.getFutureResult().get();
-      } catch (InterruptedException | ExecutionException e) {
-        return 0;
-      }
-    }).forEach(s -> assertThat(s, is(loops)));
-
-    logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
-  }
-
-  @Test
-  public void stability() throws Exception {
-    for (int i = 0; i < 5; i++) {
-      shouldHandleExceptionForFutureSubscriber();
-      shouldReturnHelloWorldItemFromFlowContents();
-      shouldReturnHelloWorldFutureForSingleFutureSubscriber();
-      shouldReturnInSequenceForFlowSubscriber();
-      shouldSustainThroughputPerformanceTestForMultipleSubscribers();
-    }
-  }
-
-  @Test
-  public void shouldNotReturnDeadItemsAfter11Seconds() throws Exception {
-    ItemFlowable<String, String> asyncFlow = anItemFlow("test_ttl", 60);
-    asyncFlow.enableImmediateFlushing();
-    asyncFlow.putItemWithTTL(1, "test1");
-    asyncFlow.putItemWithTTL(10, "test10");
-    asyncFlow.putItemWithTTL(20, "test20");
-    asyncFlow.putItemWithTTL(60, "test60");
+    @Test
+    public void shouldNotReturnDeadItemsAfter11Seconds() throws Exception {
+        ItemFlowable<String, String> asyncFlow = anItemFlow("test_ttl", 60);
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.putItemWithTTL(1, "test1");
+        asyncFlow.putItemWithTTL(10, "test10");
+        asyncFlow.putItemWithTTL(20, "test20");
+        asyncFlow.putItemWithTTL(60, "test60");
 
 
-    Thread.sleep(11100);
-    assertThat(asyncFlow.size(), is(2));
-    assertThat(asyncFlow.getSink().lastItem().value(), is("test60"));
-    asyncFlow.close(true);
-  }
-
-  @Test
-  public void shouldReturnItemUsingItemId() throws InterruptedException {
-    ItemFlowable<TestObject, Void> asyncFlow;
-    asyncFlow = Flow.<TestObject, Void>anItemFlow("test_item_id");
-    TestObject testObject1 = new TestObject("hello1");
-    TestObject testObject2 = new TestObject("hello2");
-    TestObject testObject3 = new TestObject("hello3");
-    long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
-    assertThat(asyncFlow.takeSinkSnapshot()[1].value(), is(testObject2));
-    asyncFlow.close(true);
-  }
-
-  @Test
-  public void shouldHandleExceptionForFutureSubscriber()
-      throws ExecutionException, InterruptedException {
-    FutureItemFlowable<String, String> asyncFlow =
-        Flow.aFutureItemFlow(HELLO_WORLD_FLOW, new FutureItemSubscriber<String, String>() {
-
-          @Override
-          public String onNext(Item<String> itemValue) {
-            return functionalThrow(itemValue.value());
-          }
-
-          private String functionalThrow(String itemValue) {
-            if (itemValue.equals("Hello3"))
-              throw new RuntimeException("hello");
-            else
-              return "happy";
-          }
-
-          @Override
-          public void onError(Throwable error, Item<String> itemValue) {
-            assert (error.getMessage().equals("hello"));
-          }
-        });
-    Promise<String> promise1 = asyncFlow.submitItem("Hello1");
-    Promise<String> promise2 = asyncFlow.submitItem("Hello2");
-    Promise<String> promise3 = asyncFlow.submitItem("Hello3");
-
-    try {
-      assertThat(promise1.results().get(0).get(1, TimeUnit.SECONDS), is("happy"));
-      assertThat(promise2.results().get(0).get(1, TimeUnit.SECONDS), is("happy"));
-      assertThat(promise3.results().get(0).get(1, TimeUnit.SECONDS), is(nullValue()));
-    } catch (TimeoutException e) {
-      fail();
-    } finally {
-      asyncFlow.close(true);
+        Thread.sleep(11100);
+        assertThat(asyncFlow.size(), is(2));
+        assertThat(asyncFlow.getSink().lastItem().value(), is("test60"));
+        asyncFlow.close(true);
     }
 
-  }
+    @Test
+    public void shouldReturnItemUsingItemId() throws InterruptedException {
+        ItemFlowable<TestObject, Void> asyncFlow;
+        asyncFlow = Flow.<TestObject, Void>anItemFlow("test_item_id");
+        TestObject testObject1 = new TestObject("hello1");
+        TestObject testObject2 = new TestObject("hello2");
+        TestObject testObject3 = new TestObject("hello3");
+        long[] itemIds = asyncFlow.putItem(testObject1, testObject2, testObject3);
+        assertThat(asyncFlow.takeSinkSnapshot()[1].value(), is(testObject2));
+        asyncFlow.close(true);
+    }
 
-  @Test
-  public void shouldHandleErrorForFlowSubscriber() throws Exception {
+    @Test
+    public void shouldHandleExceptionForFutureSubscriber()
+            throws ExecutionException, InterruptedException {
+        FutureItemFlowable<String, String> asyncFlow =
+                Flow.aFutureItemFlow(HELLO_WORLD_FLOW, new FutureItemSubscriber<String, String>() {
 
-    ArrayList<String> errors = new ArrayList<>();
-    ItemFlowable<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
-    asyncFlow.addSubscriber(new ItemSubscriber<>() {
+                    @Override
+                    public String onNext(Item<String> itemValue) {
+                        return functionalThrow(itemValue.value());
+                    }
 
-      int count = 0;
+                    private String functionalThrow(String itemValue) {
+                        if (itemValue.equals("Hello3"))
+                            throw new RuntimeException("hello");
+                        else
+                            return "happy";
+                    }
 
-      @Override
-      public void onNext(Item<Integer> item) {
-        count++;
-        if (count == 2)
-          throw new RuntimeException("hello");
-      }
+                    @Override
+                    public void onError(Throwable error, Item<String> itemValue) {
+                        assert (error.getMessage().equals("hello"));
+                    }
+                });
+        Promise<String> promise1 = asyncFlow.submitItem("Hello1");
+        Promise<String> promise2 = asyncFlow.submitItem("Hello2");
+        Promise<String> promise3 = asyncFlow.submitItem("Hello3");
 
-      @Override
-      public void onError(Throwable error, Item<Integer> item) {
-        errors.add(error.getMessage());
-      }
+        try {
+            assertThat(promise1.results().get(0).get(1, TimeUnit.SECONDS), is("happy"));
+            assertThat(promise2.results().get(0).get(1, TimeUnit.SECONDS), is("happy"));
+            assertThat(promise3.results().get(0).get(1, TimeUnit.SECONDS), is(nullValue()));
+        } catch (TimeoutException e) {
+            fail();
+        } finally {
+            asyncFlow.close(true);
+        }
 
-      @Override
-      public List<Integer> finalise() {
-        return new ArrayList<>();
-      }
-    });
-    asyncFlow.enableImmediateFlushing();
-    asyncFlow.putItem(1, 2, 3, 4);
-    asyncFlow.close(true);
-    assertThat(errors.size(), is(1));
-    assertThat(errors.get(0), is("hello"));
-  }
+    }
 
-  @Test
-  public void testCallbackOnCompletion() throws InterruptedException {
-    CompletableItemFlowable<String, String> asyncFlow =
-        Flow.aCompletableItemFlow(HELLO_WORLD_FLOW, new CompletableItemSubscriber<>() {
+    @Test
+    public void shouldHandleErrorForFlowSubscriber() throws Exception {
 
-          @Override
-          public void onNext(CompletableItem<String, String> itemValue) throws Throwable {
-            logger.info(Thread.currentThread() + ":OnNext" + itemValue.value());
-            InternalExecutors.subscribersTaskThreadPoolInstance()
-                .submit(new FutureTask<Void>(() -> {
-                  itemValue.flowItemCompletionHandler()
-                      .completed(itemValue.value() + "World", itemValue.value());
-                  return null;
-                }));
-          }
-
-          @Override
-          public void onError(Throwable error, Item<String> itemValue) {
-
-          }
-        });
-
-    FlowItemCompletionHandler<String, String> myHandler = new FlowItemCompletionHandler<>() {
-      @Override
-      public void completed(String result, String attachment) {
-        logger.info(Thread.currentThread() + ":OnCallbackCompletion:" + result);
-      }
-
-      @Override
-      public void failed(Throwable exc, String attachment) {
-        exc.printStackTrace();
-      }
-
-    };
-
-    logger.info(Thread.currentThread() + ":OnSubmit");
-    for (int i = 0; i < 10; i++)
-      asyncFlow.submitItem("Hello" + i, myHandler);
-    asyncFlow.close(true);
-  }
-
-  @Test
-  public void shouldReprocessAfterResettingTheLastSeenItem() throws InterruptedException
-  {
-    ItemFlowable<Integer, List<Item<Integer>>> asyncFlow = anItemFlow(INT_FLOW,100);
-    ArrayList<Item<Integer>> itemStore = new ArrayList<>();
-    AtomicInteger count = new AtomicInteger(0);
-    Subscriber<List<Item<Integer>>, Integer> subscriber =
+        ArrayList<String> errors = new ArrayList<>();
+        ItemFlowable<Integer, List<Integer>> asyncFlow = anItemFlow(INT_FLOW);
         asyncFlow.addSubscriber(new ItemSubscriber<>() {
 
-      @Override
-      public void onNext(Item<Integer> item) {
-        itemStore.add(item);
-        count.incrementAndGet();
-      }
+            int count = 0;
 
-      @Override
-      public void onError(Throwable error, Item<Integer> item) {
+            @Override
+            public void onNext(Item<Integer> item) {
+                count++;
+                if (count == 2)
+                    throw new RuntimeException("hello");
+            }
 
-      }
+            @Override
+            public void onError(Throwable error, Item<Integer> item) {
+                errors.add(error.getMessage());
+            }
 
-      @Override
-      public List<Item<Integer>> finalise() {
-        return itemStore;
-      }
-    });
-    asyncFlow.enableImmediateFlushing();
-    asyncFlow.putItem(1, 2, 3, 4);
-    Thread.sleep(1000);
-    asyncFlow.resetLastSeenItem(subscriber.getId(), EmptyItem.EMPTY_ITEM);
-    asyncFlow.close(true);
-
-    assertThat(count.get(), is(8));
-    asyncFlow.close(true);
-
-  }
-
-
-  public class TestObject {
-    String testField;
-
-    public TestObject(String testField) {
-      this.testField = testField;
+            @Override
+            public List<Integer> finalise() {
+                return new ArrayList<>();
+            }
+        });
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.putItem(1, 2, 3, 4);
+        asyncFlow.close(true);
+        assertThat(errors.size(), is(1));
+        assertThat(errors.get(0), is("hello"));
     }
 
-    public String getTestField() {
-      return testField;
+    @Test
+    public void testCallbackOnCompletion() throws InterruptedException {
+        CompletableItemFlowable<String, String> asyncFlow =
+                Flow.aCompletableItemFlow(HELLO_WORLD_FLOW, new CompletableItemSubscriber<>() {
+
+                    @Override
+                    public void onNext(CompletableItem<String, String> itemValue) throws Throwable {
+                        logger.info(Thread.currentThread() + ":OnNext" + itemValue.value());
+                        InternalExecutors.subscribersTaskThreadPoolInstance()
+                                .submit(new FutureTask<Void>(() -> {
+                                    itemValue.flowItemCompletionHandler()
+                                            .completed(itemValue.value() + "World", itemValue.value());
+                                    return null;
+                                }));
+                    }
+
+                    @Override
+                    public void onError(Throwable error, Item<String> itemValue) {
+
+                    }
+                });
+
+        FlowItemCompletionHandler<String, String> myHandler = new FlowItemCompletionHandler<>() {
+            @Override
+            public void completed(String result, String attachment) {
+                logger.info(Thread.currentThread() + ":OnCallbackCompletion:" + result);
+            }
+
+            @Override
+            public void failed(Throwable exc, String attachment) {
+                exc.printStackTrace();
+            }
+
+        };
+
+        logger.info(Thread.currentThread() + ":OnSubmit");
+        for (int i = 0; i < 10; i++)
+            asyncFlow.submitItem("Hello" + i, myHandler);
+        asyncFlow.close(true);
     }
-  }
+
+    @Test
+    public void shouldReprocessAfterResettingTheLastSeenItem() throws InterruptedException {
+        ItemFlowable<Integer, List<Item<Integer>>> asyncFlow = anItemFlow(INT_FLOW, 100);
+        ArrayList<Item<Integer>> itemStore = new ArrayList<>();
+        AtomicInteger count = new AtomicInteger(0);
+        Subscriber<List<Item<Integer>>, Integer> subscriber =
+                asyncFlow.addSubscriber(new ItemSubscriber<>() {
+
+                    @Override
+                    public void onNext(Item<Integer> item) {
+                        itemStore.add(item);
+                        count.incrementAndGet();
+                    }
+
+                    @Override
+                    public void onError(Throwable error, Item<Integer> item) {
+
+                    }
+
+                    @Override
+                    public List<Item<Integer>> finalise() {
+                        return itemStore;
+                    }
+                });
+        asyncFlow.enableImmediateFlushing();
+        asyncFlow.putItem(1, 2, 3, 4);
+        Thread.sleep(1000);
+        asyncFlow.resetLastSeenItem(subscriber.getId(), EmptyItem.EMPTY_ITEM);
+        asyncFlow.close(true);
+
+        assertThat(count.get(), is(8));
+        asyncFlow.close(true);
+
+    }
+
+
+    public class TestObject {
+        String testField;
+
+        public TestObject(String testField) {
+            this.testField = testField;
+        }
+
+        public String getTestField() {
+            return testField;
+        }
+    }
 
 
 }
