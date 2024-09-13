@@ -77,6 +77,15 @@ public class FlowTest {
 
     @Test
     public void shouldReturnRecoverySnapshot() throws InterruptedException {
+        RecoverySnapshot<String, String> snapshot = generateSnapshot();
+        assertThat(snapshot.getContents().first().value(), is("Hello world"));
+        assertThat(snapshot.getContents().last().value(), is("World hello"));
+        assertThat(snapshot.getSubscribers().size(), is(1));
+        assertThat(snapshot.getItemID(), is(2L));
+        assertThat(snapshot.getLastSeenItemMap().values().iterator().next().value(),is("World hello"));
+    }
+
+    public RecoverySnapshot<String, String> generateSnapshot() throws InterruptedException {
         ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
         asyncFlow.enableImmediateFlushing();
         asyncFlow.putItem("Hello world");
@@ -86,18 +95,32 @@ public class FlowTest {
             public void onNext(Item<String> item) {
                 logger.log(Level.INFO, item.toString());
             }
+
+            @Override
+            public String finalise() {
+                return super.finalise();
+            }
         };
         asyncFlow.addSubscriber(subscriber);
         Thread.sleep(1000);
         RecoverySnapshot<String, String> snapshot = asyncFlow.takeRecoverySnapshot();
-        assertThat(snapshot.getContents().first().value(), is("Hello world"));
-        assertThat(snapshot.getContents().last().value(), is("World hello"));
-        assertThat(snapshot.getSubscribers().size(), is(1));
-        assertThat(snapshot.getItemID(), is(2L));
-        assertThat(snapshot.getLastSeenItemMap().get(subscriber.getId()).value(),is("World hello"));
-        asyncFlow.close(true);
+        //asyncFlow.close(true);
+        return snapshot;
     }
 
+    @Test
+    public void shouldRecoverSnapshotToFlow() throws InterruptedException {
+        RecoverySnapshot<String,String> snapshot = generateSnapshot();
+        ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERY");
+        recoveredFlow.recoverSnapshot(snapshot);
+        assertThat(snapshot.getContents().first().value(), is("Hello world"));
+        assertThat(snapshot.getContents().last().value(), is("World hello"));
+        assertThat(snapshot.getLastSeenItemMap().values().iterator().next().value(),is("World hello"));
+        assertThat(recoveredFlow.getSubscriber(snapshot.getSubscribers().getFirst().getId()).isDone(),is(false));
+        recoveredFlow.putItem("Goodbye world");
+        Thread.sleep(1000);
+
+    }
 
     @Test
     public void flowItemLoggerTest() throws IOException {

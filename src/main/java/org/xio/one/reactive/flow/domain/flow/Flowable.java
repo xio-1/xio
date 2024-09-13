@@ -35,4 +35,5 @@ public interface Flowable<T, R> {
 
   void resetLastSeenItem(String subscriberID, Item<T> lastSeenItem);
 
+  void recoverSnapshot(RecoverySnapshot<R, T> snapshot);
 }

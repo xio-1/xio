@@ -57,7 +57,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private final int queue_max_size = 16384;
     private final Object lockSubscriberslist = new Object();
     private final Object lockFlowContents = new Object();
-    private ConcurrentHashMap<String, Item> lastSeenItemMap;
+    private Map<String, Item<T>> lastSeenItemMap;
     // streamContentsSnapShot variables
     private ItemSink<T> flowContents;
     // constants
@@ -77,8 +77,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private boolean flushImmediately;
 
     //subscription control
-    private ArrayList<Subscriber<R, T>> subscribers;
-    private ArrayList<FutureSubscriber<R, T>> futureSubscribers;
+    private List<Subscriber<R, T>> subscribers;
+    private List<FutureSubscriber<R, T>> futureSubscribers;
     private int DEFAULT_MAX_TAKE_SIZE = Integer.MAX_VALUE;
 
     private ItemLogger<T> itemLogger;
@@ -210,11 +210,31 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
     }
 
+    @Override
+    public void recoverSnapshot(RecoverySnapshot<R, T> snapshot) {
+        synchronized (flowControlLock) {
+            synchronized (lockFlowContents) {
+                this.lastSeenItemMap = snapshot.getLastSeenItemMap();
+                this.itemIDSequence = new ItemIdSequence(snapshot.getItemID());
+                this.flowContents = new ItemSink<>(this);
+                this.flowContents.getItemStoreContents().addAll(snapshot.getContents());
+                synchronized (lockSubscriberslist) {
+                    this.subscribers = snapshot.getSubscribers();
+                    this.futureSubscribers = snapshot.getFutureSubscribers();
+                }
+            }
+        }
+    }
 
     @Override
     public Subscriber<R, T> addSubscriber(Subscriber<R, T> subscriber) {
         addAppropriateSubscriber(subscriber);
         return subscriber;
+    }
+
+    @Override
+    public Subscriber<R, T> getSubscriber(String id) {
+        return subscribers.stream().filter(p->p.getId().equals(id)).findFirst().get();
     }
 
     @Override
@@ -408,7 +428,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 InternalExecutors.schedulerThreadPoolInstance().shutdown();
                 InternalExecutors.daemonThreadPoolInstance().shutdown();
             }
-            this.reset();
+            //this.reset();
         }
         logger.info("Flow " + name + " id " + id + " has stopped");
     }
@@ -598,7 +618,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                         subscribers.addAll(this.subscribers);
                         lastSeenItemMap.putAll(this.lastSeenItemMap);
                     }
-                    return new RecoverySnapshot(itemIDSequence.getCurrent(),contents, subscribers,lastSeenItemMap);
+                    return new RecoverySnapshot(itemIDSequence.getCurrent(),contents, subscribers, futureSubscribers, lastSeenItemMap);
                 }
             }
             if (start + 10000 <= System.currentTimeMillis())
@@ -607,11 +627,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 LockSupport.parkNanos(LOCK_PARK_NANOS);
         }
     }
-
-    public void restoreSinkSnapshot(RecoverySnapshot<R, T> recoverySnapshot) {
-        this.flowContents.setItemStoreContents(recoverySnapshot.getContents());
-    }
-
 
     public Future<R> subscribe(Subscriber<R, T> subscriber) {
         synchronized (lockSubscriberslist) {
@@ -622,6 +637,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
         return subscriber.getFutureResult();
     }
+
+
 
     public void unsubscribe(Subscriber<R, T> subscriber) {
         synchronized (lockSubscriberslist) {

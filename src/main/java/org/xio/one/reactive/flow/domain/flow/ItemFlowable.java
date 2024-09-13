@@ -11,6 +11,8 @@ public interface ItemFlowable<T, R> extends Flowable<T, R> {
 
   void removeSubscriber(Subscriber<R, T> subscriber);
 
+  Subscriber<R,T> getSubscriber(String id);
+
   long putItem(T value);
 
   long[] putItem(T... values);
