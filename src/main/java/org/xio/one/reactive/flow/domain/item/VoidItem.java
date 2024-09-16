@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.domain.item;
 
-public final class VoidItem extends Item {
+public final class VoidItem<T> extends Item<T> {
 
   public static final Item VOID_ITEM = new VoidItem();
 

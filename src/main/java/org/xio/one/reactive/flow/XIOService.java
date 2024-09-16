@@ -1,5 +1,6 @@
 package org.xio.one.reactive.flow;
 
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.internal.FlowHousekeepingTask;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
 import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
@@ -97,6 +98,7 @@ public class XIOService {
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+        Flow.allFlows().stream().forEach(f->f.close(true));
         oldBoss.getFlowInputMonitorFuture().cancel(true);
         oldBoss.getFlowSubscriptionMonitorFuture().cancel(true);
         oldBoss.getFlowHousekeepingDaemonFuture().cancel(true);

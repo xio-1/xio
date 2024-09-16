@@ -21,29 +21,32 @@ import java.nio.charset.StandardCharsets;
  * @author Xio
  */
 public class Item<T> {
-  protected T itemValue;
-  private long itemId;
-  private long itemTimestamp;
-  private long itemNodeId;
-  private Object indexKeyValue;
-  private long itemTTLSeconds;
-
+  protected final T itemValue;
+  private final long itemId;
+  private final long itemTimestamp;
+  private final long itemNodeId;
+  private final Object indexKeyValue;
+  private final long itemTTLSeconds;
 
   public Item() {
     this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = System.currentTimeMillis();
     this.itemId = 0;
     this.itemTTLSeconds = 0;
+    this.itemValue=null;
+    this.indexKeyValue = this.hashCode();
   }
 
-  public Item(long itemId) {
+  public Item(final long itemId) {
     this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = Long.MAX_VALUE;
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
+    this.itemValue=null;
+    this.indexKeyValue = this.hashCode();
   }
 
-  public Item(T value, long itemId) {
+  public Item(final T value, final long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -52,7 +55,7 @@ public class Item<T> {
     this.itemTTLSeconds = 0;
   }
 
-  public Item(T value, long itemId, long itemTTLSeconds) {
+  public Item(final T value, final long itemId, final long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
     this.indexKeyValue = value.hashCode();
     this.itemValue = value;
@@ -60,8 +63,6 @@ public class Item<T> {
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
-
-
 
   public long itemTimestamp() {
     return this.itemTimestamp;

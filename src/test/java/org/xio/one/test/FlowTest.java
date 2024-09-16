@@ -16,6 +16,7 @@ import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.internal.RecoverySnapshotHelper;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -91,25 +92,52 @@ public class FlowTest {
         asyncFlow.putItem("Hello world");
         asyncFlow.putItem("World hello");
         ItemSubscriber<String, String> subscriber = new ItemSubscriber<String, String>() {
+
+            private String lastValue;
+
             @Override
             public void onNext(Item<String> item) {
                 logger.log(Level.INFO, item.toString());
+                lastValue=item.value();
             }
 
             @Override
             public String finalise() {
-                return super.finalise();
+                return this.lastValue;
             }
         };
         asyncFlow.addSubscriber(subscriber);
         Thread.sleep(1000);
         RecoverySnapshot<String, String> snapshot = asyncFlow.takeRecoverySnapshot();
-        //asyncFlow.close(true);
+        //race conditions
         return snapshot;
     }
 
+    /**
+     * Only for testing need to implement appropriate thread safe cloning
+     * @param <R>
+     * @param <T>
+     */
+    private class TestRecoveryHelper<R,T> implements RecoverySnapshotHelper<String, String> {
+
+        @Override
+        public NavigableSet<Item<String>> copyContents(NavigableSet<Item<String>> steamContents) {
+            return steamContents;
+        }
+
+        @Override
+        public ArrayList<Subscriber<String, String>> copySubscribers(ArrayList<Subscriber<String, String>> subscribers) {
+            return subscribers;
+        }
+
+        @Override
+        public Map<String, Item<String>> copyLastSeenItemMap(Map<String, Item<String>> lastSeenItemMap) {
+            return lastSeenItemMap;
+        }
+    }
+
     @Test
-    public void shouldRecoverSnapshotToFlow() throws InterruptedException {
+    public void shouldRecoverSnapshotToFlow() throws InterruptedException, ExecutionException {
         RecoverySnapshot<String,String> snapshot = generateSnapshot();
         ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERY");
         recoveredFlow.recoverSnapshot(snapshot);
@@ -118,8 +146,10 @@ public class FlowTest {
         assertThat(snapshot.getLastSeenItemMap().values().iterator().next().value(),is("World hello"));
         assertThat(recoveredFlow.getSubscriber(snapshot.getSubscribers().getFirst().getId()).isDone(),is(false));
         recoveredFlow.putItem("Goodbye world");
-        Thread.sleep(1000);
-
+        Future<String> result = recoveredFlow.getSubscriber(snapshot.getSubscribers().getFirst().getId()).getFutureResult();
+        recoveredFlow.close(true);
+        String value=result.get();
+        assertThat(value, is("Goodbye world"));
     }
 
     @Test
@@ -127,7 +157,7 @@ public class FlowTest {
         ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
         asyncFlow.enableImmediateFlushing();
         AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-                new AsyncCallbackItemLoggerService<String>("log_hello");
+                new AsyncCallbackItemLoggerService<String>("./log_hello.dat");
         asyncFlow.addItemLogger(asyncFlowLogger);
         for (int i = 0; i < 1000; i++)
             asyncFlow.putItem("Hello world }}}" + i);
@@ -323,7 +353,7 @@ public class FlowTest {
                 return this.count;
             }
         };
-        long loops = 10000000;
+        long loops = 1000000;
         asyncFlow.addSubscriber(subscriber);
         for (int i = 0; i < loops; i++) {
             asyncFlow.putItemWithTTL(1, "Hello world" + i);

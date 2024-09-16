@@ -14,6 +14,7 @@ import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
+import org.xio.one.reactive.flow.subscribers.internal.RecoverySnapshotHelper;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -117,6 +118,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long maxTTLSeconds) {
         return new Flow<>(name, null, maxTTLSeconds, null);
     }
+
+    public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long maxTTLSeconds, ItemLogger<T> itemLogger) {
+        return new Flow<>(name, null, maxTTLSeconds, itemLogger);
+    }
+
 
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName) {
         return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS, null);
@@ -364,6 +370,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             throw new FlowException("Time to live cannot exceed maximum for flow " + this.maxTTLSeconds);
         Item<T> item =
                 new CompletableItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
+        if (isLoggingEnabled())
+            this.itemLogger.logItem(item);
         addToStreamWithBlock(item, flushImmediately);
     }
 
