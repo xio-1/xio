@@ -14,7 +14,6 @@ import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
-import org.xio.one.reactive.flow.subscribers.internal.RecoverySnapshotHelper;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -25,7 +24,6 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Flow
@@ -225,8 +223,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 this.flowContents = new ItemSink<>(this);
                 this.flowContents.getItemStoreContents().addAll(snapshot.getContents());
                 synchronized (lockSubscriberslist) {
-                    this.subscribers = snapshot.getSubscribers();
-                    this.futureSubscribers = snapshot.getFutureSubscribers();
+                    //this.subscribers = snapshot.getSubscribers();
+                    //this.futureSubscribers = snapshot.getFutureSubscribers();
                 }
             }
         }
@@ -611,11 +609,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 LockSupport.parkNanos(LOCK_PARK_NANOS);
         }
     }
-
+    //Items and last seen item are final and thread safe
     public RecoverySnapshot<R, T> takeRecoverySnapshot() {
         long start = System.currentTimeMillis();
         NavigableSet<Item<T>> contents;
-        ArrayList<Subscriber<R, T>> subscribers = new ArrayList<>();
+        byte[] subscribersSerialized;
         Map<String, Item> lastSeenItemMap = new ConcurrentHashMap<>();
         while (true) {
             synchronized (lockFlowContents) {
@@ -623,10 +621,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 if (this.size() == getSink().size()) {
                     contents = getSink().getItemStoreContents();
                     synchronized ((lockSubscriberslist)) {
-                        subscribers.addAll(this.subscribers);
                         lastSeenItemMap.putAll(this.lastSeenItemMap);
                     }
-                    return new RecoverySnapshot(itemIDSequence.getCurrent(),contents, subscribers, futureSubscribers, lastSeenItemMap);
+                    return new RecoverySnapshot(itemIDSequence.getCurrent(),contents, lastSeenItemMap);
                 }
             }
             if (start + 10000 <= System.currentTimeMillis())
@@ -635,6 +632,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 LockSupport.parkNanos(LOCK_PARK_NANOS);
         }
     }
+
 
     public Future<R> subscribe(Subscriber<R, T> subscriber) {
         synchronized (lockSubscriberslist) {

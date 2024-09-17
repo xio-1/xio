@@ -20,14 +20,20 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
 
-  private final String id = UUID.randomUUID().toString();
-  private final Object lock = new Object();
+  private final String id;
+  private transient final Object lock = new Object();
   protected int delayMS = 0;
-  CompletableFuture<R> completableFuture;
+  protected transient CompletableFuture<R> completableFuture;
   private volatile R result = null;
   private boolean done = false;
 
   public AbstractSubscriber() {
+    this.id=UUID.randomUUID().toString();
+    this.completableFuture = new CompletableFuture<>();
+  }
+
+  public AbstractSubscriber(String id) {
+    this.id=id;
     this.completableFuture = new CompletableFuture<>();
   }
 

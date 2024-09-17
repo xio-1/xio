@@ -9,6 +9,14 @@ import java.util.NavigableSet;
 public abstract class ItemSubscriber<R, T> extends AbstractSubscriber<R, T>
     implements OnNextFunction<T, R> {
 
+  public ItemSubscriber() {
+    super();
+  }
+
+  public ItemSubscriber(String id) {
+    super(id);
+  }
+
   @Override
   public final void process(NavigableSet<? extends Item<T>> e) {
     e.forEach(this::accept);

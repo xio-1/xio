@@ -2,6 +2,7 @@ package org.xio.one.reactive.flow.subscribers.internal;
 
 import org.xio.one.reactive.flow.domain.item.Item;
 
+import java.io.Serializable;
 import java.util.NavigableSet;
 import java.util.concurrent.Future;
 

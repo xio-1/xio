@@ -30,9 +30,8 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
@@ -81,11 +80,11 @@ public class FlowTest {
         RecoverySnapshot<String, String> snapshot = generateSnapshot();
         assertThat(snapshot.getContents().first().value(), is("Hello world"));
         assertThat(snapshot.getContents().last().value(), is("World hello"));
-        assertThat(snapshot.getSubscribers().size(), is(1));
         assertThat(snapshot.getItemID(), is(2L));
         assertThat(snapshot.getLastSeenItemMap().values().iterator().next().value(),is("World hello"));
     }
 
+    //ToDo add context document
     public RecoverySnapshot<String, String> generateSnapshot() throws InterruptedException {
         ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
         asyncFlow.enableImmediateFlushing();
@@ -97,7 +96,6 @@ public class FlowTest {
 
             @Override
             public void onNext(Item<String> item) {
-                logger.log(Level.INFO, item.toString());
                 lastValue=item.value();
             }
 
@@ -109,34 +107,13 @@ public class FlowTest {
         asyncFlow.addSubscriber(subscriber);
         Thread.sleep(1000);
         RecoverySnapshot<String, String> snapshot = asyncFlow.takeRecoverySnapshot();
-        //race conditions
+        asyncFlow.close(true);
         return snapshot;
     }
 
-    /**
-     * Only for testing need to implement appropriate thread safe cloning
-     * @param <R>
-     * @param <T>
-     */
-    private class TestRecoveryHelper<R,T> implements RecoverySnapshotHelper<String, String> {
-
-        @Override
-        public NavigableSet<Item<String>> copyContents(NavigableSet<Item<String>> steamContents) {
-            return steamContents;
-        }
-
-        @Override
-        public ArrayList<Subscriber<String, String>> copySubscribers(ArrayList<Subscriber<String, String>> subscribers) {
-            return subscribers;
-        }
-
-        @Override
-        public Map<String, Item<String>> copyLastSeenItemMap(Map<String, Item<String>> lastSeenItemMap) {
-            return lastSeenItemMap;
-        }
-    }
-
     @Test
+    //it should be noted that a streams contents (items) are final but a subscriber can contain any type of user code and
+    //therefore requires custom serialisation.
     public void shouldRecoverSnapshotToFlow() throws InterruptedException, ExecutionException {
         RecoverySnapshot<String,String> snapshot = generateSnapshot();
         ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERY");
@@ -144,11 +121,24 @@ public class FlowTest {
         assertThat(snapshot.getContents().first().value(), is("Hello world"));
         assertThat(snapshot.getContents().last().value(), is("World hello"));
         assertThat(snapshot.getLastSeenItemMap().values().iterator().next().value(),is("World hello"));
-        assertThat(recoveredFlow.getSubscriber(snapshot.getSubscribers().getFirst().getId()).isDone(),is(false));
+        ItemSubscriber<String, String> subscriber = new ItemSubscriber<String, String>(snapshot.getLastSeenItemMap().keySet().iterator().next()) {
+
+            private String lastValue;
+
+            @Override
+            public void onNext(Item<String> item) {
+                lastValue=item.value();
+            }
+
+            @Override
+            public String finalise() {
+                return this.lastValue;
+            }
+        };
+        recoveredFlow.addSubscriber(subscriber);
         recoveredFlow.putItem("Goodbye world");
-        Future<String> result = recoveredFlow.getSubscriber(snapshot.getSubscribers().getFirst().getId()).getFutureResult();
         recoveredFlow.close(true);
-        String value=result.get();
+        String value=subscriber.getFutureResult().get();
         assertThat(value, is("Goodbye world"));
     }
 
