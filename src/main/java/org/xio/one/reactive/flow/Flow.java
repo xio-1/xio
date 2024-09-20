@@ -182,11 +182,15 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     public static Collection<Flow> allFlows() {
-        return Collections.synchronizedMap(flowMap).values();
+        synchronized (flowControlLock) {
+            return Collections.synchronizedMap(flowMap).values();
+        }
     }
 
     public static Flow forID(String id) {
-        return Collections.synchronizedMap(flowMap).get(id);
+        synchronized (flowControlLock) {
+            return Collections.synchronizedMap(flowMap).get(id);
+        }
     }
 
     public static int numActiveFlows() {
@@ -443,7 +447,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         logger.info("Flow " + name + " id " + id + " has stopped");
     }
 
-    private void reset() {
+    public void reset() {
         this.subscribers.forEach(this::unsubscribe);
         this.initialise(this.name, this.indexFieldName, this.maxTTLSeconds());
     }

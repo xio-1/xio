@@ -27,16 +27,16 @@ public class XIOServiceTest {
 
   @Test
   public void HelloWorld1ShouldRunOnBossThreads() {
-    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.value())).subscribe();
+    ItemFlowable<String, String> asyncFlow = anItemFlow("BossHelloWorldFlow1");
+    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(Thread.currentThread().getThreadGroup()+"-"+Thread.currentThread().getName()+"-"+Thread.currentThread().threadId()+" "+ i.value())).subscribe();
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.close(true);
   }
 
   @Test
   public void HelloWorld2ShouldRunOnBossThreads() {
-    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
-    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.value())).subscribe();
+    ItemFlowable<String, String> asyncFlow = anItemFlow("BossHelloWorldFlow2");
+    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(Thread.currentThread().getThreadGroup()+"-"+Thread.currentThread().getName()+"-"+Thread.currentThread().threadId()+" "+i.value())).subscribe();
     asyncFlow.putItem("Hello World Again!!!");
     asyncFlow.close(true);
   }

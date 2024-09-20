@@ -42,7 +42,12 @@ public class FlowSubscriptionMonitor implements Runnable {
 
         if (callables.size() == 0) {
           //sleep if nothing to do
-          Thread.sleep(100);
+          try {
+            Thread.sleep(100);
+          }
+          catch (InterruptedException e) {
+
+          }
         } else {
           List<Future<Boolean>> result;
           try {

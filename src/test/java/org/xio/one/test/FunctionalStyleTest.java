@@ -33,7 +33,7 @@ public class FunctionalStyleTest {
 
   @Test
   public void toUpperCaseWithFunctionalStyle() throws Exception {
-    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow("1");
+    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow("1UPPER");
 
     StringBuffer buff = new StringBuffer();
 
@@ -54,7 +54,7 @@ public class FunctionalStyleTest {
 
   @Test
   public void toUpperCaseWithFunctionalWithPredicateExit() throws Exception {
-    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow("2");
+    ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow("2UPPER");
 
     StringBuffer buff = new StringBuffer();
 

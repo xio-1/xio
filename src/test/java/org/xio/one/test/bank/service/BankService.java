@@ -1,10 +1,10 @@
-package org.xio.one.test.examples.bank.service;
+package org.xio.one.test.bank.service;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
-import org.xio.one.test.examples.bank.domain.*;
+import org.xio.one.test.bank.domain.*;
 
 import java.util.HashMap;
 import java.util.UUID;

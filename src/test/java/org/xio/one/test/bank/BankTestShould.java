@@ -1,11 +1,11 @@
-package org.xio.one.test.examples.bank;
+package org.xio.one.test.bank;
 
 import org.junit.*;
 import org.xio.one.reactive.flow.XIOService;
-import org.xio.one.test.examples.bank.api.BankAPI;
-import org.xio.one.test.examples.bank.domain.Account;
-import org.xio.one.test.examples.bank.domain.AccountTransaction;
-import org.xio.one.test.examples.bank.domain.TransactionType;
+import org.xio.one.test.bank.api.BankAPI;
+import org.xio.one.test.bank.domain.Account;
+import org.xio.one.test.bank.domain.AccountTransaction;
+import org.xio.one.test.bank.domain.TransactionType;
 
 import static org.hamcrest.CoreMatchers.is;
 

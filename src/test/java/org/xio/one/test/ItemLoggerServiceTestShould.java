@@ -1,18 +1,15 @@
-package org.xio.one.test.examples.logger;
+package org.xio.one.test;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
-import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
-import org.xio.one.reactive.flow.domain.item.logging.ItemLogger;
 import org.xio.one.reactive.flow.domain.item.logging.LogLevel;
 import org.xio.one.reactive.flow.domain.item.logging.SingleCallbackLoggerService;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;

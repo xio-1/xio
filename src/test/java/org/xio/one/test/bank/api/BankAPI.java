@@ -1,8 +1,8 @@
-package org.xio.one.test.examples.bank.api;
+package org.xio.one.test.bank.api;
 
-import org.xio.one.test.examples.bank.domain.Account;
-import org.xio.one.test.examples.bank.domain.AccountTransaction;
-import org.xio.one.test.examples.bank.service.BankService;
+import org.xio.one.test.bank.domain.Account;
+import org.xio.one.test.bank.domain.AccountTransaction;
+import org.xio.one.test.bank.service.BankService;
 
 public class BankAPI {
   BankService bankService;

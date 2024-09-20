@@ -1,9 +1,9 @@
-package org.xio.one.test.examples.bank;
+package org.xio.one.test.bank;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.xio.one.test.examples.bank.domain.Account;
-import org.xio.one.test.examples.bank.domain.InsufficientFundsException;
+import org.xio.one.test.bank.domain.Account;
+import org.xio.one.test.bank.domain.InsufficientFundsException;
 
 import static org.hamcrest.CoreMatchers.is;
 

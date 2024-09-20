@@ -1,4 +1,4 @@
-package org.xio.one.test.examples.bank.domain;
+package org.xio.one.test.bank.domain;
 
 public class InsufficientFundsException extends RuntimeException {
   public InsufficientFundsException(String message) {

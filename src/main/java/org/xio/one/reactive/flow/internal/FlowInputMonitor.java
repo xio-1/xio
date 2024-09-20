@@ -75,7 +75,7 @@ public class FlowInputMonitor implements Runnable {
       }
 
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      System.exit(-1);
     }
 
   }
