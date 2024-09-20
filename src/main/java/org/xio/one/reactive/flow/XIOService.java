@@ -17,129 +17,130 @@ import java.util.logging.Logger;
 
 public class XIOService {
 
-  private static final Object lock = new Object();
-  private static XIOService xioBoss;
-  private static Logger logger;
-  private static String banner =
-      "\n" + "\n" + " /**   /** /******  /****** \n" + "| **  / **|_  **_/ " + "/**__  **\n"
-          + "|  **/ **/  | **  | **  \\ **\n" + " \\  ****/   | **  | **  | **\n"
-          + "  >**  **   | **  | **  | **\n" + " /**/\\  **  | **  | **  | **\n"
-          + "| **  \\ ** /******|  ******/\n" + "|__/  |__/|______/ \\______/ \n"
-          + "                            \n";
+    private static final Object lock = new Object();
+    private static XIOService xioBoss;
+    private static Logger logger;
+    private static String banner =
+            "\n" + "\n" + " /**   /** /******  /****** \n" + "| **  / **|_  **_/ " + "/**__  **\n"
+                    + "|  **/ **/  | **  | **  \\ **\n" + " \\  ****/   | **  | **  | **\n"
+                    + "  >**  **   | **  | **  | **\n" + " /**/\\  **  | **  | **  | **\n"
+                    + "| **  \\ ** /******|  ******/\n" + "|__/  |__/|______/ \\______/ \n"
+                    + "                            \n";
 
-  static  {
-    try {
-      InputStream stream = XIOService.class.getResourceAsStream("/logger.properties");
-      if (stream != null)
-        LogManager.getLogManager().readConfiguration(stream);
-      List<Future<Boolean>> result;
-    } catch (Exception e) {
-    } finally {
-      logger = Logger.getLogger(Flow.class.getName());
-    }
-  }
-
-  private Future flowInputMonitorFuture;
-  private Future flowSubscriptionMonitorFuture;
-  private Future flowHousekeepingDaemonFuture;
-  private FlowInputMonitor flowInputMonitor;
-  private FlowSubscriptionMonitor flowSubscriptionMonitor;
-
-  private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2,
-      FlowInputMonitor flowInputMonitor, FlowSubscriptionMonitor flowSubscriptionMonitor) {
-    this.flowInputMonitorFuture = submit;
-    this.flowSubscriptionMonitorFuture = submit1;
-    this.flowHousekeepingDaemonFuture = submit2;
-    this.flowInputMonitor = flowInputMonitor;
-    this.flowSubscriptionMonitor = flowSubscriptionMonitor;
-  }
-
-  public static void start() {
-    synchronized (lock) {
-      if (xioBoss == null) {
-        logger.info(banner);
-        FlowInputMonitor flowInputMonitor = new FlowInputMonitor();
-        FlowSubscriptionMonitor flowSubscriptionMonitor = new FlowSubscriptionMonitor();
-        xioBoss = new XIOService(
-            InternalExecutors.daemonThreadPoolInstance().submit(flowInputMonitor),
-            InternalExecutors.daemonThreadPoolInstance().submit(flowSubscriptionMonitor),
-            InternalExecutors.schedulerThreadPoolInstance()
-                .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS),
-            flowInputMonitor, flowSubscriptionMonitor);
+    static {
         try {
-          //give boss threads a chance to start correctly
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+            InputStream stream = XIOService.class.getResourceAsStream("/logger.properties");
+            if (stream != null)
+                LogManager.getLogManager().readConfiguration(stream);
+            List<Future<Boolean>> result;
+        } catch (Exception e) {
+        } finally {
+            logger = Logger.getLogger(Flow.class.getName());
         }
-        logger.info("XIO loaded successfully");
-        try {
-          Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
-          logger.log(Level.INFO,"XIO is using Virtual Threads For Subscribers");
-        } catch (NoSuchMethodException e) {
-        }
-      }
     }
 
-  }
+    private Future flowInputMonitorFuture;
+    private Future flowSubscriptionMonitorFuture;
+    private Future flowHousekeepingDaemonFuture;
+    private FlowInputMonitor flowInputMonitor;
+    private FlowSubscriptionMonitor flowSubscriptionMonitor;
 
-  public static XIOService getXioBoss() {
-    return xioBoss;
-  }
+    private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2,
+                       FlowInputMonitor flowInputMonitor, FlowSubscriptionMonitor flowSubscriptionMonitor) {
+        this.flowInputMonitorFuture = submit;
+        this.flowSubscriptionMonitorFuture = submit1;
+        this.flowHousekeepingDaemonFuture = submit2;
+        this.flowInputMonitor = flowInputMonitor;
+        this.flowSubscriptionMonitor = flowSubscriptionMonitor;
+    }
 
-  public static void stop() {
-    synchronized (lock) {
-      if (xioBoss != null) {
-        XIOService oldBoss = xioBoss;
-        xioBoss = null;
-        try {
-          //give in-flight data a chance to end correctly
-          Thread.sleep(3000);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+    public static void start() {
+        synchronized (lock) {
+            if (xioBoss == null) {
+                logger.info(banner);
+                FlowInputMonitor flowInputMonitor = new FlowInputMonitor();
+                FlowSubscriptionMonitor flowSubscriptionMonitor = new FlowSubscriptionMonitor();
+                xioBoss = new XIOService(
+                        InternalExecutors.daemonThreadPoolInstance().submit(flowInputMonitor),
+                        InternalExecutors.daemonThreadPoolInstance().submit(flowSubscriptionMonitor),
+                        InternalExecutors.schedulerThreadPoolInstance()
+                                .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1, TimeUnit.SECONDS),
+                        flowInputMonitor, flowSubscriptionMonitor);
+                try {
+                    //give boss threads a chance to start correctly
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info("XIO loaded successfully");
+                try {
+                    Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
+                    logger.log(Level.INFO, "XIO is using Virtual Threads For Subscribers");
+                } catch (NoSuchMethodException e) {
+                }
+            }
         }
-        Flow.allFlows().stream().forEach(f->f.close(true));
-        oldBoss.getFlowInputMonitorFuture().cancel(true);
-        oldBoss.getFlowSubscriptionMonitorFuture().cancel(true);
-        oldBoss.getFlowHousekeepingDaemonFuture().cancel(true);
-        logger.info("XIO stopped");
-      }
+
     }
-  }
 
-  public static boolean isRunning() {
-    synchronized (lock) {
-      return xioBoss != null;
+    public static XIOService getXioBoss() {
+        return xioBoss;
     }
-  }
 
-  private Future getFlowInputMonitorFuture() {
-    return flowInputMonitorFuture;
-  }
+    public static void stop() {
+        synchronized (lock) {
+            if (xioBoss != null) {
+                XIOService oldBoss = xioBoss;
+                xioBoss = null;
+                try {
+                    //give in-flight data a chance to end correctly
+                    Thread.sleep(3000);
+                    Flow.allFlows().stream().forEach(f -> f.close(true));
+                    oldBoss.getFlowInputMonitorFuture().cancel(true);
+                    oldBoss.getFlowSubscriptionMonitorFuture().cancel(true);
+                    oldBoss.getFlowHousekeepingDaemonFuture().cancel(true);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info("XIO stopped");
+            }
+        }
+    }
 
-  private Future getFlowSubscriptionMonitorFuture() {
-    return flowSubscriptionMonitorFuture;
-  }
+    public static boolean isRunning() {
+        synchronized (lock) {
+            return xioBoss != null;
+        }
+    }
 
-  private Future getFlowHousekeepingDaemonFuture() {
-    return flowHousekeepingDaemonFuture;
-  }
+    private Future getFlowInputMonitorFuture() {
+        return flowInputMonitorFuture;
+    }
 
-  public FlowInputMonitor getFlowInputMonitor() {
-    return flowInputMonitor;
-  }
+    private Future getFlowSubscriptionMonitorFuture() {
+        return flowSubscriptionMonitorFuture;
+    }
 
-  public void setFlowInputMonitor(FlowInputMonitor flowInputMonitor) {
-    this.flowInputMonitor = flowInputMonitor;
-  }
+    private Future getFlowHousekeepingDaemonFuture() {
+        return flowHousekeepingDaemonFuture;
+    }
 
-  public FlowSubscriptionMonitor getFlowSubscriptionMonitor() {
-    return flowSubscriptionMonitor;
-  }
+    public FlowInputMonitor getFlowInputMonitor() {
+        return flowInputMonitor;
+    }
 
-  public void setFlowSubscriptionMonitor(FlowSubscriptionMonitor flowSubscriptionMonitor) {
-    this.flowSubscriptionMonitor = flowSubscriptionMonitor;
-  }
+    public void setFlowInputMonitor(FlowInputMonitor flowInputMonitor) {
+        this.flowInputMonitor = flowInputMonitor;
+    }
+
+    public FlowSubscriptionMonitor getFlowSubscriptionMonitor() {
+        return flowSubscriptionMonitor;
+    }
+
+    public void setFlowSubscriptionMonitor(FlowSubscriptionMonitor flowSubscriptionMonitor) {
+        this.flowSubscriptionMonitor = flowSubscriptionMonitor;
+    }
 
 
 }

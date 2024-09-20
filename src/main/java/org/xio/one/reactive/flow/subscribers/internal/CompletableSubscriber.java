@@ -2,6 +2,7 @@ package org.xio.one.reactive.flow.subscribers.internal;
 
 import org.xio.one.reactive.flow.domain.item.Item;
 
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -15,6 +16,7 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
   protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
+  private Map<String,Object> context;
 
   public CompletableSubscriber() {
     this.completableFuture = new CompletableFuture<>();
@@ -91,5 +93,18 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
     return id;
   }
 
+  @Override
+  public Map<String, Object> getContext() {
+    return Map.of();
+  }
 
+  @Override
+  public R finalise() {
+    return null;
+  }
+
+  @Override
+  public void restoreContext(Map<String, Object> context) {
+    this.context=context;
+  }
 }

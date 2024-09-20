@@ -60,18 +60,22 @@ public class FlowInputMonitor implements Runnable {
     Flow.allFlows().stream().filter(f -> !f.hasEnded() && f.buffer_size() > 0)
         .map(itemStream -> new FlowInputTask(itemStream)).forEach(f -> callables.add(f));
 
-    List<Future<Boolean>> result =
-        InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
-
-    Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
-      try {
-        return booleanFuture.get();
-      } catch (InterruptedException | ExecutionException e) {
-        return true;
+    try {
+      List<Future<Boolean>> result =
+              InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+      Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
+        try {
+          return booleanFuture.get();
+        } catch (InterruptedException | ExecutionException e) {
+          return false;
+        }
+      }).filter(Boolean::booleanValue).findFirst();
+      if (anyexecuted.isEmpty()) {
+        LockSupport.parkUntil(Thread.currentThread(), System.currentTimeMillis() + 100);
       }
-    }).filter(Boolean::booleanValue).findFirst();
-    if (anyexecuted.isEmpty()) {
-      LockSupport.parkUntil(Thread.currentThread(), System.currentTimeMillis() + 100);
+
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
 
   }

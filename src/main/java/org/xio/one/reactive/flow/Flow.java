@@ -238,7 +238,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
     @Override
     public Subscriber<R, T> getSubscriber(String id) {
-        return subscribers.stream().filter(p->p.getId().equals(id)).findFirst().get();
+        return subscribers.stream().filter(p -> p.getId().equals(id)).findFirst().get();
     }
 
     @Override
@@ -423,6 +423,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         } catch (InterruptedException e) {
         }
 
+        if (waitForEnd)
+            synchronized (lockSubscriberslist) {
+                this.subscribers.forEach(this::unsubscribe);
+            }
+
         synchronized (flowControlLock) {
             flowMap.remove(this.id);
             if (flowCount.decrementAndGet() == 0) {
@@ -434,7 +439,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 InternalExecutors.schedulerThreadPoolInstance().shutdown();
                 InternalExecutors.daemonThreadPoolInstance().shutdown();
             }
-            //this.reset();
         }
         logger.info("Flow " + name + " id " + id + " has stopped");
     }
@@ -609,11 +613,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 LockSupport.parkNanos(LOCK_PARK_NANOS);
         }
     }
+
     //Items and last seen item are final and thread safe
     public RecoverySnapshot<R, T> takeRecoverySnapshot() {
         long start = System.currentTimeMillis();
         NavigableSet<Item<T>> contents;
-        byte[] subscribersSerialized;
+        Map<String, Map<String, Object>> subscriberContext = new HashMap<>();
         Map<String, Item> lastSeenItemMap = new ConcurrentHashMap<>();
         while (true) {
             synchronized (lockFlowContents) {
@@ -622,8 +627,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                     contents = getSink().getItemStoreContents();
                     synchronized ((lockSubscriberslist)) {
                         lastSeenItemMap.putAll(this.lastSeenItemMap);
+                        subscribers.forEach(s -> subscriberContext.put(s.getId(), s.getContext()));
                     }
-                    return new RecoverySnapshot(itemIDSequence.getCurrent(),contents, lastSeenItemMap);
+                    return new RecoverySnapshot(itemIDSequence.getCurrent(), contents, lastSeenItemMap, subscriberContext);
                 }
             }
             if (start + 10000 <= System.currentTimeMillis())
@@ -643,7 +649,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
         return subscriber.getFutureResult();
     }
-
 
 
     public void unsubscribe(Subscriber<R, T> subscriber) {

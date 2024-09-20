@@ -32,5 +32,8 @@ public class BankAPI {
 
   }
 
+  public void close() {
+    this.bankService.close();
+  }
 
 }

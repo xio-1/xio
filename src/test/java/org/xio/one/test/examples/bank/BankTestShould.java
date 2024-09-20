@@ -11,21 +11,36 @@ import static org.hamcrest.CoreMatchers.is;
 
 public class BankTestShould {
 
+  @BeforeClass
+  public static void setup() {
+    XIOService.start();
+  }
+
   @AfterClass
   public static void tearDown() {
     XIOService.stop();
   }
 
+  BankAPI bank;
+
+  @Before
+  public void before() {
+    bank=new BankAPI();
+  }
+
+  @After
+  public void after() {
+    bank.close();
+  }
+
   @Test
   public void bankOpensWithLiquidityOfZero() throws Exception {
-    BankAPI bank = new BankAPI();
     Assert.assertThat(bank.calculateLiquidity(), is(0d));
   }
 
   @Test
   public void bankWithOneAccountWhenOneDepositSubmittedHasLiquidityEqualToDepositOnClose()
   {
-    BankAPI bank = new BankAPI();
     Account account = bank.newAccount("myaccount");
     bank.submitTransaction(
         new AccountTransaction("cash deposit", null, account.getAccountNumber(), 100d,
@@ -36,7 +51,6 @@ public class BankTestShould {
   @Test
   public void bankWithOneAccountWhenTwoTransactionSubmittedHasCorrectLiquidityOnClose()
       throws Exception {
-    BankAPI bank = new BankAPI();
     Account account = bank.newAccount("myaccount");
     bank.submitTransaction(
         new AccountTransaction("cash deposit", null, account.getAccountNumber(), 1000d,
@@ -49,7 +63,6 @@ public class BankTestShould {
 
   @Test
   public void bankWithMultipleAccountsHasCorrectLiquidityOnClose() throws Exception {
-    BankAPI bank = new BankAPI();
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
     bank.submitTransaction(
@@ -69,7 +82,6 @@ public class BankTestShould {
 
   @Test
   public void bankPerformance() throws Exception {
-    BankAPI bank = new BankAPI();
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");
 
@@ -94,7 +106,6 @@ public class BankTestShould {
 
   @Test
   public void shouldTransferMoniesBetweenTwoAccountsInSameBank() throws Exception {
-    BankAPI bank = new BankAPI();
 
     Account myaccount1 = bank.newAccount("myaccount1");
     Account myaccount2 = bank.newAccount("myaccount2");

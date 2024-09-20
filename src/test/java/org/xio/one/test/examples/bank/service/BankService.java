@@ -89,4 +89,8 @@ public class BankService extends ItemSubscriber<Boolean, AccountTransaction> {
     return transactionLedger;
   }
 
+  public void close() {
+    transactionEventLoop.close(true);
+  }
+
 }

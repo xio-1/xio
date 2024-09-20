@@ -21,6 +21,7 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
   private Map<Long, CompletableFuture<R>> futures =
       Collections.synchronizedMap(new ConcurrentHashMap<>());
   private CompletableFuture<R> completableFuture;
+  private Map<String, Object> context;
 
   public FutureSubscriber() {
     this.completableFuture = new CompletableFuture<>();
@@ -113,4 +114,13 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
 
   public abstract void onError(Throwable error, Item<T> itemValue);
 
+  @Override
+  public Map<String, Object> getContext() {
+    return Map.of();
+  }
+
+  @Override
+  public void restoreContext(Map<String, Object> context) {
+    this.context=context;
+  }
 }

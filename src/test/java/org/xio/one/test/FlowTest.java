@@ -16,7 +16,6 @@ import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
-import org.xio.one.reactive.flow.subscribers.internal.RecoverySnapshotHelper;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -24,7 +23,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -103,6 +101,11 @@ public class FlowTest {
             public String finalise() {
                 return this.lastValue;
             }
+
+            @Override
+            public Map<String, Object> getContext() {
+                return Map.of("lastValue",lastValue);
+            }
         };
         asyncFlow.addSubscriber(subscriber);
         Thread.sleep(1000);
@@ -113,7 +116,7 @@ public class FlowTest {
 
     @Test
     //it should be noted that a streams contents (items) are final but a subscriber can contain any type of user code and
-    //therefore requires custom serialisation.
+    //therefore requires custom context for recovery.
     public void shouldRecoverSnapshotToFlow() throws InterruptedException, ExecutionException {
         RecoverySnapshot<String,String> snapshot = generateSnapshot();
         ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERY");
@@ -121,6 +124,7 @@ public class FlowTest {
         assertThat(snapshot.getContents().first().value(), is("Hello world"));
         assertThat(snapshot.getContents().last().value(), is("World hello"));
         assertThat(snapshot.getLastSeenItemMap().values().iterator().next().value(),is("World hello"));
+        assertThat(snapshot.getSubscriberContext().get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),is("World hello"));
         ItemSubscriber<String, String> subscriber = new ItemSubscriber<String, String>(snapshot.getLastSeenItemMap().keySet().iterator().next()) {
 
             private String lastValue;
@@ -134,7 +138,15 @@ public class FlowTest {
             public String finalise() {
                 return this.lastValue;
             }
+
+            @Override
+            public void restoreContext(Map<String, Object> context) {
+                lastValue=(String) context.get("lastValue");
+                if (lastValue.isEmpty())
+                    throw new RuntimeException();
+            }
         };
+        subscriber.restoreContext(Map.of("lastValue",snapshot.getSubscriberContext().get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue")));
         recoveredFlow.addSubscriber(subscriber);
         recoveredFlow.putItem("Goodbye world");
         recoveredFlow.close(true);
@@ -343,7 +355,7 @@ public class FlowTest {
                 return this.count;
             }
         };
-        long loops = 1000000;
+        long loops = 10000000;
         asyncFlow.addSubscriber(subscriber);
         for (int i = 0; i < loops; i++) {
             asyncFlow.putItemWithTTL(1, "Hello world" + i);
@@ -586,10 +598,7 @@ public class FlowTest {
         Thread.sleep(1000);
         asyncFlow.resetLastSeenItem(subscriber.getId(), EmptyItem.EMPTY_ITEM);
         asyncFlow.close(true);
-
         assertThat(count.get(), is(8));
-        asyncFlow.close(true);
-
     }
 
 

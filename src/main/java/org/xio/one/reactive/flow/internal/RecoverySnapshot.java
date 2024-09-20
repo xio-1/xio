@@ -10,13 +10,15 @@ import java.util.NavigableSet;
 public class RecoverySnapshot<R,T> {
 
     private final Map<String, Item<T>> lastSeenItemMap;
+    private final Map<String, Map<String, Object>> subscriberContext;
     private NavigableSet<Item<T>> contents;
     long itemID;
 
-    public RecoverySnapshot(long current, NavigableSet<Item<T>> contents, Map<String, Item<T>> lastSeenItemMap) {
+    public RecoverySnapshot(long current, NavigableSet<Item<T>> contents, Map<String, Item<T>> lastSeenItemMap, Map<String, Map<String, Object>> subscriberContext) {
         this.contents=contents;
         this.itemID=current;
         this.lastSeenItemMap = lastSeenItemMap;
+        this.subscriberContext = subscriberContext;
     }
 
     public  NavigableSet<Item<T>> getContents() {
@@ -29,5 +31,9 @@ public class RecoverySnapshot<R,T> {
 
     public Map<String, Item<T>> getLastSeenItemMap() {
         return lastSeenItemMap;
+    }
+
+    public Map<String, Map<String, Object>> getSubscriberContext() {
+        return subscriberContext;
     }
 }
