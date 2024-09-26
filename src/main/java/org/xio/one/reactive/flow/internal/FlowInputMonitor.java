@@ -1,9 +1,5 @@
 package org.xio.one.reactive.flow.internal;
 
-import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.XIOService;
-import org.xio.one.reactive.flow.util.InternalExecutors;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -13,30 +9,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
+import org.xio.one.reactive.flow.util.InternalExecutors;
 
 /**
- * Gets allItems the input from the Xio.getSink.domain itemStream and persists it to the getSink store
+ * Gets allItems the input from the Xio.getSink.domain itemStream and persists it to the getSink
+ * store
  */
 public class FlowInputMonitor implements Runnable {
 
   Logger logger = Logger.getLogger(FlowInputMonitor.class.getCanonicalName());
-
-
-  public final class FlowInputTask implements Callable<Boolean> {
-
-    Logger logger = Logger.getLogger(Flow.FlowSubscriptionTask.class.getCanonicalName());
-    private Flow itemStream;
-
-    public FlowInputTask(Flow itemStream) {
-
-      this.itemStream = itemStream;
-    }
-
-    @Override
-    public Boolean call() throws Exception {
-      return itemStream.acceptAll();
-    }
-  }
 
   @Override
   public void run() {
@@ -62,7 +45,7 @@ public class FlowInputMonitor implements Runnable {
 
     try {
       List<Future<Boolean>> result =
-              InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+          InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
       Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
         try {
           return booleanFuture.get();
@@ -78,5 +61,21 @@ public class FlowInputMonitor implements Runnable {
       System.exit(-1);
     }
 
+  }
+
+  public final class FlowInputTask implements Callable<Boolean> {
+
+    private final Flow itemStream;
+    Logger logger = Logger.getLogger(Flow.FlowSubscriptionTask.class.getCanonicalName());
+
+    public FlowInputTask(Flow itemStream) {
+
+      this.itemStream = itemStream;
+    }
+
+    @Override
+    public Boolean call() throws Exception {
+      return itemStream.acceptAll();
+    }
   }
 }

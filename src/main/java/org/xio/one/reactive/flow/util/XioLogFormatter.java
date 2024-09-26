@@ -15,8 +15,9 @@ public class XioLogFormatter extends Formatter {
 
   public XioLogFormatter() {
     format = LogManager.getLogManager().getProperty("java.util.logging.format");
-    if (format == null || format.isEmpty())
+    if (format == null || format.isEmpty()) {
       format = "[%1$tF %1$tT] [%4$-7s] [%7$-20s] %5$s %n";
+    }
   }
 
   public XioLogFormatter(String format) {

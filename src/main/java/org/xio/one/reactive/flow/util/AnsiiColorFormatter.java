@@ -7,8 +7,8 @@ import java.util.logging.LogRecord;
 
 public class AnsiiColorFormatter extends XioLogFormatter {
 
+  private final HashMap<Level, AnsiColor> colors;
   private boolean ansiColor;
-  private HashMap<Level, AnsiColor> colors;
   private AnsiColor loggerColor;
 
   public AnsiiColorFormatter() {

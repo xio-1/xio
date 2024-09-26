@@ -1,5 +1,14 @@
 package org.xio.one.reactive.flow.domain.item.logging;
 
+import static java.nio.file.StandardOpenOption.WRITE;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.CompletionHandler;
+import java.nio.file.Path;
+import java.util.Set;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
@@ -9,20 +18,10 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.CompletionHandler;
-import java.nio.file.Path;
-import java.util.Set;
-
-import static java.nio.file.StandardOpenOption.WRITE;
-
 public class SingleCallbackLoggerService {
 
-  private Path logFilePath;
-  private CompletableItemFlowable<String, Integer> logEntryFlow;
+  private final Path logFilePath;
+  private final CompletableItemFlowable<String, Integer> logEntryFlow;
 
   public SingleCallbackLoggerService(String canonicalName, boolean parallel) throws IOException {
     logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
@@ -44,13 +43,12 @@ public class SingleCallbackLoggerService {
             try {
               CompletionHandler<Integer, String> completionHandler =
                   IOCompletionHandler.aIOCompletionHandler(entry.flowItemCompletionHandler());
-              ByteBuffer buffer = ByteBuffer.wrap((entry.value() + "\n").getBytes());
+              ByteBuffer buffer = ByteBuffer.wrap((entry.getItemValue() + "\n").getBytes());
               //buffer = buffer.flip();
               fileChannel.write(buffer, position, null, completionHandler);
               position = position + buffer.limit();
             } catch (Exception e) {
               e.printStackTrace();
-            } finally {
             }
           }
 

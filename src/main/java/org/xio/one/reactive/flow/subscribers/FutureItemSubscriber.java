@@ -1,14 +1,12 @@
 package org.xio.one.reactive.flow.subscribers;
 
-import org.xio.one.reactive.flow.domain.item.Item;
-
-import java.util.Map;
 import java.util.NavigableSet;
 import java.util.concurrent.CompletableFuture;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> {
 
-  private boolean parallel;
+  private final boolean parallel;
 
   public FutureItemSubscriber() {
     super();
@@ -26,13 +24,14 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
 
   @Override
   public final void process(NavigableSet<? extends Item<T>> e) {
-    if (e != null)
+    if (e != null) {
       e.parallelStream().forEach(this::submitNext);
+    }
 
   }
 
   private void submitNext(Item<T> item) {
-    CompletableFuture<R> future = getFutures().get(item.itemId());
+    CompletableFuture<R> future = getFutures().get(item.getItemId());
     future.completeAsync(() -> {
       try {
         return onNext(item);
@@ -40,7 +39,7 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
         onError(t, item);
       }
       return null;
-    }).thenRun(() -> deregisterCompletableFuture(item.itemId()));
+    }).thenRun(() -> deregisterCompletableFuture(item.getItemId()));
 
   }
 
@@ -52,7 +51,6 @@ public abstract class FutureItemSubscriber<R, T> extends FutureSubscriber<R, T> 
   public R finalise() {
     return null;
   }
-
 
 
 }

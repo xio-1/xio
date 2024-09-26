@@ -1,7 +1,5 @@
 package org.xio.one.reactive.flow.subscribers.internal;
 
-import org.xio.one.reactive.flow.domain.item.Item;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -9,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 /**
  * Subscriber
@@ -28,21 +27,21 @@ public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
   protected transient CompletableFuture<R> completableFuture;
   private volatile R result = null;
   private boolean done = false;
-  private Map<String,Object> context;
+  private Map<String, Object> context;
 
   public AbstractSubscriber() {
-    this.id=UUID.randomUUID().toString();
+    this.id = UUID.randomUUID().toString();
     this.completableFuture = new CompletableFuture<>();
-    this.context=new HashMap<>();
+    this.context = new HashMap<>();
   }
 
   public AbstractSubscriber(String id) {
-    this.id=id;
+    this.id = id;
     this.completableFuture = new CompletableFuture<>();
   }
 
   public AbstractSubscriber(String id, Map<String, Object> context) {
-    this.id=id;
+    this.id = id;
     this.completableFuture = new CompletableFuture<>();
     this.restoreContext(context);
   }
@@ -91,13 +90,15 @@ public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
 
   private R getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {
     synchronized (lock) {
-      while (result == null && !isDone())
+      while (result == null && !isDone()) {
         try {
           lock.wait(timeout);
-          if (timeout > 0)
+          if (timeout > 0) {
             break;
+          }
         } catch (InterruptedException e) {
         }
+      }
 
       R toreturn = result;
       if (reset) {
@@ -132,6 +133,6 @@ public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
 
   @Override
   public void restoreContext(Map<String, Object> context) {
-    this.context=context;
+    this.context = context;
   }
 }

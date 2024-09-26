@@ -7,7 +7,7 @@ public final class ItemComparator<T> extends Item<T> {
   }
 
   @Override
-  public boolean alive() {
+  public boolean isAlive() {
     return false;
   }
 }

@@ -30,61 +30,71 @@ public class InternalExecutors {
    * @return
    */
   public static synchronized ExecutorService flowInputTaskThreadPoolInstance() {
-    if (flowInputThreadPoolexec == null)
+    if (flowInputThreadPoolexec == null) {
       flowInputThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
               new XIOThreadFactory("flow"));
-    else if (flowInputThreadPoolexec.isShutdown() || flowInputThreadPoolexec.isTerminated())
+    } else if (flowInputThreadPoolexec.isShutdown() || flowInputThreadPoolexec.isTerminated()) {
       flowInputThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
               new XIOThreadFactory("flow"));
+    }
     return flowInputThreadPoolexec;
   }
 
   public static synchronized ExecutorService microFlowInputTaskThreadPoolInstance() {
-    if (microFlowInputThreadPoolexec == null)
+    if (microFlowInputThreadPoolexec == null) {
       microFlowInputThreadPoolexec = Executors.newVirtualThreadPerTaskExecutor();
-    else if (microFlowInputThreadPoolexec.isShutdown() || microFlowInputThreadPoolexec.isTerminated())
+    } else if (microFlowInputThreadPoolexec.isShutdown()
+        || microFlowInputThreadPoolexec.isTerminated()) {
       microFlowInputThreadPoolexec = Executors.newVirtualThreadPerTaskExecutor();
+    }
     return flowInputThreadPoolexec;
   }
 
   public static synchronized ScheduledExecutorService schedulerThreadPoolInstance() {
     if (schedulerThreadPoolexec == null || schedulerThreadPoolexec.isShutdown()
-        || schedulerThreadPoolexec.isTerminated())
+        || schedulerThreadPoolexec.isTerminated()) {
       schedulerThreadPoolexec = Executors.newScheduledThreadPool(1,
           new XIOThreadFactory("cleaner", Thread.NORM_PRIORITY + 2, false));
+    }
     return schedulerThreadPoolexec;
   }
 
   public static synchronized ExecutorService subscribersTaskThreadPoolInstance() {
-    if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown() || computeThreadPoolexec
-        .isTerminated())
+    if (computeThreadPoolexec == null || computeThreadPoolexec.isShutdown()
+        || computeThreadPoolexec
+        .isTerminated()) {
       computeThreadPoolexec = Executors
           .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
               new XIOThreadFactory("subscriber", Thread.NORM_PRIORITY + 1, false));
+    }
     return computeThreadPoolexec;
   }
 
   public static synchronized ExecutorService daemonThreadPoolInstance() {
     if (bossThreadPoolexec == null || bossThreadPoolexec.isShutdown()
-        || bossThreadPoolexec.isTerminated())
+        || bossThreadPoolexec.isTerminated()) {
       bossThreadPoolexec = Executors
-          .newFixedThreadPool(2, new XIOThreadFactory("boss", Thread.NORM_PRIORITY + 1, true));
+          .newFixedThreadPool(2,
+              new XIOThreadFactory("boss", Thread.NORM_PRIORITY + 1, true));
+    }
     return bossThreadPoolexec;
   }
 
 
   public static synchronized ExecutorService ioThreadPoolInstance() {
     if (ioThreadPoolexec == null || ioThreadPoolexec.isShutdown() || ioThreadPoolexec
-        .isTerminated())
+        .isTerminated()) {
       ioThreadPoolexec = Executors
-          .newFixedThreadPool((int) Math.round(Runtime.getRuntime().availableProcessors() * 250),
+          .newFixedThreadPool(Math.round(Runtime.getRuntime().availableProcessors() * 250),
               new XIOThreadFactory("io"));
+    }
     return ioThreadPoolexec;
   }
 
   private static class XIOThreadFactory implements ThreadFactory {
+
     private static final AtomicInteger poolNumber = new AtomicInteger(1);
     private final ThreadGroup group;
     private final AtomicInteger threadNumber = new AtomicInteger(1);

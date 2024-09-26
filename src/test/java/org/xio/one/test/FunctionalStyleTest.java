@@ -1,8 +1,12 @@
 package org.xio.one.test;
 
-import org.junit.AfterClass;
+import static org.hamcrest.CoreMatchers.is;
+import static org.xio.one.reactive.flow.Flow.anItemFlow;
+
+import java.util.logging.Logger;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.XIOService;
@@ -12,22 +16,17 @@ import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
-import java.util.logging.Logger;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.xio.one.reactive.flow.Flow.anItemFlow;
-
 public class FunctionalStyleTest {
 
   Logger logger = Logger.getLogger(FunctionalStyleTest.class.getName());
 
-  @BeforeClass
-  public static void setup() {
+  @Before
+  public void setup() {
     XIOService.start();
   }
 
-  @AfterClass
-  public static void tearDown() {
+  @After
+  public void tearDown() {
     XIOService.stop();
   }
 
@@ -40,7 +39,7 @@ public class FunctionalStyleTest {
     Subscriber<String, String> upperCaseSubscriber =
         toUPPERCASEFlow
             .publishTo(ItemSubscriber.class)
-            .doForEach(i -> buff.append(i.value().toUpperCase()).append(" "))
+            .doForEach(i -> buff.append(i.getItemValue().toUpperCase()).append(" "))
             .andOnEndReturn(() -> buff.toString().trim())
             .subscribe();
 
@@ -60,7 +59,7 @@ public class FunctionalStyleTest {
 
     Subscriber<String, String> upperCaseSubscriber = toUPPERCASEFlow
         .publishTo(ItemSubscriber.class)
-        .doForEach(i -> buff.append(i.value().toUpperCase()).append(" "))
+        .doForEach(i -> buff.append(i.getItemValue().toUpperCase()).append(" "))
         .whenPredicateExitAndReturn(p -> p.equals("value3"), () -> buff.toString().trim())
         .subscribe();
 
@@ -79,7 +78,7 @@ public class FunctionalStyleTest {
         toUPPERCASEFlow
             .publishTo(FutureItemSubscriber.class)
             .onStart(() -> logger.info("I am starting"))
-            .returnForEach(i -> i.value().toUpperCase())
+            .returnForEach(i -> i.getItemValue().toUpperCase())
             .finallyOnEnd(() -> logger.info("I am done"))
             .subscribe();
 
@@ -92,7 +91,6 @@ public class FunctionalStyleTest {
     toUPPERCASEFlow.close(true);
 
   }
-
 
 
 }

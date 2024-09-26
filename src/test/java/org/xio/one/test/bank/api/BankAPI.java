@@ -5,6 +5,7 @@ import org.xio.one.test.bank.domain.AccountTransaction;
 import org.xio.one.test.bank.service.BankService;
 
 public class BankAPI {
+
   BankService bankService;
 
   public BankAPI() {
@@ -27,7 +28,7 @@ public class BankAPI {
     bankService.submitTransaction(transaction);
   }
 
-  public Double calculateLiquidity()  {
+  public Double calculateLiquidity() {
     return bankService.calculateLiquidity();
 
   }

@@ -11,7 +11,8 @@ public class AccountTransaction {
   final TransactionType transactionType;
   final double amount;
 
-  public AccountTransaction(String fromReference, String fromAccount, String accountTo, double amount,
+  public AccountTransaction(String fromReference, String fromAccount, String accountTo,
+      double amount,
       TransactionType transactionType) {
     this.amount = amount;
     this.reference = fromReference;
@@ -47,23 +48,24 @@ public class AccountTransaction {
 
   @Override
   public String toString() {
-    final StringBuffer sb = new StringBuffer("TransactionRequest{");
-    sb.append("timestamp=").append(timestamp);
-    sb.append(", reference='").append(reference).append('\'');
-    sb.append(", fromAccount='").append(fromAccount).append('\'');
-    sb.append(", toAccount='").append(toAccount).append('\'');
-    sb.append(", transactionType=").append(transactionType);
-    sb.append(", amount=").append(amount);
-    sb.append('}');
-    return sb.toString();
+    String sb = "TransactionRequest{" + "timestamp=" + timestamp +
+        ", reference='" + reference + '\'' +
+        ", fromAccount='" + fromAccount + '\'' +
+        ", toAccount='" + toAccount + '\'' +
+        ", transactionType=" + transactionType +
+        ", amount=" + amount +
+        '}';
+    return sb;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     AccountTransaction that = (AccountTransaction) o;
     return Double.compare(that.amount, amount) == 0 && Objects.equals(timestamp, that.timestamp)
         && Objects.equals(reference, that.reference) && Objects

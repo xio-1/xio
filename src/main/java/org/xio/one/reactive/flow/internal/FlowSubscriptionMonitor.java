@@ -1,9 +1,5 @@
 package org.xio.one.reactive.flow.internal;
 
-import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.XIOService;
-import org.xio.one.reactive.flow.util.InternalExecutors;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -13,15 +9,18 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.XIOService;
+import org.xio.one.reactive.flow.util.InternalExecutors;
 
 /**
- * Gets allItems the input from the Xio.getSink.domain itemStream and persists it to the getSink store
+ * Gets allItems the input from the Xio.getSink.domain itemStream and persists it to the getSink
+ * store
  */
 public class FlowSubscriptionMonitor implements Runnable {
 
-  Logger logger = Logger.getLogger(FlowSubscriptionMonitor.class.getCanonicalName());
-
   final Thread parkedThread = Thread.currentThread();
+  Logger logger = Logger.getLogger(FlowSubscriptionMonitor.class.getCanonicalName());
 
   public void unpark() {
     LockSupport.unpark(parkedThread);
@@ -44,8 +43,7 @@ public class FlowSubscriptionMonitor implements Runnable {
           //sleep if nothing to do
           try {
             Thread.sleep(100);
-          }
-          catch (InterruptedException e) {
+          } catch (InterruptedException e) {
 
           }
         } else {
@@ -69,7 +67,7 @@ public class FlowSubscriptionMonitor implements Runnable {
           }).filter(Boolean::booleanValue).findFirst();
           //if nothing was processed then sleep
           if (anyexecuted.isEmpty()) {
-            LockSupport.parkUntil(Thread.currentThread(),System.currentTimeMillis()+100);
+            LockSupport.parkUntil(Thread.currentThread(), System.currentTimeMillis() + 100);
           }
         }
       }

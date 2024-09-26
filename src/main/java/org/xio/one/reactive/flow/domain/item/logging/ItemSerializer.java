@@ -2,9 +2,7 @@ package org.xio.one.reactive.flow.domain.item.logging;
 
 import org.xio.one.reactive.flow.domain.item.Item;
 
-public interface ItemLogger<T> {
+public interface ItemSerializer<T> {
 
-  void logItem(Item<T> item);
-
-  void close(boolean waitForEnd);
+  byte[] serialize(Item<T> item);
 }

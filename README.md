@@ -1,11 +1,11 @@
 # XIO Developer Guide
 
-The xio-core library is a strictly ordered reactive flow and event sink that supports futures and 
-micro 
-batching.  
+The xio-core library is a strictly ordered reactive flow and event sink that supports futures and
+micro
+batching.
 
-You can use XIO for your async requirements such as event loops, realtime flow processing, 
-batching API calls and async I/O and futures.   
+You can use XIO for your async requirements such as event loops, realtime flow processing,
+batching API calls and async I/O and futures.
 
 XIO is small, fast, lightweight and easy to use with with zero dependencies on other frameworks!
 
@@ -14,22 +14,23 @@ To build xio-core go to the directory xio-core ```mvn clean package```
 This s/w is still in beta phase and so minor changes are expected to some method signatures.
 
 Once ready we will be publishing to maven central, until then please reference the unit tests for
- the latest syntax and examples thanks!
- 
+the latest syntax and examples thanks!
+
 The xio-http module is in alpha and can be used for distributed eventing with websockets.
 
-## ItemFlowable<T,R>  
+## ItemFlowable<T,R>
 
-An async flow where you will put values to be processed by your subscriber. 
+An async flow where you will put values to be processed by your subscriber.
 
-ItemFlowable respects the sequence in which your values were put as items to the flow and will 
-provide them to a subscriber in the order they were received.  
+ItemFlowable respects the sequence in which your values were put as items to the flow and will
+provide them to a subscriber in the order they were received.
 
-T is the type of the value you will put to the flow.  R is the type of the value to be returned by a subscriber. 
+T is the type of the value you will put to the flow. R is the type of the value to be returned by a
+subscriber.
 
-For example the below creates a flow that takes String items and returns a String as a result. 
+For example the below creates a flow that takes String items and returns a String as a result.
 
-You can see that the putItem method can be used to add items to the Flow. 
+You can see that the putItem method can be used to add items to the Flow.
 
 ```
 ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
@@ -38,33 +39,40 @@ toUPPERCASEFlow.putItem("value1", "value2", "value3", "value4", "value5");
     
 ```
 
-In order to process items in a flow you will need to write subscriber code to receive the Item<T> 
-values put into the Flow. You can get the actual value of T by calling the value() method on the 
+In order to process items in a flow you will need to write subscriber code to receive the Item<T>
+values put into the Flow. You can get the actual value of T by calling the value() method on the
 given Item<T> i.e ```itemValue.value();```
 
-## Subscriber<R,T>  
+## Subscriber<R,T>
 
-A subscriber to a Flowable must implement the Subscriber<R,T> interface, a subscriber recieves each Item<T> in sequence to process.  T is the type of the value you will put to the flow.  
+A subscriber to a Flowable must implement the Subscriber<R,T> interface, a subscriber recieves each
+Item<T> in sequence to process. T is the type of the value you will put to the flow.
 
-R is the type of the value to be returned by this subscriber when the flow is ended. 
+R is the type of the value to be returned by this subscriber when the flow is ended.
 
-There are currently 4 subscriber types provided out of the box. Two basic async subscriber types (fire and forget) and two "transactional" async CompleteableFuture based subscriber types (fire, and in the future acknowledge (success, failure) via a callback).
+There are currently 4 subscriber types provided out of the box. Two basic async subscriber types (
+fire and forget) and two "transactional" async CompleteableFuture based subscriber types (fire, and
+in the future acknowledge (success, failure) via a callback).
 
-Basic subscribers are expected to manage their own successful and compensating actions with no 
-acknowledgement (callback) back to the submitter. 
+Basic subscribers are expected to manage their own successful and compensating actions with no
+acknowledgement (callback) back to the submitter.
 
-Where this is needed the CompleteableItemSubscriber subscriber allows you to link each submitted 
+Where this is needed the CompleteableItemSubscriber subscriber allows you to link each submitted
 item to a future async result via a callback.
 
-Completeable Future subscribers are useful where the caller (item submitter) must know (in the 
-future) if an item was processed successfully (or not), a good example of this would be a 
-transaction log for example where it is crucial that every transaction is logged or on failure rolled back.
+Completeable Future subscribers are useful where the caller (item submitter) must know (in the
+future) if an item was processed successfully (or not), a good example of this would be a
+transaction log for example where it is crucial that every transaction is logged or on failure
+rolled back.
 
-### ItemSubscriber<R,T> 
+### ItemSubscriber<R,T>
 
-A subscriber that subscribes to each Item<T> in the flow in turn and on finalisation can return a value that has been computed (across all items if required).
+A subscriber that subscribes to each Item<T> in the flow in turn and on finalisation can return a
+value that has been computed (across all items if required).
 
-For example the below code will log every value put to the flow and transform each value to Upper Case and add it to a StringBuffer. When the flow is ended it returns the contents of all the computed upper case values as a String from the StringBuffer.
+For example the below code will log every value put to the flow and transform each value to Upper
+Case and add it to a StringBuffer. When the flow is ended it returns the contents of all the
+computed upper case values as a String from the StringBuffer.
 
 ```
     ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
@@ -101,6 +109,7 @@ For example the below code will log every value put to the flow and transform ea
 ```
 
 Or if you prefer functional style programming then;
+
 ```
     ItemFlowable<String, String> toUPPERCASEFlow = anItemFlow();
 
@@ -123,8 +132,8 @@ Or if you prefer functional style programming then;
 
 ### FutureItemSubscriber<R,T>
 
-Where a future result for every item submitted is required then use the FutureItemSubscriber in 
-conjunction with the submitItem method to return a future Promise for each item submitted to the 
+Where a future result for every item submitted is required then use the FutureItemSubscriber in
+conjunction with the submitItem method to return a future Promise for each item submitted to the
 flow.
 
 ```
@@ -173,10 +182,10 @@ Or if you prefer functional style programming then;
             is("Hello world"));
     
     toUPPERCASEFlow.close(true);
-    
+
 ### CompletableItemSubscriber<R,T>
 
-XIO also supports async callbacks i.e. where after an async task you want some code to be called 
+XIO also supports async callbacks i.e. where after an async task you want some code to be called
 back e.g. to return a result to another process
 
 ```
@@ -222,6 +231,7 @@ back e.g. to return a result to another process
 
 There are two examples given in the test package
 
-Bank - demonstrates how XIO can be used to implement a simple async event loop, see the class.  
+Bank - demonstrates how XIO can be used to implement a simple async event loop, see the class.
 
-Logger - shows how async IO can be batched using XIO, see public class AsyncMultiplexCallbackLoggerService.
+Logger - shows how async IO can be batched using XIO, see public class
+AsyncMultiplexCallbackLoggerService.

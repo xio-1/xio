@@ -4,10 +4,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class ItemIdSequence {
 
-  private AtomicLong counter;
+  private final AtomicLong counter;
 
   public ItemIdSequence() {
-     counter = new AtomicLong(0);
+    counter = new AtomicLong(0);
   }
 
   public ItemIdSequence(long startFrom) {

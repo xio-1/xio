@@ -1,12 +1,11 @@
 package org.xio.one.reactive.flow.subscribers;
 
-import org.xio.one.reactive.flow.domain.item.CompletableItem;
-import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
-
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
+import org.xio.one.reactive.flow.domain.item.CompletableItem;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
 
 public abstract class CompletableMultiItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
@@ -21,13 +20,13 @@ public abstract class CompletableMultiItemSubscriber<R, T> extends CompletableSu
   @Override
   public void process(NavigableSet<? extends Item<T>> e) {
     try {
-      onNext(((NavigableSet<CompletableItem<T,R>>)e).stream());
+      onNext(((NavigableSet<CompletableItem<T, R>>) e).stream());
     } catch (Throwable ex) {
       onError(ex, e.iterator());
     }
   }
 
-  public abstract void onNext(Stream<CompletableItem<T,R>> items);
+  public abstract void onNext(Stream<CompletableItem<T, R>> items);
 
   public void onError(Throwable ex, Iterator<? extends Item<T>> flowItems) {
   }

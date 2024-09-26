@@ -10,7 +10,4 @@ public class NodeID {
     return nodeID;
   }
 
-  public static void setNodeID(long nodeID) {
-    NodeID.nodeID = nodeID;
-  }
 }

@@ -1,11 +1,10 @@
 package org.xio.one.reactive.flow.subscribers;
 
-import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
-
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.stream.Stream;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
 
 public abstract class MultiItemSubscriber<R, T> extends AbstractSubscriber<R, T> {
 

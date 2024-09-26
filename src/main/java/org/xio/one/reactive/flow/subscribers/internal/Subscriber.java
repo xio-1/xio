@@ -1,11 +1,9 @@
 package org.xio.one.reactive.flow.subscribers.internal;
 
-import org.xio.one.reactive.flow.domain.item.Item;
-
-import java.io.Serializable;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.concurrent.Future;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 /**
  * SubscriberInterface
@@ -41,8 +39,8 @@ public interface Subscriber<R, T> {
 
   void process(NavigableSet<? extends Item<T>> e);
 
-  Map<String,Object> getContext();
+  Map<String, Object> getContext();
 
-  void restoreContext(Map<String,Object> context);
+  void restoreContext(Map<String, Object> context);
 
 }

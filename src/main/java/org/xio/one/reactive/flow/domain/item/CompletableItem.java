@@ -2,7 +2,8 @@ package org.xio.one.reactive.flow.domain.item;
 
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 
-public class CompletableItem<T,R> extends Item<T> {
+public class CompletableItem<T, R> extends Item<T> {
+
   private FlowItemCompletionHandler<R, T> callback;
 
   public CompletableItem(T value, long itemId, long itemTTLSeconds) {

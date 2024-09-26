@@ -20,15 +20,18 @@ public class ItemKey {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
 
     ItemKey itemKey = (ItemKey) o;
 
-    if (!value.equals(itemKey.value))
+    if (!value.equals(itemKey.value)) {
       return false;
+    }
     return fieldName.equals(itemKey.fieldName);
   }
 

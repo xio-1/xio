@@ -1,8 +1,9 @@
 package org.xio.one.test.bank.domain;
 
 public class Account {
-  private String name;
-  private String accountNumber;
+
+  private final String name;
+  private final String accountNumber;
   private double balance;
 
   public Account(String name, String accountNumber) {
@@ -28,9 +29,10 @@ public class Account {
   }
 
   public void debitBalance(double amount) throws InsufficientFundsException {
-    if (amount > balance)
+    if (amount > balance) {
       throw new InsufficientFundsException(
           "Insufficient funds available for debit amount " + amount);
+    }
     balance -= amount;
   }
 }

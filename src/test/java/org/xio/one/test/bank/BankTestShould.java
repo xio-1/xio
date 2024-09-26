@@ -1,15 +1,22 @@
 package org.xio.one.test.bank;
 
-import org.junit.*;
+import static org.hamcrest.CoreMatchers.is;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.test.bank.api.BankAPI;
 import org.xio.one.test.bank.domain.Account;
 import org.xio.one.test.bank.domain.AccountTransaction;
 import org.xio.one.test.bank.domain.TransactionType;
 
-import static org.hamcrest.CoreMatchers.is;
-
 public class BankTestShould {
+
+  BankAPI bank;
 
   @BeforeClass
   public static void setup() {
@@ -21,11 +28,9 @@ public class BankTestShould {
     XIOService.stop();
   }
 
-  BankAPI bank;
-
   @Before
   public void before() {
-    bank=new BankAPI();
+    bank = new BankAPI();
   }
 
   @After
@@ -39,8 +44,7 @@ public class BankTestShould {
   }
 
   @Test
-  public void bankWithOneAccountWhenOneDepositSubmittedHasLiquidityEqualToDepositOnClose()
-  {
+  public void bankWithOneAccountWhenOneDepositSubmittedHasLiquidityEqualToDepositOnClose() {
     Account account = bank.newAccount("myaccount");
     bank.submitTransaction(
         new AccountTransaction("cash deposit", null, account.getAccountNumber(), 100d,

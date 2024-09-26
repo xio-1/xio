@@ -1,22 +1,25 @@
 package org.xio.one.test.bank.service;
 
-import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
-import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
-import org.xio.one.test.bank.domain.*;
-
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import org.xio.one.reactive.flow.Flow;
+import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.test.bank.domain.Account;
+import org.xio.one.test.bank.domain.AccountTransaction;
+import org.xio.one.test.bank.domain.InsufficientFundsException;
+import org.xio.one.test.bank.domain.TransactionLedger;
+import org.xio.one.test.bank.domain.TransactionType;
 
 public class BankService extends ItemSubscriber<Boolean, AccountTransaction> {
 
-  private HashMap<String, Account> accounts = new HashMap<>();
-  private TransactionLedger transactionLedger = new TransactionLedger();
-  private ItemFlowable<AccountTransaction, Boolean> transactionEventLoop;
-  private AtomicInteger await = new AtomicInteger(0);
+  private final HashMap<String, Account> accounts = new HashMap<>();
+  private final TransactionLedger transactionLedger = new TransactionLedger();
+  private final ItemFlowable<AccountTransaction, Boolean> transactionEventLoop;
+  private final AtomicInteger await = new AtomicInteger(0);
 
   public BankService() {
     transactionEventLoop = Flow.anItemFlow("transactions", 10);
@@ -44,8 +47,9 @@ public class BankService extends ItemSubscriber<Boolean, AccountTransaction> {
   }
 
   private void await() {
-    while (await.getPlain()>0)
+    while (await.getPlain() > 0) {
       LockSupport.parkNanos(10000);
+    }
   }
 
   public Double calculateLiquidity() {
@@ -61,12 +65,12 @@ public class BankService extends ItemSubscriber<Boolean, AccountTransaction> {
 
   @Override
   public void onNext(Item<AccountTransaction> item) {
-    AccountTransaction transaction = item.value();
-    if (transaction.getTransactionType().equals(TransactionType.CREDIT))
+    AccountTransaction transaction = item.getItemValue();
+    if (transaction.getTransactionType().equals(TransactionType.CREDIT)) {
       creditAccount(transaction.getToAccount(), transaction);
-    else if (transaction.getTransactionType().equals(TransactionType.DEBIT))
+    } else if (transaction.getTransactionType().equals(TransactionType.DEBIT)) {
       debitAccount(transaction.getToAccount(), transaction);
-    else if (transaction.getTransactionType().equals(TransactionType.TRANSFER)) {
+    } else if (transaction.getTransactionType().equals(TransactionType.TRANSFER)) {
       debitAccount(transaction.getFromAccount(), transaction);
       creditAccount(transaction.getToAccount(), transaction);
     }

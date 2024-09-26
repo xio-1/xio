@@ -1,6 +1,5 @@
 package org.xio.one.reactive.flow;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -8,14 +7,24 @@ import java.util.stream.Collectors;
 
 public class Promise<R> {
 
-  private ConcurrentHashMap<String, SubscriberPromise<R>> promises;
+  private final ConcurrentHashMap<String, SubscriberPromise<R>> promises;
+
+  public Promise() {
+    this.promises = new ConcurrentHashMap<>();
+  }
 
   public List<Future<R>> results() {
-    return promises.values().stream().map(SubscriberPromise::getFuture).collect(Collectors.toList());
+    return promises.values().stream().map(SubscriberPromise::getFuture)
+        .collect(Collectors.toList());
   }
 
   public Future<R> result(String subscriberId) {
     return promises.get(subscriberId).getFuture();
+  }
+
+  protected void addPromise(String subscriberID, Future<R> future) {
+    SubscriberPromise<R> subscriberPromise = new SubscriberPromise<>(subscriberID, future);
+    this.promises.put(subscriberPromise.subscriberID, subscriberPromise);
   }
 
   public class SubscriberPromise<R> {
@@ -36,15 +45,6 @@ public class Promise<R> {
       return future;
     }
 
-  }
-
-  public Promise() {
-    this.promises = new ConcurrentHashMap<>();
-  }
-
-  protected void addPromise(String subscriberID, Future<R> future) {
-    SubscriberPromise<R> subscriberPromise = new SubscriberPromise<>(subscriberID, future);
-    this.promises.put(subscriberPromise.subscriberID, subscriberPromise);
   }
 
 }

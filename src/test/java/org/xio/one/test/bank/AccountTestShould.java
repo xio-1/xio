@@ -1,11 +1,11 @@
 package org.xio.one.test.bank;
 
+import static org.hamcrest.CoreMatchers.is;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.xio.one.test.bank.domain.Account;
 import org.xio.one.test.bank.domain.InsufficientFundsException;
-
-import static org.hamcrest.CoreMatchers.is;
 
 public class AccountTestShould {
 

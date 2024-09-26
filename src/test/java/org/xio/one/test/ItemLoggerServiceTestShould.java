@@ -1,5 +1,11 @@
 package org.xio.one.test;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -10,20 +16,10 @@ import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerServ
 import org.xio.one.reactive.flow.domain.item.logging.LogLevel;
 import org.xio.one.reactive.flow.domain.item.logging.SingleCallbackLoggerService;
 
-import java.util.ArrayList;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.xio.one.reactive.flow.Flow.anItemFlow;
-
 public class ItemLoggerServiceTestShould {
 
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
-  private static int LOOP = 1000000;
+  private static final int LOOP = 1000000;
 
   Logger logger = Logger.getLogger(ItemLoggerServiceTestShould.class.getCanonicalName());
 
@@ -71,8 +67,10 @@ public class ItemLoggerServiceTestShould {
 
         };
 
-    for (int i = 0; i < LOOP; i++)
-      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i, itemCompletionHandler);
+    for (int i = 0; i < LOOP; i++) {
+      loggerService.logAsync(LogLevel.INFO, "hello logAsync entry->" + i,
+          itemCompletionHandler);
+    }
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
 
     while (count.get() < LOOP) {
@@ -91,7 +89,7 @@ public class ItemLoggerServiceTestShould {
 
     long start = System.currentTimeMillis();
     AsyncCallbackItemLoggerService<String> itemLoggerService =
-        AsyncCallbackItemLoggerService.logger(this.getClass());
+        AsyncCallbackItemLoggerService.logger(this.getClass(), new SimpleJSONSerializer<>());
 
     AtomicLong count = new AtomicLong();
 
@@ -131,8 +129,9 @@ public class ItemLoggerServiceTestShould {
   public void logs1MillionItemsToFileAndMultiplexWithoutCallback() throws InterruptedException {
 
     long start = System.currentTimeMillis();
+
     AsyncCallbackItemLoggerService<String> itemLoggerService =
-        AsyncCallbackItemLoggerService.logger(this.getClass());
+        AsyncCallbackItemLoggerService.logger(this.getClass(), new SimpleJSONSerializer<>());
 
     for (int i = 0; i < LOOP; i++) {
       Item<String> loggedItem = new Item<>("test" + i, i);
@@ -147,7 +146,7 @@ public class ItemLoggerServiceTestShould {
 
     logger.info(itemLoggerService.getLogFilePath().toString());
     itemLoggerService.close(true);
-    assertEquals(itemLoggerService.getNumberOfItemsWritten(), (long) LOOP);
+    assertEquals(itemLoggerService.getNumberOfItemsWritten(), LOOP);
   }
 
 }

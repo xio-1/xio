@@ -1,13 +1,16 @@
 package org.xio.one.reactive.flow.subscribers;
 
-import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 
 public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
@@ -15,12 +18,12 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
   private final ForkJoinPool pool = new ForkJoinPool(10);
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
+  private final Map<Long, CompletableFuture<R>> futures =
+      Collections.synchronizedMap(new ConcurrentHashMap<>());
+  private final CompletableFuture<R> completableFuture;
   protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
-  private Map<Long, CompletableFuture<R>> futures =
-      Collections.synchronizedMap(new ConcurrentHashMap<>());
-  private CompletableFuture<R> completableFuture;
   private Map<String, Object> context;
 
   public FutureSubscriber() {
@@ -68,18 +71,21 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
 
   private R getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {
     synchronized (lock) {
-      while (result == null && !isDone())
+      while (result == null && !isDone()) {
         try {
           lock.wait(timeout);
-          if (timeout > 0)
+          if (timeout > 0) {
             break;
+          }
         } catch (InterruptedException e) {
         }
+      }
       R toreturn = this.finalise();
       //R toreturn = result;
       result = null;
-      if (reset)
+      if (reset) {
         this.initialise();
+      }
       return toreturn;
     }
   }
@@ -121,6 +127,6 @@ public abstract class FutureSubscriber<R, T> implements Subscriber<R, T> {
 
   @Override
   public void restoreContext(Map<String, Object> context) {
-    this.context=context;
+    this.context = context;
   }
 }

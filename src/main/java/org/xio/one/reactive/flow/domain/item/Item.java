@@ -8,107 +8,86 @@
  */
 package org.xio.one.reactive.flow.domain.item;
 
-import org.xio.one.reactive.flow.domain.NodeID;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 /**
  * Abstract Item to be extended by user defined Items
  *
  * @author Xio
  */
 public class Item<T> {
-  protected final T itemValue;
-  private final long itemId;
-  private final long itemTimestamp;
-  private final long itemNodeId;
-  private final Object indexKeyValue;
-  private final long itemTTLSeconds;
+
+  private T itemValue;
+  private long itemId;
+  private long itemTimestamp;
+  private long itemNodeId;
+  private long itemTTLSeconds;
 
   public Item() {
-    this.itemNodeId = NodeID.getNodeID();
+    //this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = System.currentTimeMillis();
     this.itemId = 0;
     this.itemTTLSeconds = 0;
-    this.itemValue=null;
-    this.indexKeyValue = this.hashCode();
+    this.itemValue = null;
   }
 
   public Item(final long itemId) {
-    this.itemNodeId = NodeID.getNodeID();
+    //this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = Long.MAX_VALUE;
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
-    this.itemValue=null;
-    this.indexKeyValue = this.hashCode();
+    this.itemValue = null;
   }
 
   public Item(final T value, final long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
-    this.indexKeyValue = value.hashCode();
     this.itemValue = value;
-    this.itemNodeId = NodeID.getNodeID();
+    //this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
   }
 
   public Item(final T value, final long itemId, final long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
-    this.indexKeyValue = value.hashCode();
     this.itemValue = value;
-    this.itemNodeId = NodeID.getNodeID();
+    //this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
 
-  public long itemTimestamp() {
+
+  public long getItemTTLSeconds() {
+    return itemTTLSeconds;
+  }
+
+
+  public long getItemTimestamp() {
     return this.itemTimestamp;
   }
 
-  public boolean alive() {
+  public boolean isAlive() {
     if (itemTTLSeconds > 0) {
-      if (this.itemTimestamp() + (itemTTLSeconds * 1000) > System.currentTimeMillis())
-        return true;
-      else
-        return false;
-    } else
+      return this.getItemTimestamp() + (itemTTLSeconds * 1000) > System.currentTimeMillis();
+    } else {
       return true;
+    }
   }
 
-  public boolean readyForHouseKeeping(long maxTTLSeconds) {
-    if (this.itemTimestamp() + (maxTTLSeconds * 1000) > System.currentTimeMillis())
-      return true;
-    else
-      return false;
+  public boolean isReadyForHouseKeeping(long maxTTLSeconds) {
+    return this.getItemTimestamp() + (maxTTLSeconds * 1000) > System.currentTimeMillis();
   }
 
-  public boolean alive(long lastSeenItemId) {
-    if (alive() || lastSeenItemId < this.itemId)
-      return true;
-    else
-      return false;
-  }
-
-  public long itemId() {
+  public long getItemId() {
     return this.itemId;
   }
 
-  public long itemNodeId() {
+  public long getItemNodeId() {
     return itemNodeId;
   }
 
-  public T value() {
+  public T getItemValue() {
     return itemValue;
   }
 
-  public Object indexKeyValue() {
-    return indexKeyValue;
-  }
-
-  public Object getFieldValue(String fieldname) {
+  /**public Object getFieldValue(String fieldname) {
     Method f = null;
     Object toreturn = null;
     try {
@@ -130,29 +109,8 @@ public class Item<T> {
     }
 
     return toreturn;
-  }
+  }*/
 
-  @Override
-  public boolean equals(Object item) {
-    if (item == null)
-      return false;
-    else if (this == item)
-      return true;
-    else
-      return this.itemId() == (((Item) item).itemId());
-  }
 
-  @Override
-  public String toString() {
-    final StringBuffer sb = new StringBuffer("{\"item\":{");
-    sb.append("\"encodedItemValueAsString\":").append("\"").append( URLEncoder.encode(itemValue.toString(),
-        StandardCharsets.UTF_8)).append("\"");
-    sb.append(", \"itemClass\":").append("\"").append(this.itemValue.getClass().getCanonicalName()).append("\"");
-    sb.append(", \"itemId\":").append(itemId);
-    sb.append(", \"itemTimestamp\":").append(itemTimestamp);
-    sb.append(", \"itemNodeId\":").append(itemNodeId);
-    sb.append(", \"itemTTLSeconds\":").append(itemTTLSeconds);
-    sb.append("}}");
-    return sb.toString();
-  }
+
 }

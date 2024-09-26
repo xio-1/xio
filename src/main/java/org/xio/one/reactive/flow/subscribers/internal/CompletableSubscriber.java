@@ -1,22 +1,22 @@
 package org.xio.one.reactive.flow.subscribers.internal;
 
-import org.xio.one.reactive.flow.domain.item.Item;
-
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.xio.one.reactive.flow.domain.item.Item;
 
 public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
+
   private final String id = UUID.randomUUID().toString();
   private final Object lock = new Object();
   private final CompletableFuture<R> completableFuture;
   protected int delayMS = 0;
   private volatile R result = null;
   private boolean done = false;
-  private Map<String,Object> context;
+  private Map<String, Object> context;
 
   public CompletableSubscriber() {
     this.completableFuture = new CompletableFuture<>();
@@ -61,17 +61,20 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
 
   private R getWithReset(long timeout, TimeUnit timeUnit, boolean reset) {
     synchronized (lock) {
-      while (result == null && !isDone())
+      while (result == null && !isDone()) {
         try {
           lock.wait(timeout);
-          if (timeout > 0)
+          if (timeout > 0) {
             break;
+          }
         } catch (InterruptedException e) {
         }
+      }
       this.finalise();
       R toreturn = result;
-      if (reset)
+      if (reset) {
         this.initialise();
+      }
       return toreturn;
     }
   }
@@ -105,6 +108,6 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
 
   @Override
   public void restoreContext(Map<String, Object> context) {
-    this.context=context;
+    this.context = context;
   }
 }

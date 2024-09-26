@@ -1,14 +1,13 @@
 package org.xio.one.reactive.flow.subscribers;
 
+import java.util.NavigableSet;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.internal.CompletableSubscriber;
 
-import java.util.NavigableSet;
-
 public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscriber<R, T> {
 
-  private boolean parallel;
+  private final boolean parallel;
 
   public CompletableItemSubscriber() {
     super();
@@ -22,13 +21,14 @@ public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscri
 
   @Override
   public final void process(NavigableSet<? extends Item<T>> e) {
-    if (this.parallel)
+    if (this.parallel) {
       e.parallelStream().forEach(this::accept);
-    else
+    } else {
       e.forEach(this::accept);
+    }
   }
 
-  public abstract void onNext(CompletableItem<T,R> itemValue) throws Throwable;
+  public abstract void onNext(CompletableItem<T, R> itemValue) throws Throwable;
 
   public abstract void onError(Throwable error, Item<T> itemValue);
 
@@ -43,8 +43,9 @@ public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscri
 
   private void accept(Item<T> item) {
     try {
-      if (item instanceof CompletableItem)
-        onNext((CompletableItem<T,R>) item);
+      if (item instanceof CompletableItem) {
+        onNext((CompletableItem<T, R>) item);
+      }
     } catch (Throwable e) {
       onError(e, item);
     }

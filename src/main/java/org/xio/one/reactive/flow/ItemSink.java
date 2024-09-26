@@ -1,16 +1,19 @@
 package org.xio.one.reactive.flow;
 
+import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.LockSupport;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemComparator;
 import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.LockSupport;
-
-import static org.xio.one.reactive.flow.domain.item.EmptyItem.EMPTY_ITEM;
 
 /**
  * ItemSink (in memory Sink item store for flowable itmes)
@@ -26,9 +29,9 @@ public final class ItemSink<T> {
 
 
   private final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
+  private final Flow itemFlow;
   //protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
   volatile NavigableSet<Item<T>> itemStoreContents = null;
-  private Flow itemFlow;
 
   public ItemSink(Flow itemStream) {
     this.itemFlow = itemStream;
@@ -36,7 +39,7 @@ public final class ItemSink<T> {
   }
 
   public long size() {
-    return itemStoreContents.stream().filter(Item::alive).count();
+    return itemStoreContents.stream().filter(Item::isAlive).count();
   }
 
   public Item<T> item(long id) {
@@ -49,7 +52,7 @@ public final class ItemSink<T> {
   }
 
   public Object[] allValues() {
-    return itemStoreContents.stream().filter(Item::alive).map(Item::value).toArray();
+    return itemStoreContents.stream().filter(Item::isAlive).map(Item::getItemValue).toArray();
   }
 
   public NavigableSet<Item<T>> allBefore(Item lastItem) {
@@ -60,44 +63,51 @@ public final class ItemSink<T> {
     return itemStoreContents;
   }
 
-  public void setItemStoreContents( NavigableSet<Item<T>> itemStoreContents) {
-    this.itemStoreContents=itemStoreContents;
+  public void setItemStoreContents(NavigableSet<Item<T>> itemStoreContents) {
+    this.itemStoreContents = itemStoreContents;
   }
 
-  public final NavigableSet<Item<T>> allAfter(Item lastItem, int maxSize) {
+  //ToDo refactor to used generic T
+  public NavigableSet<Item<T>> allAfter(Item lastItem, int maxSize) {
     try {
       NavigableSet<Item<T>> querystorecontents =
           Collections.unmodifiableNavigableSet(this.itemStoreContents);
-      if (!querystorecontents.isEmpty())
+      if (!querystorecontents.isEmpty()) {
         if (!EmptyItem.EMPTY_ITEM.equals(lastItem) && lastItem != null) {
           Item newLastItem = querystorecontents.last();
           NavigableSet<Item<T>> items = Collections.unmodifiableNavigableSet(
               querystorecontents.subSet(lastItem, false, newLastItem, true));
           if (!items.isEmpty()) {
             Item newFirstItem = items.first();
-            if (newFirstItem.itemId() == (lastItem.itemId() + 1)) {
+            if (newFirstItem.getItemId() == (lastItem.getItemId() + 1)) {
               // if lastItem domain is in correct sequence then
               final int size = items.size();
-              if (newLastItem.itemId() == newFirstItem.itemId() + size - 1)
-                // if the size anItemFlow the domain to return is correct i.e. allItems in sequence
-                if (size == (newLastItem.itemId() + 1 - newFirstItem.itemId())) {
-                  if (size<=maxSize)
+              if (newLastItem.getItemId() == newFirstItem.getItemId() + size - 1)
+              // if the size anItemFlow the domain to return is correct i.e. allItems in sequence
+              {
+                if (size == (newLastItem.getItemId() + 1 - newFirstItem.getItemId())) {
+                  if (size <= maxSize) {
                     return items;
-                  else {
-                    Item e = new Item(newFirstItem.itemId() + maxSize);
+                  } else {
+                    Item e = new Item(newFirstItem.getItemId() + maxSize);
                     return items.subSet(lastItem, false, e, false);
                   }
                 }
+              }
               return extractItemsThatAreInSequence(lastItem, items, newFirstItem, maxSize);
-            } else
+            } else {
               LockSupport.parkNanos(100000);
-          } else
+            }
+          } else {
             LockSupport.parkNanos(100000);
-        } else
+          }
+        } else {
           return extractItemsThatAreInSequence(querystorecontents.last(), querystorecontents,
-              querystorecontents.first(),maxSize);
-      else
+              querystorecontents.first(), maxSize);
+        }
+      } else {
         LockSupport.parkNanos(100000);
+      }
     } catch (NoSuchElementException | IllegalArgumentException e) {
     }
     return EMPTY_ITEM_SET;
@@ -143,11 +153,12 @@ public final class ItemSink<T> {
     int index = 0;
     Item last = lastItem;
     Item current = items1[0];
-    while (current.itemId() == last.itemId() + 1 && index <= items1.length && index<maxSize+1) {
+    while (current.getItemId() == last.getItemId() + 1 && index <= items1.length && index < maxSize + 1) {
       last = current;
       index++;
-      if (index < items1.length)
+      if (index < items1.length) {
         current = items1[index];
+      }
     }
     return items.subSet(newFirstItem, true, last, true);
   }
@@ -155,11 +166,11 @@ public final class ItemSink<T> {
   public Item<T> lastItem() {
     NavigableSet<Item<T>> querystorecontents =
         Collections.unmodifiableNavigableSet(this.itemStoreContents);
-    if (querystorecontents.isEmpty())
+    if (querystorecontents.isEmpty()) {
       return EMPTY_ITEM;
-    else {
+    } else {
       Optional<Item<T>> last =
-          querystorecontents.descendingSet().stream().filter(Item::alive).findFirst();
+          querystorecontents.descendingSet().stream().filter(Item::isAlive).findFirst();
       return last.orElse(EMPTY_ITEM);
     }
   }
