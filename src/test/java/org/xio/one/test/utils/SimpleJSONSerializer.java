@@ -1,4 +1,4 @@
-package org.xio.one.test;
+package org.xio.one.test.utils;
 
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.ItemSerializer;

@@ -15,6 +15,7 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
 import org.xio.one.reactive.flow.domain.item.logging.LogLevel;
 import org.xio.one.reactive.flow.domain.item.logging.SingleCallbackLoggerService;
+import org.xio.one.test.utils.SimpleJSONSerializer;
 
 public class ItemLoggerServiceTestShould {
 
