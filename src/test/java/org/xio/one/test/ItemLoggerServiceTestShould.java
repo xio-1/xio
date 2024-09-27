@@ -35,20 +35,20 @@ public class ItemLoggerServiceTestShould {
 
   @Test
   public void logs1MillionEntriesToFileAndSingleWithCallback() throws InterruptedException {
-    testSingleWithCallback(false);
+    testSingleWithCallback("sync-log.dat", false);
   }
 
   @Test
   public void logs1MillionEntriesInParallelToFileAndSingleWithCallback()
       throws InterruptedException {
-    testSingleWithCallback(true);
+    testSingleWithCallback("sync-parallel-log.dat", true);
   }
 
-  private void testSingleWithCallback(boolean parallel) throws InterruptedException {
+  private void testSingleWithCallback(String filename, boolean parallel) throws InterruptedException {
     long start = System.currentTimeMillis();
     ArrayList<Future<Integer>> results = new ArrayList<>();
     SingleCallbackLoggerService loggerService =
-        SingleCallbackLoggerService.logger(this.getClass(), parallel);
+        SingleCallbackLoggerService.logger(filename, parallel);
 
     AtomicLong count = new AtomicLong();
 
@@ -89,7 +89,7 @@ public class ItemLoggerServiceTestShould {
 
     long start = System.currentTimeMillis();
     AsyncCallbackItemLoggerService<String> itemLoggerService =
-        AsyncCallbackItemLoggerService.logger(this.getClass(), new SimpleJSONSerializer<>());
+        AsyncCallbackItemLoggerService.logger("asynclog-callback.dat", new SimpleJSONSerializer<>());
 
     AtomicLong count = new AtomicLong();
 
@@ -131,19 +131,15 @@ public class ItemLoggerServiceTestShould {
     long start = System.currentTimeMillis();
 
     AsyncCallbackItemLoggerService<String> itemLoggerService =
-        AsyncCallbackItemLoggerService.logger(this.getClass(), new SimpleJSONSerializer<>());
+        AsyncCallbackItemLoggerService.logger("asynclog-nocallback.dat", new SimpleJSONSerializer<>());
 
     for (int i = 0; i < LOOP; i++) {
       Item<String> loggedItem = new Item<>("test" + i, i);
       itemLoggerService.logItem(loggedItem);
     }
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
-
-    itemLoggerService.close(true);
-
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
     logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
-
     logger.info(itemLoggerService.getLogFilePath().toString());
     itemLoggerService.close(true);
     assertEquals(itemLoggerService.getNumberOfItemsWritten(), LOOP);

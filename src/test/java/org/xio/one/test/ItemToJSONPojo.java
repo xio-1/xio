@@ -8,10 +8,8 @@ public class ItemToJSONPojo<T> extends Item<T> {
   public ItemToJSONPojo() {
   }
 
-  @JsonIgnore
-  @Override
-  public boolean equals(Object item) {
-    return super.equals(item);
+  public ItemToJSONPojo(T value, long itemId) {
+    super(value, itemId);
   }
 
   @Override
@@ -40,13 +38,12 @@ public class ItemToJSONPojo<T> extends Item<T> {
   }
 
   @Override
-  @JsonIgnore
   public boolean isReadyForHouseKeeping(long maxTTLSeconds) {
     return super.isReadyForHouseKeeping(maxTTLSeconds);
   }
 
   @Override
-  @JsonIgnore
+  //@JsonIgnore
   public boolean isAlive() {
     return super.isAlive();
   }

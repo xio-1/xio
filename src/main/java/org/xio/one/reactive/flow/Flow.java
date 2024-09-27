@@ -70,7 +70,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     CompletableItemFlowable<T, R> {
 
   private static final int LOCK_PARK_NANOS = 100000;
-  private static final long DEFAULT_TIME_TO_LIVE_SECONDS = 10;
+  private static final long DEFAULT_TIME_TO_LIVE_SECONDS = 60;
   private static final Object flowControlLock = new Object();
   private static final Logger logger = Logger.getLogger(Flow.class.getName());
   // allItems flows
@@ -221,18 +221,22 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   private void initialise(String name, String indexFieldName, long maxTTLSeconds) {
+    synchronized (flowControlLock) {
     this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
     this.name = name;
     this.indexFieldName = indexFieldName;
     if (maxTTLSeconds >= 0) {
       this.maxTTLSeconds = maxTTLSeconds;
     }
-    this.flowContents = new ItemSink<>(this);
+    synchronized (lockFlowContents) {
+    this.flowContents = new ItemSink<>(this);}
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
-    this.subscribers = new ArrayList<>();
+    synchronized (lockSubscriberslist) {
+      this.subscribers = new ArrayList<>();
+
     this.futureSubscribers = new ArrayList<>();
-    this.lastSeenItemMap = new ConcurrentHashMap<>();
+    this.lastSeenItemMap = new ConcurrentHashMap<>();}}
   }
 
   @Override
@@ -266,7 +270,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
   @Override
   public Subscriber<R, T> getSubscriber(String id) {
-    return subscribers.stream().filter(p -> p.getId().equals(id)).findFirst().get();
+    synchronized (lockSubscriberslist) {
+      return subscribers.stream().filter(p -> p.getId().equals(id)).findFirst().get();
+    }
   }
 
   @Override

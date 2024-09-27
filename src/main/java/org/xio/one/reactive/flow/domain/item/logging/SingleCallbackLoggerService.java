@@ -24,7 +24,7 @@ public class SingleCallbackLoggerService {
   private final CompletableItemFlowable<String, Integer> logEntryFlow;
 
   public SingleCallbackLoggerService(String canonicalName, boolean parallel) throws IOException {
-    logFilePath = File.createTempFile(canonicalName + "-", ".log").toPath();
+    logFilePath =createItemLogFile(canonicalName).toPath();
     //ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
     logEntryFlow =
         Flow.aCompletableItemFlow("logger", 10, new CompletableItemSubscriber<>(parallel) {
@@ -71,13 +71,33 @@ public class SingleCallbackLoggerService {
 
   }
 
-  public static SingleCallbackLoggerService logger(Class clazz, boolean parallel) {
+
+    private static File createItemLogFile(String filename) throws IOException {
+        String home = System.getProperty("user.home");
+        new File(home + "/logs").mkdir();
+        new File(home + "/logs/replay").mkdir();
+        File logFile = new File(home + "/logs/replay", filename + "-" + System.currentTimeMillis() + ".log");
+        logFile.createNewFile();
+        return logFile;
+    }
+
+
+    public static SingleCallbackLoggerService logger(Class clazz, boolean parallel) {
     try {
       return new SingleCallbackLoggerService(clazz.getCanonicalName(), parallel);
     } catch (IOException e) {
     }
     return null;
   }
+
+  public static SingleCallbackLoggerService logger(String filename, boolean parallel) {
+    try {
+      return new SingleCallbackLoggerService(filename, parallel);
+    } catch (IOException e) {
+    }
+    return null;
+  }
+
 
   public void logAsync(LogLevel logLevel, String entry,
       FlowItemCompletionHandler<Integer, String> completionHandler) {

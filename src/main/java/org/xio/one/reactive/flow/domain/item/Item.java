@@ -8,6 +8,8 @@
  */
 package org.xio.one.reactive.flow.domain.item;
 
+import org.xio.one.reactive.flow.domain.NodeID;
+
 /**
  * Abstract Item to be extended by user defined Items
  *
@@ -22,33 +24,33 @@ public class Item<T> {
   private long itemTTLSeconds;
 
   public Item() {
-    //this.itemNodeId = NodeID.getNodeID();
+    this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = System.currentTimeMillis();
     this.itemId = 0;
     this.itemTTLSeconds = 0;
     this.itemValue = null;
   }
 
-  public Item(final long itemId) {
-    //this.itemNodeId = NodeID.getNodeID();
+  public Item(long itemId) {
+    this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = Long.MAX_VALUE;
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
     this.itemValue = null;
   }
 
-  public Item(final T value, final long itemId) {
+  public Item(T value,  long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
     this.itemValue = value;
-    //this.itemNodeId = NodeID.getNodeID();
+    this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
   }
 
-  public Item(final T value, final long itemId, final long itemTTLSeconds) {
+  public Item(T value, long itemId, long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
     this.itemValue = value;
-    //this.itemNodeId = NodeID.getNodeID();
+    this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
@@ -110,7 +112,5 @@ public class Item<T> {
 
     return toreturn;
   }*/
-
-
 
 }

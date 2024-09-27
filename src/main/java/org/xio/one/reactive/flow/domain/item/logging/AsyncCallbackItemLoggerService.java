@@ -40,10 +40,10 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   AtomicLong numberOfFileWrites = new AtomicLong(0);
   private Path logFilePath;
 
-  public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer)
+  public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer, int bufferSize)
       throws IOException {
     this.logFile = createItemLogFile(fileName);
-    ByteBuffer buffer = ByteBuffer.allocate(1024 * 120000);
+    ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
         new CompletableMultiItemSubscriber<Void, Item<T>>(20) {
           final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
@@ -52,6 +52,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
 
           @Override
           public void initialise() {
+
           }
 
           @Override
@@ -104,6 +105,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
           }
         });
 
+
   }
 
   // indicate UTC, no timezone offset
@@ -116,7 +118,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(Class clazz,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer);
+      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer, 1024*24000);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -125,7 +127,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(String filename,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer);
+      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024*24000);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -5,8 +5,10 @@ import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 import java.util.logging.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.XIOService;
@@ -20,13 +22,13 @@ public class FunctionalStyleTest {
 
   Logger logger = Logger.getLogger(FunctionalStyleTest.class.getName());
 
-  @Before
-  public void setup() {
+  @BeforeClass
+  public static void setup() {
     XIOService.start();
   }
 
-  @After
-  public void tearDown() {
+  @AfterClass
+  public static void tearDown() {
     XIOService.stop();
   }
 

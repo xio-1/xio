@@ -99,7 +99,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.addItemLogger(
         new AsyncCallbackItemLoggerService<String>("./log_snapshot_hello.dat",
-            new SimpleJSONSerializer<>())
+            new SimpleJSONSerializer<>(), 1024*240000)
     );
     asyncFlow.putItem("Hello world");
     asyncFlow.putItem("World hello");
@@ -186,7 +186,7 @@ public class FlowTest {
     ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
     asyncFlow.enableImmediateFlushing();
     AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new SimpleJSONSerializer<>());
+        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new SimpleJSONSerializer<>(), 1024*24000);
     asyncFlow.addItemLogger(asyncFlowLogger);
     for (int i = 0; i < 1000; i++) {
       asyncFlow.putItem("Hello world }}}" + i);
