@@ -15,15 +15,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.Promise;
@@ -42,7 +46,6 @@ import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
-import org.xio.one.test.utils.SimpleJSONSerializer;
 
 public class FlowTest {
 
@@ -133,12 +136,40 @@ public class FlowTest {
   }
 
   @Test
+  public void itemToPojo() {
+    Item<String> itemToJSONPojo = new Item<>("hello", 10001,1001);
+    SimpleJSONSerializer<String> s = new SimpleJSONSerializer<>();
+    logger.log(Level.INFO, new String(s.serialize(itemToJSONPojo, Optional.empty())));
+  }
+
+  @Test
   //it should be noted that a streams contents (items) are final but a subscriber can contain any type of user code and
   //therefore requires custom context for recovery.
   public void shouldRecoverSnapshotToFlow()
       throws InterruptedException, ExecutionException, IOException {
     RecoverySnapshot<String, String> snapshot = generateSnapshot(true);
     ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERY");
+    recoveredFlow.recoverSnapshot(snapshot);
+    assertThat(snapshot.getContents().first().getItemValue(), is("Hello world"));
+    assertThat(snapshot.getContents().last().getItemValue(), is("World hello"));
+    assertThat(snapshot.getLastSeenItemMap().values().iterator().next().getItemValue(), is("World hello"));
+    assertThat(snapshot.getSubscriberContext()
+            .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),
+        is("World hello"));
+    RestoreSubscriberImpl restoreSubscriberImpl = new RestoreSubscriberImpl();
+    recoveredFlow.restoreAllSubscribers(snapshot.getSubscriberContext(),restoreSubscriberImpl);
+    recoveredFlow.putItem("Goodbye world");
+    Future<String> value =
+        recoveredFlow.getSubscriber(snapshot.getSubscriberContext().keySet().iterator().next()).getFutureResult();
+    recoveredFlow.close(true);
+    assertThat(value.get(), is("Goodbye world"));
+  }
+
+  @Ignore
+  public void shouldRecoverFlowFromLog()
+      throws IOException, InterruptedException, ExecutionException {
+    RecoverySnapshot<String, String> snapshot = generateSnapshot(true);
+    ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERYSNAP");
     recoveredFlow.recoverSnapshot(snapshot);
     assertThat(snapshot.getContents().first().getItemValue(), is("Hello world"));
     assertThat(snapshot.getContents().last().getItemValue(), is("World hello"));
@@ -172,13 +203,11 @@ public class FlowTest {
     subscriber.restoreContext(Map.of("lastValue", snapshot.getSubscriberContext()
         .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue")));
     recoveredFlow.addSubscriber(subscriber);
+
     recoveredFlow.putItem("Goodbye world");
     recoveredFlow.close(true);
     String value = subscriber.getFutureResult().get();
     assertThat(value, is("Goodbye world"));
-  }
-
-  public void shouldRecoverFlowFromLog() {
 
   }
 

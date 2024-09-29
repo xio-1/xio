@@ -39,17 +39,17 @@ public class Item<T> {
     this.itemValue = null;
   }
 
-  public Item(T value,  long itemId) {
+  public Item(T itemValue,  long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
-    this.itemValue = value;
+    this.itemValue = itemValue;
     this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
   }
 
-  public Item(T value, long itemId, long itemTTLSeconds) {
+  public Item(T itemValue, long itemId, long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
-    this.itemValue = value;
+    this.itemValue = itemValue;
     this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
@@ -87,6 +87,10 @@ public class Item<T> {
 
   public T getItemValue() {
     return itemValue;
+  }
+
+  public void setItemValue(T itemValue) {
+    this.itemValue = itemValue;
   }
 
   /**public Object getFieldValue(String fieldname) {

@@ -4,10 +4,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 import java.util.logging.Logger;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.Flow;

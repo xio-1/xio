@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -48,6 +49,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
         new CompletableMultiItemSubscriber<Void, Item<T>>(20) {
           final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
               .open(logFile.toPath(), Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
+
           long position = 0;
 
           @Override
@@ -60,7 +62,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
             List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
             AtomicLong newEntries = new AtomicLong();
             entries.forEach(entry -> {
-              buffer.put(itemSerializer.serialize(entry.getItemValue()));
+              buffer.put(itemSerializer.serialize(entry.getItemValue(), Optional.of("\n".getBytes())));
               callbacks.add(entry.flowItemCompletionHandler());
               newEntries.getAndIncrement();
             });
@@ -127,7 +129,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(String filename,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024*24000);
+      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024*128000);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -138,6 +140,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
     new File(home + "/logs").mkdir();
     new File(home + "/logs/replay").mkdir();
     File logFile = new File(home + "/logs/replay", filename + "-" + getDate() + ".log");
+    logFile.delete();
     logFile.createNewFile();
     return logFile;
   }

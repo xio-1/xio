@@ -1,4 +1,4 @@
-package org.xio.one.test.utils;
+package org.xio.one.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

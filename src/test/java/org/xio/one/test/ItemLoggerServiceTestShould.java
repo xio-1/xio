@@ -15,7 +15,6 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
 import org.xio.one.reactive.flow.domain.item.logging.LogLevel;
 import org.xio.one.reactive.flow.domain.item.logging.SingleCallbackLoggerService;
-import org.xio.one.test.utils.SimpleJSONSerializer;
 
 public class ItemLoggerServiceTestShould {
 
@@ -113,17 +112,16 @@ public class ItemLoggerServiceTestShould {
       Item<String> loggedItem = new Item("test" + i, i);
       itemLoggerService.logItem(loggedItem, itemCompletionHandler);
     }
+
+    itemLoggerService.close(true);
+
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
-
-    while (count.get() < LOOP) {
-      Thread.sleep(100);
-    }
-
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
     logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(itemLoggerService.getLogFilePath().toString());
-    itemLoggerService.close(true);
+
+    assertEquals(itemLoggerService.getNumberOfItemsWritten(), LOOP);
   }
 
   @Test
@@ -138,11 +136,12 @@ public class ItemLoggerServiceTestShould {
       Item<String> loggedItem = new Item<>("test" + i, i);
       itemLoggerService.logItem(loggedItem);
     }
+
+    itemLoggerService.close(true);
     logger.info("logged in " + (System.currentTimeMillis() - start) / 1000);
     logger.info("to disk in " + (System.currentTimeMillis() - start) / 1000);
     logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
     logger.info(itemLoggerService.getLogFilePath().toString());
-    itemLoggerService.close(true);
     assertEquals(itemLoggerService.getNumberOfItemsWritten(), LOOP);
   }
 

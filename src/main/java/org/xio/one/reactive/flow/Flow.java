@@ -262,6 +262,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
   }
 
+  public void replayLog() {
+
+  }
+
   @Override
   public Subscriber<R, T> addSubscriber(Subscriber<R, T> subscriber) {
     addAppropriateSubscriber(subscriber);
@@ -494,6 +498,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     logger.info("Flow " + name + " id " + id + " has stopped");
   }
 
+  public void restoreAllSubscribers(Map<String, Map<String, Object>> subscriberContext, RestoreSubscriber<R, T> restoreSubscriber) {
+    subscriberContext.forEach((k,v)-> this.addSubscriber(restoreSubscriber.restore(k, subscriberContext.get(k))));
+  }
+
   public void reset() {
     synchronized (lockSubscriberslist){
     this.subscribers.forEach(this::unsubscribe);}
@@ -700,6 +708,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         LockSupport.parkNanos(LOCK_PARK_NANOS);
       }
     }
+  }
+
+  private void cyclelogs() {
+
   }
 
 
