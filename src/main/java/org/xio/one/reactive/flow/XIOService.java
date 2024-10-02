@@ -105,7 +105,6 @@ public class XIOService {
           Thread.sleep(2000);
           Flow.allFlows().stream().forEach(f -> {
             f.close(false);
-            f.reset();
             f.getSink().itemStoreContents.clear();
           });
           Flow.allFlows().clear();

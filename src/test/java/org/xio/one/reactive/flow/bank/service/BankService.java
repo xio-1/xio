@@ -1,4 +1,4 @@
-package org.xio.one.test.bank.service;
+package org.xio.one.reactive.flow.bank.service;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -8,11 +8,11 @@ import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
-import org.xio.one.test.bank.domain.Account;
-import org.xio.one.test.bank.domain.AccountTransaction;
-import org.xio.one.test.bank.domain.InsufficientFundsException;
-import org.xio.one.test.bank.domain.TransactionLedger;
-import org.xio.one.test.bank.domain.TransactionType;
+import org.xio.one.reactive.flow.bank.domain.Account;
+import org.xio.one.reactive.flow.bank.domain.AccountTransaction;
+import org.xio.one.reactive.flow.bank.domain.InsufficientFundsException;
+import org.xio.one.reactive.flow.bank.domain.TransactionLedger;
+import org.xio.one.reactive.flow.bank.domain.TransactionType;
 
 public class BankService extends ItemSubscriber<Boolean, AccountTransaction> {
 

@@ -1,4 +1,4 @@
-package org.xio.one.test;
+package org.xio.one.reactive.flow;
 
 import static org.junit.Assert.assertEquals;
 
@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;

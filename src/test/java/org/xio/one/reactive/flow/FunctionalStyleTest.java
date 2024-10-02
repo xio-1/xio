@@ -1,4 +1,4 @@
-package org.xio.one.test;
+package org.xio.one.reactive.flow;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
@@ -8,8 +8,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;

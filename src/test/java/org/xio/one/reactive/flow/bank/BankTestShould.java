@@ -1,4 +1,4 @@
-package org.xio.one.test.bank;
+package org.xio.one.reactive.flow.bank;
 
 import static org.hamcrest.CoreMatchers.is;
 
@@ -9,10 +9,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xio.one.reactive.flow.XIOService;
-import org.xio.one.test.bank.api.BankAPI;
-import org.xio.one.test.bank.domain.Account;
-import org.xio.one.test.bank.domain.AccountTransaction;
-import org.xio.one.test.bank.domain.TransactionType;
+import org.xio.one.reactive.flow.bank.api.BankAPI;
+import org.xio.one.reactive.flow.bank.domain.Account;
+import org.xio.one.reactive.flow.bank.domain.AccountTransaction;
+import org.xio.one.reactive.flow.bank.domain.TransactionType;
 
 public class BankTestShould {
 

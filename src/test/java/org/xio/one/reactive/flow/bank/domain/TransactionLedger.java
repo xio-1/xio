@@ -1,4 +1,4 @@
-package org.xio.one.test.bank.domain;
+package org.xio.one.reactive.flow.bank.domain;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -41,7 +41,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   AtomicLong numberOfFileWrites = new AtomicLong(0);
   private Path logFilePath;
 
-  public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer, int bufferSize)
+  public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer, int bufferSize, byte[] delim)
       throws IOException {
     this.logFile = createItemLogFile(fileName);
     ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
@@ -62,7 +62,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
             List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
             AtomicLong newEntries = new AtomicLong();
             entries.forEach(entry -> {
-              buffer.put(itemSerializer.serialize(entry.getItemValue(), Optional.of("\n".getBytes())));
+              buffer.put(itemSerializer.serialize(entry.getItemValue(), Optional.of(delim)));
               callbacks.add(entry.flowItemCompletionHandler());
               newEntries.getAndIncrement();
             });
@@ -120,7 +120,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(Class clazz,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer, 1024*24000);
+      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer, 1024*24000, "\n".getBytes());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -129,7 +129,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(String filename,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024*128000);
+      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024*24000,"\n".getBytes());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

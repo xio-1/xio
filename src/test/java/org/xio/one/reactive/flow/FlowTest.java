@@ -1,4 +1,4 @@
-package org.xio.one.test;
+package org.xio.one.reactive.flow;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
@@ -27,11 +27,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.xio.one.reactive.flow.Flow;
-import org.xio.one.reactive.flow.Promise;
-import org.xio.one.reactive.flow.XIOService;
 import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
 import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
 import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
@@ -103,7 +99,7 @@ public class FlowTest {
     asyncFlow.enableImmediateFlushing();
     asyncFlow.addItemLogger(
         new AsyncCallbackItemLoggerService<String>("./log_snapshot_hello.dat",
-            new SimpleJSONSerializer<>(), 1024*240000)
+            new SimpleJSONSerializer<>(), 1024*240000, "\n".getBytes())
     );
     asyncFlow.putItem("Hello world");
     asyncFlow.putItem("World hello");
@@ -136,10 +132,17 @@ public class FlowTest {
   }
 
   @Test
-  public void itemToPojo() {
-    Item<String> itemToJSONPojo = new Item<>("hello", 10001,1001);
+  public void itemSerialise() {
+    Item<String> item = new Item<>("hello", 10001,1001);
     SimpleJSONSerializer<String> s = new SimpleJSONSerializer<>();
-    logger.log(Level.INFO, new String(s.serialize(itemToJSONPojo, Optional.empty())));
+    logger.log(Level.INFO, new String(s.serialize(item, Optional.empty())));
+  }
+
+  @Test
+  public void itemDeserialise() {
+    String json = "{\"itemValue\":\"hello\",\"itemId\":10001,\"itemTimestamp\":1727843073596,\"itemNodeId\":7758320006798585198,\"itemTTLSeconds\":1001,\"alive\":true}";
+    SimpleJSONSerializer<String> s = new SimpleJSONSerializer<>();
+    logger.log(Level.INFO, s.deserialize(json.getBytes(),Optional.empty()).getItemValue());
   }
 
   @Test
@@ -165,11 +168,12 @@ public class FlowTest {
     assertThat(value.get(), is("Goodbye world"));
   }
 
-  @Ignore
+  @Test
   public void shouldRecoverFlowFromLog()
       throws IOException, InterruptedException, ExecutionException {
     RecoverySnapshot<String, String> snapshot = generateSnapshot(true);
-    ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERYSNAP");
+    ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERYNLOG",
+        AsyncCallbackItemLoggerService.logger("asynclog-nocallback-recovered.dat", new SimpleJSONSerializer<>()));
     recoveredFlow.recoverSnapshot(snapshot);
     assertThat(snapshot.getContents().first().getItemValue(), is("Hello world"));
     assertThat(snapshot.getContents().last().getItemValue(), is("World hello"));
@@ -177,37 +181,13 @@ public class FlowTest {
     assertThat(snapshot.getSubscriberContext()
             .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),
         is("World hello"));
-    ItemSubscriber<String, String> subscriber = new ItemSubscriber<String, String>(
-        snapshot.getLastSeenItemMap().keySet().iterator().next()) {
-
-      private String lastValue;
-
-      @Override
-      public void onNext(Item<String> item) {
-        lastValue = item.getItemValue();
-      }
-
-      @Override
-      public String finalise() {
-        return this.lastValue;
-      }
-
-      @Override
-      public void restoreContext(Map<String, Object> context) {
-        lastValue = (String) context.get("lastValue");
-        if (lastValue.isEmpty()) {
-          throw new RuntimeException();
-        }
-      }
-    };
-    subscriber.restoreContext(Map.of("lastValue", snapshot.getSubscriberContext()
-        .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue")));
-    recoveredFlow.addSubscriber(subscriber);
-
+    RestoreSubscriberImpl restoreSubscriberImpl = new RestoreSubscriberImpl();
+    recoveredFlow.restoreAllSubscribers(snapshot.getSubscriberContext(),restoreSubscriberImpl);
     recoveredFlow.putItem("Goodbye world");
+    Future<String> value =
+        recoveredFlow.getSubscriber(snapshot.getSubscriberContext().keySet().iterator().next()).getFutureResult();
     recoveredFlow.close(true);
-    String value = subscriber.getFutureResult().get();
-    assertThat(value, is("Goodbye world"));
+    assertThat(value.get(), is("Goodbye world"));
 
   }
 
@@ -216,7 +196,7 @@ public class FlowTest {
     ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
     asyncFlow.enableImmediateFlushing();
     AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new SimpleJSONSerializer<>(), 1024*24000);
+        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new SimpleJSONSerializer<>(), 1024*24000,"\n".getBytes());
     asyncFlow.addItemLogger(asyncFlowLogger);
     for (int i = 0; i < 1000; i++) {
       asyncFlow.putItem("Hello world }}}" + i);

@@ -55,6 +55,14 @@ public class Item<T> {
     this.itemTTLSeconds = itemTTLSeconds;
   }
 
+  public Item(T itemValue, long itemId, long itemTTLSeconds, long itemTimestamp) {
+    this.itemTimestamp = itemTimestamp;
+    this.itemValue = itemValue;
+    this.itemNodeId = NodeID.getNodeID();
+    this.itemId = itemId;
+    this.itemTTLSeconds = itemTTLSeconds;
+  }
+
 
   public long getItemTTLSeconds() {
     return itemTTLSeconds;

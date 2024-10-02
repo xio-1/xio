@@ -1,8 +1,8 @@
-package org.xio.one.test.bank.api;
+package org.xio.one.reactive.flow.bank.api;
 
-import org.xio.one.test.bank.domain.Account;
-import org.xio.one.test.bank.domain.AccountTransaction;
-import org.xio.one.test.bank.service.BankService;
+import org.xio.one.reactive.flow.bank.domain.Account;
+import org.xio.one.reactive.flow.bank.domain.AccountTransaction;
+import org.xio.one.reactive.flow.bank.service.BankService;
 
 public class BankAPI {
 

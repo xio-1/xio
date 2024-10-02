@@ -1,4 +1,4 @@
-package org.xio.one.test;
+package org.xio.one.reactive.flow;
 
 import static org.hamcrest.core.Is.is;
 

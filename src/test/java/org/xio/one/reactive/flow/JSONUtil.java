@@ -1,4 +1,4 @@
-package org.xio.one.test;
+package org.xio.one.reactive.flow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

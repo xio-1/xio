@@ -369,7 +369,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     if (!isEnd) {
       for (int i = 0; i < values.length; i++) {
         Item<T> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
-        if (isLoggingEnabled()) {
+        if (isLoggingEnabled() && this.itemLogger!=null) {
           this.itemLogger.logItem(item);
         }
         ids[i] = item.getItemId();
@@ -471,8 +471,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
           Thread.sleep(100);
         }
       }
-      if (loggingEnabled) {
-        itemLogger.close(waitForEnd);
+      if (loggingEnabled && itemLogger!=null) {
+        this.itemLogger.close(waitForEnd);
       }
     } catch (InterruptedException e) {
     }
@@ -503,14 +503,23 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   public void reset() {
+    synchronized (flowControlLock) {
     synchronized (lockSubscriberslist){
-    this.subscribers.forEach(this::unsubscribe);}
-    this.initialise(this.name, this.indexFieldName, this.maxTTLSeconds());
+    this.subscribers.forEach(this::unsubscribe);
+    this.initialise(this.name, this.indexFieldName, this.maxTTLSeconds);}}
   }
 
   public Flowable<T, R> countDownLatch(int count_down_latch) {
     this.count_down_latch = count_down_latch;
     return this;
+  }
+
+  public Object getLockFlowContents() {
+    return lockFlowContents;
+  }
+
+  public Object getLockSubscriberslist() {
+    return lockSubscriberslist;
   }
 
   private Promise<R> putAndReturnAsCompletableFuture(long ttlSeconds, T value) {
