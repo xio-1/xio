@@ -76,7 +76,7 @@ public class XIOService {
           logger.info("XIO loaded successfully");
           try {
             Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
-            logger.log(Level.INFO, "XIO is using Virtual Threads For Subscribers");
+            logger.log(Level.WARNING, "\033[41m*** XIO is using Virtual Threads For Subscribers ***]\033[m");
           } catch (NoSuchMethodException e) {
           }
           exit = true;

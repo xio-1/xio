@@ -8,11 +8,11 @@
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
+          <source>23</source>
+          <target>23</target>
           <compilerArgs>
             --enable-preview
           </compilerArgs>
-          <source>21</source>
-          <target>21</target>
         </configuration>
         <groupId>org.apache.maven.plugins</groupId>
         <version>3.8.1</version>

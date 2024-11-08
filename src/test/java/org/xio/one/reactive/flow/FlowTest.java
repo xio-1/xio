@@ -437,7 +437,7 @@ public class FlowTest {
       asyncFlow.addSubscriber(subscriber);
     }
 
-    long loops = 1000000;
+    long loops = 2000000;
 
     for (int i = 0; i < loops; i++) {
       asyncFlow.putItem("Hello world" + i);
@@ -453,7 +453,7 @@ public class FlowTest {
       }
     }).forEach(s -> assertThat(s, is(loops)));
 
-    logger.info("Items per second : " + loops / ((System.currentTimeMillis() - start) / 1000));
+    logger.info("Items per second : " + loops / ((System.currentTimeMillis()+1 - start) / 1000));
   }
 
   @Test
