@@ -840,6 +840,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       }
       logger.info("Subscriber " + subscriber.getId() + " finished subscribing to flow "
           + this.itemStream.name());
+
     }
 
     private Item processResults(Subscriber<R, T> subscriber, Item lastSeenItem) {

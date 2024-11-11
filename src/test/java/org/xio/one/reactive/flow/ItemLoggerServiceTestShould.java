@@ -119,7 +119,6 @@ public class ItemLoggerServiceTestShould {
     logger.info("items per milli-second " + LOOP / ((System.currentTimeMillis() + 1 - start)));
 
     logger.info(itemLoggerService.getLogFilePath().toString());
-
     assertEquals(itemLoggerService.getNumberOfItemsWritten(), LOOP);
   }
 

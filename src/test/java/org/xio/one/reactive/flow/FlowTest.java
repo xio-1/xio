@@ -196,7 +196,7 @@ public class FlowTest {
     ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
     asyncFlow.enableImmediateFlushing();
     AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new SimpleJSONSerializer<>(), 1024*24000,"\n".getBytes());
+        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new SimpleJSONSerializer<>(), 1024*1024*4,"\n".getBytes());
     asyncFlow.addItemLogger(asyncFlowLogger);
     for (int i = 0; i < 1000; i++) {
       asyncFlow.putItem("Hello world }}}" + i);

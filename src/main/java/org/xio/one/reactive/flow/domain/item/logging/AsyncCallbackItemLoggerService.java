@@ -40,8 +40,10 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   AtomicLong numberOfEntries = new AtomicLong(0);
   AtomicLong numberOfFileWrites = new AtomicLong(0);
   private Path logFilePath;
+  private final Object lock = new Object();
 
-  public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer, int bufferSize, byte[] delim)
+  public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer,
+      int bufferSize, byte[] delim)
       throws IOException {
     this.logFile = createItemLogFile(fileName);
     ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
@@ -57,16 +59,35 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
 
           }
 
+
           @Override
           public void onNext(Stream<CompletableItem<Item<T>, Void>> entries) {
-            List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
-            AtomicLong newEntries = new AtomicLong();
-            entries.forEach(entry -> {
-              buffer.put(itemSerializer.serialize(entry.getItemValue(), Optional.of(delim)));
-              callbacks.add(entry.flowItemCompletionHandler());
-              newEntries.getAndIncrement();
-            });
-            buffer.flip();
+            synchronized (lock) {
+              AtomicLong newEntries = new AtomicLong();
+              List<CompletableItem<Item<T>, Void>> entryList = entries.toList();
+              CompletableItem[] items = entryList.toArray(new CompletableItem[entryList.size()]);
+              if (items.length > 0) {
+                for (CompletableItem each : items) {
+                  List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
+                  buffer.put(itemSerializer.serialize(each, Optional.of(delim)));
+                  callbacks.add(each.flowItemCompletionHandler());
+                  newEntries.getAndIncrement();
+                  numberOfEntries.getAndIncrement();
+                  if (newEntries.get() % 1009 == 0) {
+                    buffer.flip();
+                    doFileWrite(callbacks, newEntries);
+                  }
+                }
+                if (newEntries.get() % 1009 != 0) {
+                  buffer.flip();
+                  doFileWrite(new ArrayList<>(), newEntries);
+                }
+              }
+            }
+          }
+
+          private void doFileWrite(List<FlowItemCompletionHandler<Void, Item<T>>> callbacks,
+              AtomicLong newEntries) {
             ByteBuffer toWrite = ByteBuffer.wrap(Arrays.copyOf(buffer.array(), buffer.limit()));
 
             CompletionHandler<Integer, Item<T>> fileWriteCompletionHandler = new CompletionHandler<>() {
@@ -78,14 +99,14 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
 
               @Override
               public void failed(Throwable exc, Item<T> attachment) {
-                callbacks.stream().forEach(c -> c.failed(exc, attachment));
+                callbacks.forEach(c -> c.failed(exc, attachment));
               }
             };
 
             try {
               fileChannel.write(toWrite, position, null, fileWriteCompletionHandler);
               position = position + buffer.limit();
-              numberOfEntries.addAndGet(newEntries.get());
+
             } catch (Exception e) {
               logger.severe(e.getMessage());
               callbacks.stream().forEach(c -> c.failed(e, null));
@@ -95,15 +116,16 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
             }
           }
 
-
           @Override
           public Void finalise() {
-            try {
-              fileChannel.close();
-            } catch (IOException e) {
-              throw new RuntimeException(e);
+            synchronized (lock) {
+              try {
+                fileChannel.close();
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+              return null;
             }
-            return null;
           }
         });
 
@@ -120,7 +142,8 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(Class clazz,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer, 1024*24000, "\n".getBytes());
+      return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer,
+          1024 * 1024 * 4, "\n".getBytes());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -129,7 +152,8 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public static <T> AsyncCallbackItemLoggerService logger(String filename,
       ItemSerializer<T> itemSerializer) {
     try {
-      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024*24000,"\n".getBytes());
+      return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024 * 1024 * 4,
+          "\n".getBytes());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -139,7 +163,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
     String home = System.getProperty("user.home");
     new File(home + "/logs").mkdir();
     new File(home + "/logs/replay").mkdir();
-    File logFile = new File(home + "/logs/replay", filename + "-" + getDate() + ".log");
+    File logFile = new File(home + "/logs/replay", filename);
     logFile.delete();
     logFile.createNewFile();
     return logFile;
@@ -171,6 +195,13 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
   public void close(boolean waitForEnd) {
     this.
         logEntryFlow.close(waitForEnd);
+    while (!logEntryFlow.hasEnded()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   public long getNumberOfItemsWritten() {
