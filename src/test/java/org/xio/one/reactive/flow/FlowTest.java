@@ -159,7 +159,7 @@ public class FlowTest {
     assertThat(snapshot.getSubscriberContext()
             .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),
         is("World hello"));
-    RestoreSubscriberImpl restoreSubscriberImpl = new RestoreSubscriberImpl();
+    RestorableSubscriberImpl restoreSubscriberImpl = new RestorableSubscriberImpl();
     recoveredFlow.restoreAllSubscribers(snapshot.getSubscriberContext(),restoreSubscriberImpl);
     recoveredFlow.putItem("Goodbye world");
     Future<String> value =
@@ -181,7 +181,7 @@ public class FlowTest {
     assertThat(snapshot.getSubscriberContext()
             .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),
         is("World hello"));
-    RestoreSubscriberImpl restoreSubscriberImpl = new RestoreSubscriberImpl();
+    RestorableSubscriberImpl restoreSubscriberImpl = new RestorableSubscriberImpl();
     recoveredFlow.restoreAllSubscribers(snapshot.getSubscriberContext(),restoreSubscriberImpl);
     recoveredFlow.putItem("Goodbye world");
     Future<String> value =

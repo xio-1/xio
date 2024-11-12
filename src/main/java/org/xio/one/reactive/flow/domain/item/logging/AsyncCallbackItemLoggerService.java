@@ -44,9 +44,11 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
 
   public AsyncCallbackItemLoggerService(String fileName, ItemSerializer<T> itemSerializer,
       int bufferSize, byte[] delim)
-      throws IOException {
-    this.logFile = createItemLogFile(fileName);
-    ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+      {
+        try {
+          this.logFile = createItemLogFile(fileName);
+
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
         new CompletableMultiItemSubscriber<Void, Item<T>>(20) {
           final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
@@ -128,7 +130,9 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
             }
           }
         });
-
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
 
   }
 
@@ -141,22 +145,18 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
 
   public static <T> AsyncCallbackItemLoggerService logger(Class clazz,
       ItemSerializer<T> itemSerializer) {
-    try {
+
       return new AsyncCallbackItemLoggerService<T>(clazz.getCanonicalName(), itemSerializer,
           1024 * 1024 * 4, "\n".getBytes());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+
   }
 
   public static <T> AsyncCallbackItemLoggerService logger(String filename,
       ItemSerializer<T> itemSerializer) {
-    try {
+
       return new AsyncCallbackItemLoggerService<T>(filename, itemSerializer, 1024 * 1024 * 4,
           "\n".getBytes());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+
   }
 
   private static File createItemLogFile(String filename) throws IOException {

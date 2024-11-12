@@ -1,12 +1,11 @@
 package org.xio.one.reactive.flow;
 
 import java.util.Map;
-import org.xio.one.reactive.flow.RestoreSubscriber;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
-public class RestoreSubscriberImpl implements RestoreSubscriber<String,String> {
+public class RestorableSubscriberImpl implements RestorableSubscriber<String,String> {
 
   @Override
   public Subscriber<String, String> restore(String id, Map<String, Object> context) {

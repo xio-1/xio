@@ -5,6 +5,7 @@
  */
 package org.xio.one.reactive.flow;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +42,7 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
 import org.xio.one.reactive.flow.domain.item.VoidItem;
+import org.xio.one.reactive.flow.domain.item.logging.ItemDeserializer;
 import org.xio.one.reactive.flow.domain.item.logging.ItemLogger;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
@@ -388,6 +390,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     this.loggingEnabled = true;
   }
 
+  @Override
+  public void recoverItemsFromLog(String filename, ItemDeserializer<T> deserializer) {
+    File logFile = new File(filename);
+
+  }
+
   /**
    * Submit an item to be processed by the FutureSubscriber and completionHandler to the completion
    * handler
@@ -498,8 +506,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     logger.info("Flow " + name + " id " + id + " has stopped");
   }
 
-  public void restoreAllSubscribers(Map<String, Map<String, Object>> subscriberContext, RestoreSubscriber<R, T> restoreSubscriber) {
-    subscriberContext.forEach((k,v)-> this.addSubscriber(restoreSubscriber.restore(k, subscriberContext.get(k))));
+  public void restoreAllSubscribers(Map<String, Map<String, Object>> subscriberContext, RestorableSubscriber<R, T> restorableSubscriber) {
+    subscriberContext.forEach((k,v)-> this.addSubscriber(
+        restorableSubscriber.restore(k, subscriberContext.get(k))));
   }
 
   public void reset() {
@@ -869,6 +878,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       synchronized (lockSubscriberslist){
       return subscribers.stream().filter(s -> s.getId().equals(subscriberId)).findFirst();}
     }
+
+
 
   }
 
