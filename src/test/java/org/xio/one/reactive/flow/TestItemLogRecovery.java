@@ -16,7 +16,7 @@ public class TestItemLogRecovery implements ItemLogRecoverer<String, String> {
 
   @Override
   public void recoverAllItems(Flow<String, String> flow, ItemDeserializer<String> deserializer) {
-    ItemFlowable<String, Long> stream = anItemFlow("ping_stream", new AsyncCallbackItemLoggerService<>("recovery-test.dat", new SimpleJSONSerializer<>(),1024*1024*2,"\n".getBytes()));
+    ItemFlowable<String, Long> stream = anItemFlow("ping_stream", new AsyncCallbackItemLoggerService<>("recovery-test.dat", new ObjectToByteArrayJSONSerializer<>(),1024*1024*2,"\n".getBytes()));
     stream.putItem("1","2","3","4");
     stream.takeRecoverySnapshot(true);
     stream.close(true);

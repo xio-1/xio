@@ -3,16 +3,17 @@ package org.xio.one.reactive.flow;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.ItemDeserializer;
 import org.xio.one.reactive.flow.domain.item.logging.ItemSerializer;
 
-public class SimpleJSONSerializer<T> implements ItemSerializer<T>, ItemDeserializer<T> {
+public class ObjectToByteArrayJSONSerializer<T> implements ItemSerializer<T>, ItemDeserializer<T> {
 
   @Override
   public byte[] serialize(Item<T> item, Optional<byte[]> delim) {
-    byte[] json = JSONUtil.toJSONString(item).getBytes();
+    byte[] json = JSONUtil.toJSONString(item).getBytes(StandardCharsets.UTF_8);
     byte[] header;
     byte[] combined;
     if (delim.isPresent()) {

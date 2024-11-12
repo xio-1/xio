@@ -88,7 +88,7 @@ public class ItemLoggerServiceTestShould {
 
     long start = System.currentTimeMillis();
     AsyncCallbackItemLoggerService<String> itemLoggerService =
-        AsyncCallbackItemLoggerService.logger("asynclog-callback.dat", new SimpleJSONSerializer<>());
+        AsyncCallbackItemLoggerService.logger("asynclog-callback.dat", new ObjectToByteArrayJSONSerializer<>());
 
     AtomicLong count = new AtomicLong();
 
@@ -128,7 +128,7 @@ public class ItemLoggerServiceTestShould {
     long start = System.currentTimeMillis();
 
     AsyncCallbackItemLoggerService<String> itemLoggerService =
-        AsyncCallbackItemLoggerService.logger("asynclog-nocallback.dat", new SimpleJSONSerializer<>());
+        AsyncCallbackItemLoggerService.logger("asynclog-nocallback.dat", new ObjectToByteArrayJSONSerializer<>());
 
     for (int i = 0; i < LOOP; i++) {
       Item<String> loggedItem = new Item<>("test" + i, i);
@@ -142,5 +142,21 @@ public class ItemLoggerServiceTestShould {
     logger.info(itemLoggerService.getLogFilePath().toString());
     assertEquals(itemLoggerService.getNumberOfItemsWritten(), LOOP);
   }
+
+  @Test
+  public void shouldDeserializeLogToJSON() {
+    AsyncCallbackItemLoggerService<String> itemLoggerService =
+        AsyncCallbackItemLoggerService.logger("deserialized-log.dat", new ObjectToByteArrayJSONSerializer<>());
+
+    for (int i = 0; i < 100; i++) {
+      Item<String> loggedItem = new Item<>("test" + i, i);
+      itemLoggerService.logItem(loggedItem);
+    }
+    itemLoggerService.close(true);
+    SerializedByteLogFileReader r = new SerializedByteLogFileReader();
+    r.readFile("deserialized-log.dat");
+  }
+
+
 
 }
