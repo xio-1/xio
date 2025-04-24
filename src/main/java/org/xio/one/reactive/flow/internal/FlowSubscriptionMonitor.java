@@ -56,18 +56,8 @@ public class FlowSubscriptionMonitor implements Runnable {
             result =
                 InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
           }
-
-          Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
-            try {
-              return booleanFuture.get();
-            } catch (InterruptedException | ExecutionException e) {
-              e.printStackTrace();
-              return true;
-            }
-          }).filter(Boolean::booleanValue).findFirst();
-          //if nothing was processed then sleep
-          if (anyexecuted.isEmpty()) {
-            LockSupport.parkUntil(Thread.currentThread(), System.currentTimeMillis() + 100);
+          while (result.size() > 0 && !result.stream().anyMatch(p -> p.isDone())) {
+              Thread.sleep(1);
           }
         }
       }

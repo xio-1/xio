@@ -33,7 +33,7 @@ public class SerializedByteLogFileReader {
         MappedByteBuffer contentBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, start+4,
             lineLength+start);
 
-        start=4+lineLength;
+        start=start+4+lineLength;
 
         byte[] output = new byte[contentBuffer.limit()];
         contentBuffer.get(output);
@@ -42,7 +42,7 @@ public class SerializedByteLogFileReader {
 
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      //throw new RuntimeException(e);
     }
   }
 }
