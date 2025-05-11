@@ -18,7 +18,7 @@ import org.xio.one.reactive.flow.domain.item.logging.SingleCallbackLoggerService
 public class ItemLoggerServiceTestShould {
 
   public static final String HELLO_LOG_ASYNC_ENTRY = "hello logAsync entry";
-  private static final int LOOP = 1000;
+  private static final int LOOP = 1000000;
 
   Logger logger = Logger.getLogger(ItemLoggerServiceTestShould.class.getCanonicalName());
 

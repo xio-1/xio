@@ -49,7 +49,7 @@ public class InternalExecutors {
         || microFlowInputThreadPoolexec.isTerminated()) {
       microFlowInputThreadPoolexec = Executors.newVirtualThreadPerTaskExecutor();
     }
-    return flowInputThreadPoolexec;
+    return microFlowInputThreadPoolexec;
   }
 
   public static synchronized ScheduledExecutorService schedulerThreadPoolInstance() {

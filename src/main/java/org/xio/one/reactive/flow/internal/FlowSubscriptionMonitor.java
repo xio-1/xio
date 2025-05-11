@@ -56,7 +56,7 @@ public class FlowSubscriptionMonitor implements Runnable {
             result =
                 InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
           }
-          while (result.size() > 0 && !result.stream().anyMatch(p -> p.isDone())) {
+          while (result.stream().anyMatch(p -> !p.isDone())) {
               Thread.sleep(1);
           }
         }

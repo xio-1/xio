@@ -35,6 +35,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
       Logger.getLogger(AsyncCallbackItemLoggerService.class.getCanonicalName());
   private static final DateFormat DATE_FORMAT = new SimpleDateFormat(
       "yyyy-MM-dd'T'HH':'mm'Z'"); // Quoted "Z" to
+  public static final int BUFF = 1011;
   private final File logFile;
   private final CompletableItemFlowable<Item<T>, Void> logEntryFlow;
   AtomicLong numberOfEntries = new AtomicLong(0);
@@ -50,7 +51,7 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
 
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
     logEntryFlow = Flow.aCompletableItemFlow(UUID.randomUUID().toString(),
-        new CompletableMultiItemSubscriber<Void, Item<T>>(20) {
+        new CompletableMultiItemSubscriber<Void, Item<T>>(10) {
           final AsynchronousFileChannel fileChannel = AsynchronousFileChannel
               .open(logFile.toPath(), Set.of(WRITE), InternalExecutors.ioThreadPoolInstance());
 
@@ -71,16 +72,17 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
               if (items.length > 0) {
                 for (CompletableItem each : items) {
                   List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
-                  buffer.put(itemSerializer.serialize(each, Optional.of(delim)));
+                  byte[] serialize = itemSerializer.serialize((Item<T>) each.getItemValue(), Optional.ofNullable(delim));
+                  buffer.put(serialize);
                   callbacks.add(each.flowItemCompletionHandler());
                   newEntries.getAndIncrement();
                   numberOfEntries.getAndIncrement();
-                  if (newEntries.get() % 1009 == 0) {
+                  if (newEntries.get() % BUFF == 0) {
                     buffer.flip();
                     doFileWrite(callbacks, newEntries);
                   }
                 }
-                if (newEntries.get() % 1009 != 0) {
+                if (newEntries.get() % BUFF != 0) {
                   buffer.flip();
                   doFileWrite(new ArrayList<>(), newEntries);
                 }
