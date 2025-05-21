@@ -44,7 +44,9 @@ import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
 import org.xio.one.reactive.flow.domain.item.VoidItem;
 import org.xio.one.reactive.flow.domain.item.logging.ItemDeserializer;
 import org.xio.one.reactive.flow.domain.item.logging.ItemLogger;
+import org.xio.one.reactive.flow.internal.Housekeeper;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
+import org.xio.one.reactive.flow.internal.SimpleHousekeeper;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.AbstractSubscriber;
@@ -107,11 +109,13 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   private List<FutureSubscriber<R, T>> futureSubscribers;
   private ItemLogger<T> itemLogger;
   private boolean loggingEnabled = false;
+  private Housekeeper housekeeper;
 
   private Flow(String name, String indexFieldName, long ttlSeconds, ItemLogger itemLogger) {
     if (itemLogger != null) {
       this.loggingEnabled = true;
     }
+    this.housekeeper = new SimpleHousekeeper();
     this.id = UUID.randomUUID().toString();
     initialise(name, indexFieldName, ttlSeconds);
     synchronized (flowControlLock) {
@@ -547,17 +551,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
   }
 
   public boolean housekeep() {
-    if (this.maxTTLSeconds() > 0) {
-      long count = flowContents().itemStoreContents.stream()
-          .filter(i -> !i.isReadyForHouseKeeping(this.maxTTLSeconds))
-          .map(d -> flowContents().itemStoreContents.remove(d)).count();
-      if (count > 0) {
-        logger.info("cleaned flow " + this.name() + " : removed " + count + " items");
-      }
-      return true;
-    }
-    return false;
+    return this.housekeeper.housekeep(this);
+  }
 
+  public void addCustomHousekeeper(Housekeeper housekeeper) {
+    this.housekeeper = housekeeper;
   }
 
   public boolean hasEnded() {
