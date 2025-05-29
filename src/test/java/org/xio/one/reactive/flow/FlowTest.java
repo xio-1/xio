@@ -5,9 +5,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 import java.io.IOException;
@@ -28,10 +26,7 @@ import java.util.stream.Stream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
-import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
@@ -62,6 +57,14 @@ public class FlowTest {
   @AfterClass
   public static void tearDown() {
     XIOService.stop();
+  }
+
+  @Test
+  public void throwsExceptionIfFlowAlreadyClosedAndPut() {
+    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
+    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.getItemValue())).subscribe();
+    asyncFlow.close(true);
+    assertThrows(FlowAlreadyClosedException.class, ()->  asyncFlow.putItem("Hello World!!!"));
   }
 
   @Test

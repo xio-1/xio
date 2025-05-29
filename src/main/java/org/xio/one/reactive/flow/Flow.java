@@ -31,11 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.xio.one.reactive.flow.domain.FlowException;
-import org.xio.one.reactive.flow.domain.flow.CompletableItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.FlowItemCompletionHandler;
-import org.xio.one.reactive.flow.domain.flow.Flowable;
-import org.xio.one.reactive.flow.domain.flow.FutureItemFlowable;
-import org.xio.one.reactive.flow.domain.flow.ItemFlowable;
+import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
@@ -384,7 +380,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
         addToStreamWithBlock(item, flushImmediately);
       }
-    }
+    } else throw new FlowAlreadyClosedException("Flow " + this.name() + " already closed");
     return ids;
   }
 
