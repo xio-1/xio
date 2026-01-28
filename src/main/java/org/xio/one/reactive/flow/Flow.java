@@ -15,16 +15,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
@@ -235,10 +226,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     this.itemIDSequence = new ItemIdSequence();
     this.flushImmediately = false;
     synchronized (lockSubscriberslist) {
-      this.subscribers = new ArrayList<>();
+      this.subscribers = Collections.synchronizedList(new ArrayList<>());
 
-    this.futureSubscribers = new ArrayList<>();
-    this.lastSeenItemMap = new ConcurrentHashMap<>();}}
+    this.futureSubscribers = Collections.synchronizedList(new ArrayList<>());
+    this.lastSeenItemMap = Collections.synchronizedMap(new ConcurrentHashMap<>());}}
   }
 
   @Override
@@ -698,7 +689,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
       synchronized (lockFlowContents) {
         this.item_queue.drainTo(this.flowContents.itemStoreContents);
         if (this.size() == getSink().size()) {
-          synchronized ((lockSubscriberslist)) {
+          synchronized (lockSubscriberslist) {
             Optional<Item<T>> minItem = this.lastSeenItemMap.values().stream()
                 .min(itemSequenceComparator);
             if (!full && minItem.isPresent()) {

@@ -471,7 +471,7 @@ public class FlowTest {
       }
     }).forEach(s -> assertThat(s, is(loops)));
 
-    logger.info("Items per second : " + loops / ((System.currentTimeMillis()+1 - start) / 1000));
+    logger.info("Items per second : " + loops / (1+((System.currentTimeMillis()+1 - start) / 1000)));
   }
 
   @Test
