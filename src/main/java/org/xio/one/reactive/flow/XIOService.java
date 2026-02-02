@@ -8,7 +8,7 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import org.xio.one.reactive.flow.internal.FlowHousekeepingTask;
 import org.xio.one.reactive.flow.internal.FlowInputMonitor;
-import org.xio.one.reactive.flow.internal.FlowSubscriptionMonitor;
+import org.xio.one.reactive.flow.internal.SubscriptionTaskDispatcher;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
 
@@ -27,15 +27,15 @@ public class XIOService {
   private final Future flowSubscriptionMonitorFuture;
   private final Future flowHousekeepingDaemonFuture;
   private FlowInputMonitor flowInputMonitor;
-  private FlowSubscriptionMonitor flowSubscriptionMonitor;
+  private SubscriptionTaskDispatcher subscriptionTaskDispatcher;
 
   private XIOService(Future<?> submit, Future<?> submit1, Future<?> submit2,
-      FlowInputMonitor flowInputMonitor, FlowSubscriptionMonitor flowSubscriptionMonitor) {
+      FlowInputMonitor flowInputMonitor, SubscriptionTaskDispatcher subscriptionTaskDispatcher) {
     this.flowInputMonitorFuture = submit;
     this.flowSubscriptionMonitorFuture = submit1;
     this.flowHousekeepingDaemonFuture = submit2;
     this.flowInputMonitor = flowInputMonitor;
-    this.flowSubscriptionMonitor = flowSubscriptionMonitor;
+    this.subscriptionTaskDispatcher = subscriptionTaskDispatcher;
   }
 
   private static Logger loadLogger() {
@@ -59,14 +59,14 @@ public class XIOService {
           logger = loadLogger();
           logger.info(banner);
           FlowInputMonitor flowInputMonitor = new FlowInputMonitor();
-          FlowSubscriptionMonitor flowSubscriptionMonitor = new FlowSubscriptionMonitor();
+          SubscriptionTaskDispatcher subscriptionTaskDispatcher = new SubscriptionTaskDispatcher();
           xioBoss = new XIOService(
               InternalExecutors.daemonThreadPoolInstance().submit(flowInputMonitor),
-              InternalExecutors.daemonThreadPoolInstance().submit(flowSubscriptionMonitor),
+              InternalExecutors.daemonThreadPoolInstance().submit(subscriptionTaskDispatcher),
               InternalExecutors.schedulerThreadPoolInstance()
                   .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1,
                       TimeUnit.SECONDS),
-              flowInputMonitor, flowSubscriptionMonitor);
+              flowInputMonitor, subscriptionTaskDispatcher);
           try {
             //give boss threads a chance to start correctly
             Thread.sleep(2000);
@@ -150,12 +150,12 @@ public class XIOService {
     this.flowInputMonitor = flowInputMonitor;
   }
 
-  public FlowSubscriptionMonitor getFlowSubscriptionMonitor() {
-    return this.flowSubscriptionMonitor;
+  public SubscriptionTaskDispatcher getFlowSubscriptionMonitor() {
+    return this.subscriptionTaskDispatcher;
   }
 
-  public void setFlowSubscriptionMonitor(FlowSubscriptionMonitor flowSubscriptionMonitor) {
-    this.flowSubscriptionMonitor = flowSubscriptionMonitor;
+  public void setFlowSubscriptionMonitor(SubscriptionTaskDispatcher subscriptionTaskDispatcher) {
+    this.subscriptionTaskDispatcher = subscriptionTaskDispatcher;
   }
 
 
