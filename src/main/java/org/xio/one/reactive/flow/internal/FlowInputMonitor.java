@@ -30,38 +30,47 @@ public class FlowInputMonitor implements Runnable {
         doAcceptAllStreams();
       }
     } catch (Exception e) {
-      logger.log(Level.SEVERE, "Flow input monitor was interrupted", e);
+      logger.log(Level.SEVERE, "Exiting: an unexpected exception occurred with the Flow input monitor.", e);
       Flow.allFlows().forEach(f -> f.close(false));
     }
     logger.log(Level.INFO, "Flow input has monitor stopped");
   }
 
-  private void doAcceptAllStreams() throws Exception {
-
+  private void doAcceptAllStreams() {
+    int countDown = 10;
     ArrayList<Callable<Boolean>> callables = new ArrayList<>();
 
     Flow.allFlows().stream().filter(f -> !f.hasEnded() && f.buffer_size() > 0)
-        .map(itemStream -> new FlowInputTask(itemStream)).forEach(f -> callables.add(f));
+            .map(itemStream -> new FlowInputTask(itemStream)).forEach(f -> callables.add(f));
 
     try {
       List<Future<Boolean>> result =
-          InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+              InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
       Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
         try {
           return booleanFuture.get();
         } catch (InterruptedException | ExecutionException e) {
-          return false;
+          throw new RuntimeException(e);
         }
       }).filter(Boolean::booleanValue).findFirst();
       if (anyexecuted.isEmpty()) {
         LockSupport.parkUntil(Thread.currentThread(), System.currentTimeMillis() + 100);
       }
 
-    } catch (InterruptedException e) {
-      System.exit(-1);
+    } catch (InterruptedException | RuntimeException e) {
+      handleException(e, countDown);
+    }
+  }
+    private void handleException(Exception e, int countDown) {
+      countDown--;
+      if (countDown == 0) {
+        logger.log(Level.SEVERE,
+                "Cannot continue Flow input monitor exceeded retry count " + e);
+        System.exit(-1);
+      } else logger.log(Level.WARNING,
+              "Flow input monitor experienced an unexpected error " + e);
     }
 
-  }
 
   public final class FlowInputTask implements Callable<Boolean> {
 

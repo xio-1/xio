@@ -17,7 +17,7 @@ import org.xio.one.reactive.flow.util.InternalExecutors;
  * store
  */
 public class SubscriptionTaskDispatcher implements Runnable {
-
+    private int countDown = 10;
     final Thread parkedThread = Thread.currentThread();
     Logger logger = Logger.getLogger(SubscriptionTaskDispatcher.class.getCanonicalName());
 
@@ -28,7 +28,6 @@ public class SubscriptionTaskDispatcher implements Runnable {
     @Override
     public void run() {
         logger.log(Level.INFO, "Flow Subscription monitor has started");
-
 
         //while any flow is active keep going
         while (Flow.numActiveFlows() > 0 || XIOService.isRunning()) {
@@ -54,8 +53,13 @@ public class SubscriptionTaskDispatcher implements Runnable {
                     }
                 }
             } catch (Exception e) {
-                logger.log(Level.WARNING,
-                        "Flow Subscription monitor was interrupted" + e);
+                countDown--;
+                if (countDown == 0) {
+                    logger.log(Level.SEVERE,
+                            "Exiting : Cannot continue Flow Subscription monitor exceeded retry count " + e);
+                    System.exit(-1);
+                } else logger.log(Level.WARNING,
+                        "Flow Subscription monitor experienced an unexpected error " + e);
             }
         }
 

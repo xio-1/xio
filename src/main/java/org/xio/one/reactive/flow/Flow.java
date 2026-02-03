@@ -797,8 +797,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                                         "Subscriber " + subscriber.getId() + " stopped for stream : "
                                                 + itemStream.name());
                             }
-                        } catch (Exception e) {
-                            logger.log(Level.WARNING, "subscriber execution error", e);
+                        } catch (FlowException e) {
+                            logger.log(Level.WARNING, "subscriber execution error unsubscribing" + subscriber.getId() + " ", e);
+                            unsubscribe(subscriber);
                         } finally {
                             latch.countDown();
                         }
@@ -817,7 +818,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                                             try {
                                                latch.await();
                                             } catch (InterruptedException e) {
-                                                logger.log(Level.SEVERE, "cannot continue a subscribers execution was interrupted error", e);
+                                                logger.log(Level.SEVERE, "cannot continue a subscribers execution was interrupted error " + f.state().name(), e);
                                                 System.exit(-1);
                                             }
                                             return true;

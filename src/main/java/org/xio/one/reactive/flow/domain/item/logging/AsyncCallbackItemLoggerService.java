@@ -72,8 +72,13 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
               if (items.length > 0) {
                 for (CompletableItem each : items) {
                   List<FlowItemCompletionHandler<Void, Item<T>>> callbacks = new ArrayList<>();
-                  byte[] serialize = itemSerializer.serialize((Item<T>) each.getItemValue(), Optional.ofNullable(delim));
-                  buffer.put(serialize);
+                    byte[] serialize = null;
+                    try {
+                        serialize = itemSerializer.serialize((Item<T>) each.getItemValue(), Optional.ofNullable(delim));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    buffer.put(serialize);
                   callbacks.add(each.flowItemCompletionHandler());
                   newEntries.getAndIncrement();
                   numberOfEntries.getAndIncrement();

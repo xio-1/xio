@@ -12,7 +12,7 @@ import org.xio.one.reactive.flow.domain.item.logging.ItemSerializer;
 public class ObjectToByteArrayJSONSerializer<T> implements ItemSerializer<T>, ItemDeserializer<T> {
 
   @Override
-  public byte[] serialize(Item<T> item, Optional<byte[]> delim) {
+  public byte[] serialize(Item<T> item, Optional<byte[]> delim) throws IOException {
     byte[] json = JSONUtil.toJSONString(item).getBytes(StandardCharsets.UTF_8);
     byte[] header;
     byte[] combined;

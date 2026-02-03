@@ -150,7 +150,7 @@ public class FlowTest {
   }
 
   @Test
-  public void itemSerialise() {
+  public void itemSerialise() throws IOException {
     Item<String> item = new Item<>("hello", 10001,1001);
     ObjectToByteArrayJSONSerializer<String> s = new ObjectToByteArrayJSONSerializer<>();
     logger.log(Level.INFO, new String(s.serialize(item, Optional.empty())));
