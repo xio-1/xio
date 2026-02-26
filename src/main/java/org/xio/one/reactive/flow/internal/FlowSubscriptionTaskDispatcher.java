@@ -16,10 +16,10 @@ import org.xio.one.reactive.flow.util.InternalExecutors;
  * Gets allItems the input from the Xio.getSink.domain itemStream and persists it to the getSink
  * store
  */
-public class SubscriptionTaskDispatcher implements Runnable {
+public class FlowSubscriptionTaskDispatcher implements Runnable {
     private int countDown = 10;
     final Thread parkedThread = Thread.currentThread();
-    Logger logger = Logger.getLogger(SubscriptionTaskDispatcher.class.getCanonicalName());
+    Logger logger = Logger.getLogger(FlowSubscriptionTaskDispatcher.class.getCanonicalName());
 
     public void unpark() {
         LockSupport.unpark(parkedThread);
@@ -43,13 +43,12 @@ public class SubscriptionTaskDispatcher implements Runnable {
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
-
                     }
                 } else {
                     List<Future<Boolean>> result;
                     result = InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
                     while (result.stream().anyMatch(p -> !p.isDone())) {
-                        Thread.sleep(1);
+                        Thread.sleep(5);
                     }
                 }
             } catch (Exception e) {

@@ -17,7 +17,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -755,7 +757,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
     }
 
-
     public synchronized FlowSubscriptionTask newSubscriptionTask() {
         return new FlowSubscriptionTask(this);
     }
@@ -764,8 +765,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         return loggingEnabled;
     }
 
-
     public final class FlowSubscriptionTask implements Callable<Boolean> {
+
 
         private final Flow<T, R> itemStream;
         Logger logger = Logger.getLogger(FlowSubscriptionTask.class.getCanonicalName());
@@ -779,8 +780,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         @Override
         public Boolean call() {
             {
+                Lock flowSubcriberLock = new ReentrantLock();
                 List<Callable<Void>> callableList;
                 synchronized (lockSubscriberslist) {
+                    if (subscribers.isEmpty()){
+                        return true;
+                    }
                     latch = new CountDownLatch(subscribers.size());
                     callableList = subscribers.stream().map(subscriber -> (Callable<Void>) () -> {
                         try {
@@ -810,6 +815,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
                 if (!callableList.isEmpty()) {
                     try {
+                        if (flowSubcriberLock.tryLock(120,TimeUnit.SECONDS))
+                        {
                         Collections.shuffle(callableList);
 
                                 InternalExecutors.microFlowInputTaskThreadPoolInstance()
@@ -818,18 +825,25 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                                             try {
                                                latch.await();
                                             } catch (InterruptedException e) {
-                                                logger.log(Level.SEVERE, "cannot continue a subscribers execution was interrupted error " + f.state().name(), e);
-                                                System.exit(-1);
+                                                logger.log(Level.WARNING, "A subscriber latch was interrupted unexpectedly but can continue: " + f.state().name(), e.getMessage());
                                             }
                                             return true;
                                         });
 
                         return true;
-                    } catch (InterruptedException e) {
-                        logger.log(Level.SEVERE, "cannot continue a subscribers execution was interrupted",e);
+                    } else {
+                        logger.log(Level.SEVERE, "Host server was unable to acquire a lock to start subscribers execution for flow " + itemStream.name() +", a resyncing subscriber may have failed");
+                        logger.log(Level.SEVERE, "Host server will exit and require restart in order to continue");
                         System.exit(-1);
                     }
+                    } catch (RuntimeException | InterruptedException e) {
+                        logger.log(Level.SEVERE, "Host server cannot continue as a subscribers execution was interrupted or failed: ",e.getMessage());
+                        System.exit(-1);
+                    } finally {
+                        flowSubcriberLock.unlock();
+                    }
                 }
+
             }
             return false;
         }
