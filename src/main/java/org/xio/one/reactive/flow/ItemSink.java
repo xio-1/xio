@@ -42,7 +42,7 @@ public final class ItemSink<T> {
     return itemStoreContents.stream().filter(Item::isAlive).count();
   }
 
-  public Item<T> item(long id) {
+  public Item<T> getItem(long id) {
     return itemStoreContents.higher(new ItemComparator(id - 1));
   }
 
@@ -111,6 +111,14 @@ public final class ItemSink<T> {
     } catch (NoSuchElementException | IllegalArgumentException e) {
     }
     return EMPTY_ITEM_SET;
+  }
+
+  public NavigableSet<Item<T>> allAfter(long index, int maxSize) {
+    Item item = this.getItem(index-1);
+    if (item == null) {
+      return EMPTY_ITEM_SET;
+    }
+    return allAfter(item,maxSize);
   }
 
  /* public final NavigableSet<Item<T>> allAfter(Item lastItem) {

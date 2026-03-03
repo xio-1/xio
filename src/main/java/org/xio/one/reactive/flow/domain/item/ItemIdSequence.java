@@ -23,7 +23,7 @@ public class ItemIdSequence {
   }
 
   public void reset() {
-    counter.set(0);
+    counter.set(-1);
   }
 
 }

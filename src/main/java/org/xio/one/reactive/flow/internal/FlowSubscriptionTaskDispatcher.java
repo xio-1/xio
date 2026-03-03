@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,16 +19,18 @@ import org.xio.one.reactive.flow.util.InternalExecutors;
  * store
  */
 public class FlowSubscriptionTaskDispatcher implements Runnable {
-    private int countDown = 10;
-    final Thread parkedThread = Thread.currentThread();
+    private static int RETRY_COUNT_DOWN_LIMIT = 10;
+    private Thread thisThread;
     Logger logger = Logger.getLogger(FlowSubscriptionTaskDispatcher.class.getCanonicalName());
+    private final Lock flowSubcriberLock = new ReentrantLock();
 
     public void unpark() {
-        LockSupport.unpark(parkedThread);
+        LockSupport.unpark(thisThread);
     }
 
     @Override
     public void run() {
+        thisThread = Thread.currentThread();
         logger.log(Level.INFO, "Flow Subscription monitor has started");
 
         //while any flow is active keep going
@@ -40,20 +44,23 @@ public class FlowSubscriptionTaskDispatcher implements Runnable {
 
                 if (callables.isEmpty()) {
                     //sleep if nothing to do
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                    }
+                    Thread.sleep(100);
                 } else {
-                    List<Future<Boolean>> result;
-                    result = InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
-                    while (result.stream().anyMatch(p -> !p.isDone())) {
-                        Thread.sleep(5);
+                    try {
+                        //ToDo not ideal but otherwise have to perform each task in turn
+                        List<Future<Boolean>> result;
+                        result = InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+                        while (result.stream().anyMatch(p -> !p.isDone())) {
+                            Thread.sleep(5);
+                        }
+                    } catch (InterruptedException e) {
+                        logger.log(Level.WARNING,
+                                "Flow Subscription Task Dispatcher was interrupted waiting for tasks to complete " + e.getMessage());
                     }
                 }
             } catch (Exception e) {
-                countDown--;
-                if (countDown == 0) {
+                RETRY_COUNT_DOWN_LIMIT--;
+                if (RETRY_COUNT_DOWN_LIMIT == 0) {
                     logger.log(Level.SEVERE,
                             "Exiting : Cannot continue Flow Subscription monitor exceeded retry count " + e);
                     System.exit(-1);

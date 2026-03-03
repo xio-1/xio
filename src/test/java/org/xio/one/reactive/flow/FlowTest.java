@@ -2,8 +2,7 @@ package org.xio.one.reactive.flow;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
@@ -31,6 +30,7 @@ import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
+import org.xio.one.reactive.flow.internal.BlockingSignaler;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
@@ -299,10 +299,37 @@ public class FlowTest {
 
   }
 
+  private abstract class InspectableItemSubscriber extends ItemSubscriber<String, String> {
+
+    int count=0;
+
+    public int getCount() {
+      return count;
+    }
+
+  }
 
   @Test
-  public void shouldLogItemsToFile() throws InterruptedException {
-
+  public void shouldPauseSubscriberWhenBlockingSignalerEnabled() throws InterruptedException {
+    BlockingSignaler blockingSignaler= new BlockingSignaler();
+    ItemFlowable<String,String> flow = Flow.anItemFlow("test", 100, 0, blockingSignaler);
+    InspectableItemSubscriber toInspect;
+    flow.addSubscriber(toInspect=new InspectableItemSubscriber() {
+      @Override
+      public void onNext(Item<String> item) {
+       this.count++;
+      }
+    });
+    flow.putItem("1","2","3");
+    Thread.sleep(1000);
+    assertThat(toInspect.getCount(),equalTo(3));
+    blockingSignaler.stopThreadProceeding();
+    flow.putItem("a", "b", "c");
+    Thread.sleep(1000);
+    assertThat(toInspect.getCount(),equalTo(3));
+    blockingSignaler.startProceedingThread();
+    Thread.sleep(1000);
+    assertThat(toInspect.getCount(),equalTo(6));
   }
 
 
