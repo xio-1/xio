@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -57,6 +59,11 @@ public class FlowTest {
   @AfterClass
   public static void tearDown() {
     XIOService.stop();
+  }
+
+  @After
+  public void after() {
+    Flow.closeAll(true);
   }
 
   @Test
@@ -146,6 +153,7 @@ public class FlowTest {
     asyncFlow.putItem("after 1");
     asyncFlow.putItem("after 2");
     asyncFlow.close(true);
+
     return snapshot;
   }
 
@@ -163,7 +171,6 @@ public class FlowTest {
     logger.log(Level.INFO, s.deserialize(json.getBytes(),Optional.empty()).getItemValue());
   }
 
-  @Test
   //it should be noted that a streams contents (items) are final but a subscriber can contain any type of user code and
   //therefore requires custom context for recovery.
   public void shouldRecoverSnapshotToFlow()
@@ -311,25 +318,30 @@ public class FlowTest {
 
   @Test
   public void shouldPauseSubscriberWhenBlockingSignalerEnabled() throws InterruptedException {
-    BlockingSignaler blockingSignaler= new BlockingSignaler();
-    ItemFlowable<String,String> flow = Flow.anItemFlow("test", 100, 0, blockingSignaler);
-    InspectableItemSubscriber toInspect;
-    flow.addSubscriber(toInspect=new InspectableItemSubscriber() {
-      @Override
-      public void onNext(Item<String> item) {
-       this.count++;
-      }
-    });
-    flow.putItem("1","2","3");
-    Thread.sleep(1000);
-    assertThat(toInspect.getCount(),equalTo(3));
-    blockingSignaler.stopThreadProceeding();
-    flow.putItem("a", "b", "c");
-    Thread.sleep(1000);
-    assertThat(toInspect.getCount(),equalTo(3));
-    blockingSignaler.startProceedingThread();
-    Thread.sleep(1000);
-    assertThat(toInspect.getCount(),equalTo(6));
+    BlockingSignaler blockingSignaler = new BlockingSignaler();
+    ItemFlowable<String, String> flow = Flow.anItemFlow("test", 100, 0, blockingSignaler);
+    try {
+      InspectableItemSubscriber toInspect;
+      flow.addSubscriber(toInspect = new InspectableItemSubscriber() {
+        @Override
+        public void onNext(Item<String> item) {
+          this.count++;
+        }
+      });
+      flow.putItem("1", "2", "3");
+      Thread.sleep(1000);
+      assertThat(toInspect.getCount(), equalTo(3));
+      blockingSignaler.stopThreadProceeding();
+      flow.putItem("a", "b", "c");
+      Thread.sleep(1000);
+      assertThat(toInspect.getCount(), equalTo(3));
+      blockingSignaler.startProceedingThread();
+      Thread.sleep(1000);
+      assertThat(toInspect.getCount(), equalTo(6));
+    } finally {
+      flow.close(true);
+    }
+
   }
 
 
@@ -510,6 +522,18 @@ public class FlowTest {
       shouldReturnInSequenceForFlowSubscriber();
       shouldSustainThroughputPerformanceTestForMultipleSubscribers();
     }
+  }
+
+  //@Test
+  public void idleTest() throws InterruptedException {
+    ItemFlowable<String, String> asyncFlow = anItemFlow("test_ttl", 60);
+    asyncFlow.addSubscriber(new ItemSubscriber<String, String>() {
+      @Override
+      public void onNext(Item<String> item) {
+        logger.info("hello");
+      }
+    });
+    Thread.sleep(30000);
   }
 
   @Test

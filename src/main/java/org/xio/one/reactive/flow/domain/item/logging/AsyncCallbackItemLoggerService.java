@@ -58,12 +58,6 @@ public class AsyncCallbackItemLoggerService<T> implements ItemLogger<T> {
           long position = 0;
 
           @Override
-          public void initialise() {
-
-          }
-
-
-          @Override
           public void onNext(Stream<CompletableItem<Item<T>, Void>> entries) {
             synchronized (lock) {
               AtomicLong newEntries = new AtomicLong();

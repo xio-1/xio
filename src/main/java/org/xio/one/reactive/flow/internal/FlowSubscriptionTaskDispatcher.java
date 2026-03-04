@@ -39,19 +39,18 @@ public class FlowSubscriptionTaskDispatcher implements Runnable {
             try {
                 ArrayList<Callable<Boolean>> callables = new ArrayList<>();
 
-                Flow.allFlows().stream().filter(f -> !f.hasEnded())
+                Flow.allFlows().stream().filter(f -> !f.hasEnded() && f.hasActiveSubscribers())
                         .map(Flow::newSubscriptionTask).forEach(callables::add);
 
                 if (callables.isEmpty()) {
                     //sleep if nothing to do
-                    Thread.sleep(100);
+                    Thread.sleep(1);
                 } else {
                     try {
-                        //ToDo not ideal but otherwise have to perform each task in turn
                         List<Future<Boolean>> result;
-                        result = InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+                        result = InternalExecutors.microFlowInputTaskThreadPoolInstance().invokeAll(callables);
                         while (result.stream().anyMatch(p -> !p.isDone())) {
-                            Thread.sleep(5);
+                            Thread.sleep(1);
                         }
                     } catch (InterruptedException e) {
                         logger.log(Level.WARNING,

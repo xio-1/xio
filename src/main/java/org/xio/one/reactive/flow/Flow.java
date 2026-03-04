@@ -110,6 +110,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         initialise(name, indexFieldName, ttlSeconds);
         synchronized (flowControlLock) {
             flowMap.put(id, this);
+            flowCount.getAndIncrement();
             if (XIOService.isRunning()) {
                 logger.info("XIO Service is running ");
             } else {
@@ -122,7 +123,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     protected Flow(String name, String indexFieldName, long ttlSeconds, long lastSeenIndex, BlockingSignaler blockingSignaler) {
         this(name, indexFieldName, ttlSeconds, null);
         this.blockingSignaler = blockingSignaler;
-        this.itemIDSequence= new ItemIdSequence(lastSeenIndex);
+        this.itemIDSequence = new ItemIdSequence(lastSeenIndex);
     }
 
     //bad use of erasure need to find a better way
@@ -500,18 +501,23 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
 
         synchronized (flowControlLock) {
-            flowMap.remove(this.id);
-            if (flowCount.decrementAndGet() == 0) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            if (flowMap.remove(this.id) != null) {
+                if (flowCount.decrementAndGet() == 0) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    InternalExecutors.schedulerThreadPoolInstance().shutdown();
+                    InternalExecutors.daemonThreadPoolInstance().shutdown();
                 }
-                InternalExecutors.schedulerThreadPoolInstance().shutdown();
-                InternalExecutors.daemonThreadPoolInstance().shutdown();
             }
         }
         logger.info("Flow " + name + " id " + id + " has stopped");
+    }
+
+    public static void closeAll(boolean waitForEnd) {
+        flowMap.values().forEach(f -> f.close(waitForEnd));
     }
 
     public void restoreAllSubscribers(Map<String, Map<String, Object>> subscriberContext, RestorableSubscriber<R, T> restorableSubscriber) {
@@ -621,9 +627,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         int ticks = ACCEPT_COUNTDOWN_TICKS;
         boolean processed = false;
         while (!hasEnded() && !processed && ticks >= 0) {
-            if (ticks == 0 || flush || item_queue.size() == queue_max_size || this.isEnd) {
+            if (ticks == 0 || flushImmediately || flush || item_queue.size() == queue_max_size || this.isEnd) {
                 synchronized (lockFlowContents) {
-                    if (!item_queue.isEmpty()  ) {
+                    if (!item_queue.isEmpty()) {
                         if (blockingSignaler == null || (blockingSignaler != null && blockingSignaler.canThreadProceed())) {
                             this.item_queue.drainTo(this.flowContents.itemStoreContents);
                             XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
@@ -796,7 +802,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             {
                 List<Callable<Void>> callableList;
                 synchronized (lockSubscriberslist) {
-                    if (subscribers.isEmpty()){
+                    if (subscribers.isEmpty()) {
                         return true;
                     }
                     latch = new CountDownLatch(subscribers.size());
@@ -832,21 +838,21 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
                         Collections.shuffle(callableList);
 
-                                InternalExecutors.microFlowInputTaskThreadPoolInstance()
-                                        .invokeAll(callableList)
-                                        .stream().map(f -> {
-                                            try {
-                                               latch.await();
-                                            } catch (InterruptedException e) {
-                                                logger.log(Level.WARNING, "A subscriber latch was interrupted unexpectedly but can continue: " + f.state().name(), e.getMessage());
-                                            }
-                                            return true;
-                                        });
+                        InternalExecutors.microFlowInputTaskThreadPoolInstance()
+                                .invokeAll(callableList)
+                                .stream().map(f -> {
+                                    try {
+                                        latch.await();
+                                    } catch (InterruptedException e) {
+                                        logger.log(Level.WARNING, "A subscriber latch was interrupted unexpectedly but can continue: " + f.state().name(), e.getMessage());
+                                    }
+                                    return true;
+                                });
 
                         return true;
 
                     } catch (RuntimeException | InterruptedException e) {
-                        logger.log(Level.SEVERE, "Host server cannot continue as a subscribers execution was interrupted or failed: ",e.getMessage());
+                        logger.log(Level.SEVERE, "Host server cannot continue as a subscribers execution was interrupted or failed: ", e.getMessage());
                         System.exit(-1);
                     }
                 }

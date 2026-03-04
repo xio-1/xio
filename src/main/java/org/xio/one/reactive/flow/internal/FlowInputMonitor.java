@@ -43,11 +43,29 @@ public class FlowInputMonitor implements Runnable {
         ArrayList<Callable<Boolean>> callables = new ArrayList<>();
 
         Flow.allFlows().stream().filter(f -> !f.hasEnded() && f.buffer_size() > 0).map(itemStream -> new FlowInputTask(itemStream)).forEach(f -> callables.add(f));
-
         try {
-            List<Future<Boolean>> result =
-                    InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
-            Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
+            if (!callables.isEmpty()) {
+
+                List<Future<Boolean>> result =
+                        InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+
+                while (result.stream().filter(r -> r.isDone()).toList().size() == 0) {
+                    Thread.sleep(1);
+                }
+
+                List<Boolean> executed = result.stream().map(f -> {
+                    try {
+                        return f.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).toList();
+
+
+                if (executed.stream().noneMatch(r -> r.equals(true)))
+                    Thread.sleep(1);
+
+            /*Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
                 try {
                     return booleanFuture.get();
                 } catch (InterruptedException | ExecutionException e) {
@@ -55,9 +73,11 @@ public class FlowInputMonitor implements Runnable {
                 }
             }).filter(Boolean::booleanValue).findFirst();
             if (anyexecuted.isEmpty()) {
-                LockSupport.parkUntil(Thread.currentThread(), System.currentTimeMillis() + 100);
+                Thread.sleep(10);
             }
 
+        */
+            } else Thread.sleep(1);
         } catch (InterruptedException | RuntimeException e) {
             handleException(e, countDown);
         }
@@ -69,8 +89,8 @@ public class FlowInputMonitor implements Runnable {
             logger.log(Level.SEVERE,
                     "Cannot continue Flow input monitor exceeded retry count " + e);
             System.exit(-1);
-        } else logger.log(Level.WARNING,
-                "Flow input monitor experienced an unexpected error " + e);
+        } else logger.log(Level.SEVERE,
+                "THe flow input monitor experienced an unexpected error " + e.getMessage() + " this will result in data loss for a flow that does not use completable/promise backed submission ");
     }
 
 
