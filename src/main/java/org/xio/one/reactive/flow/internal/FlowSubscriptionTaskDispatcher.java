@@ -38,13 +38,13 @@ public class FlowSubscriptionTaskDispatcher implements Runnable {
             //publishTo to any dirty flow
             try {
                 ArrayList<Callable<Boolean>> callables = new ArrayList<>();
-
+                //ToDo iron out why using f.getProcessed hangs when flow is ending
                 Flow.allFlows().stream().filter(f -> !f.hasEnded() && f.hasActiveSubscribers())
                         .map(Flow::newSubscriptionTask).forEach(callables::add);
 
                 if (callables.isEmpty()) {
                     //sleep if nothing to do
-                    Thread.sleep(1);
+                    LockSupport.parkNanos(100000);
                 } else {
                     try {
                         List<Future<Boolean>> result;

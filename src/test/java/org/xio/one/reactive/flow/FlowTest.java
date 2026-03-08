@@ -5,19 +5,12 @@ import static java.util.stream.Collectors.groupingBy;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
+import static org.xio.one.reactive.flow.Flow.aCompletableItemFlow;
 import static org.xio.one.reactive.flow.Flow.anItemFlow;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,7 +24,7 @@ import org.xio.one.reactive.flow.domain.flow.*;
 import org.xio.one.reactive.flow.domain.item.CompletableItem;
 import org.xio.one.reactive.flow.domain.item.EmptyItem;
 import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.domain.item.logging.AsyncCallbackItemLoggerService;
+import org.xio.one.reactive.flow.domain.item.ItemIdComparator;
 import org.xio.one.reactive.flow.internal.BlockingSignaler;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
@@ -122,10 +115,6 @@ public class FlowTest {
       throws InterruptedException, IOException {
     ItemFlowable<String, String> asyncFlow = anItemFlow(HELLO_WORLD_FLOW);
     asyncFlow.enableImmediateFlushing();
-    asyncFlow.addItemLogger(
-        new AsyncCallbackItemLoggerService<String>("./log_snapshot_hello.dat",
-            new ObjectToByteArrayJSONSerializer<>(), 1024*240000, "\n".getBytes())
-    );
     asyncFlow.putItem("Hello world");
     asyncFlow.putItem("World hello");
     ItemSubscriber<String, String> subscriber = new ItemSubscriber<String, String>() {
@@ -157,79 +146,6 @@ public class FlowTest {
     return snapshot;
   }
 
-  @Test
-  public void itemSerialise() throws IOException {
-    Item<String> item = new Item<>("hello", 10001,1001);
-    ObjectToByteArrayJSONSerializer<String> s = new ObjectToByteArrayJSONSerializer<>();
-    logger.log(Level.INFO, new String(s.serialize(item, Optional.empty())));
-  }
-
-  @Test
-  public void itemDeserialise() {
-    String json = "{\"itemValue\":\"hello\",\"itemId\":10001,\"itemTimestamp\":1727843073596,\"itemNodeId\":7758320006798585198,\"itemTTLSeconds\":1001,\"alive\":true}";
-    ObjectToByteArrayJSONSerializer<String> s = new ObjectToByteArrayJSONSerializer<>();
-    logger.log(Level.INFO, s.deserialize(json.getBytes(),Optional.empty()).getItemValue());
-  }
-
-  //it should be noted that a streams contents (items) are final but a subscriber can contain any type of user code and
-  //therefore requires custom context for recovery.
-  public void shouldRecoverSnapshotToFlow()
-      throws InterruptedException, ExecutionException, IOException {
-    RecoverySnapshot<String, String> snapshot = generateSnapshot(true);
-    ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERY");
-    recoveredFlow.recoverSnapshot(snapshot);
-    assertThat(snapshot.getContents().first().getItemValue(), is("Hello world"));
-    assertThat(snapshot.getContents().last().getItemValue(), is("World hello"));
-    assertThat(snapshot.getLastSeenItemMap().values().iterator().next().getItemValue(), is("World hello"));
-    assertThat(snapshot.getSubscriberContext()
-            .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),
-        is("World hello"));
-    RestorableSubscriberImpl restoreSubscriberImpl = new RestorableSubscriberImpl();
-    recoveredFlow.restoreAllSubscribers(snapshot.getSubscriberContext(),restoreSubscriberImpl);
-    recoveredFlow.putItem("Goodbye world");
-    Future<String> value =
-        recoveredFlow.getSubscriber(snapshot.getSubscriberContext().keySet().iterator().next()).getFutureResult();
-    recoveredFlow.close(true);
-    assertThat(value.get(), is("Goodbye world"));
-  }
-
-  @Test
-  public void shouldRecoverFlowFromLog()
-      throws IOException, InterruptedException, ExecutionException {
-    RecoverySnapshot<String, String> snapshot = generateSnapshot(true);
-    ItemFlowable<String, String> recoveredFlow = anItemFlow("RECOVERYNLOG",
-        AsyncCallbackItemLoggerService.logger("asynclog-nocallback-recovered.dat", new ObjectToByteArrayJSONSerializer<>()));
-    recoveredFlow.recoverSnapshot(snapshot);
-    assertThat(snapshot.getContents().first().getItemValue(), is("Hello world"));
-    assertThat(snapshot.getContents().last().getItemValue(), is("World hello"));
-    assertThat(snapshot.getLastSeenItemMap().values().iterator().next().getItemValue(), is("World hello"));
-    assertThat(snapshot.getSubscriberContext()
-            .get(snapshot.getLastSeenItemMap().keySet().iterator().next()).get("lastValue"),
-        is("World hello"));
-    RestorableSubscriberImpl restoreSubscriberImpl = new RestorableSubscriberImpl();
-    recoveredFlow.restoreAllSubscribers(snapshot.getSubscriberContext(),restoreSubscriberImpl);
-    recoveredFlow.putItem("Goodbye world");
-    Future<String> value =
-        recoveredFlow.getSubscriber(snapshot.getSubscriberContext().keySet().iterator().next()).getFutureResult();
-    recoveredFlow.close(true);
-    assertThat(value.get(), is("Goodbye world"));
-
-  }
-
-  @Test
-  public void flowItemLoggerTest() throws IOException {
-    ItemFlowable<String, Void> asyncFlow = anItemFlow("LOG_HELLO");
-    asyncFlow.enableImmediateFlushing();
-    AsyncCallbackItemLoggerService<String> asyncFlowLogger =
-        new AsyncCallbackItemLoggerService<String>("./log_hello.dat", new ObjectToByteArrayJSONSerializer<>(), 1024*1024*4,"\n".getBytes());
-    asyncFlow.addItemLogger(asyncFlowLogger);
-    for (int i = 0; i < 1000; i++) {
-      asyncFlow.putItem("Hello world }}}" + i);
-    }
-    asyncFlow.close(true);
-    asyncFlowLogger.close(true);
-    assertEquals(asyncFlowLogger.getNumberOfItemsWritten(), 1000);
-  }
 
   @Test
   public void toUpperCaseSubscriberExample() throws Exception {
@@ -534,6 +450,53 @@ public class FlowTest {
       }
     });
     Thread.sleep(30000);
+  }
+
+  @Test
+  public void testAsyncSubmitPreservesOrder() throws InterruptedException {
+
+    Set<Item> itemList = new ConcurrentSkipListSet<>(new ItemIdComparator());
+    CompletableItemSubscriber subscriber = new CompletableItemSubscriber() {
+      @Override
+      public void onNext(CompletableItem item) throws Throwable {
+        itemList.add(item);
+        //add jitter
+        long waitMS = (int) Math.abs(Math.round(Math.random())) % 2;
+        Thread.sleep(waitMS);
+        item.flowItemCompletionHandler().completed(item.getItemId(), 0L);
+      }
+
+      @Override
+      public void onError(Throwable error, Item itemValue) {
+
+      }
+    };
+
+
+    List<Long> longList = new ArrayList<>();
+    CompletableItemFlowable<Long, Long> asyncFlow = aCompletableItemFlow("test_ttl", subscriber);
+    for (long i=1; i<10000; i++) {
+      asyncFlow.submitItem(i, new FlowItemCompletionHandler<Long, Long>() {
+        @Override
+        public void completed(Long result, Long attachment) {
+          longList.add(result);
+        }
+
+        @Override
+        public void failed(Throwable exc, Long attachment) {
+
+        }
+      });
+    }
+    Thread.sleep(12000);
+
+    assertThat(longList.size(),equalTo(itemList.size()));
+
+    for (int i=0; i<9999; i++)
+    {
+      assertThat(longList.get(i), equalTo(((Item) itemList.toArray()[i]).getItemId()));
+    }
+
   }
 
   @Test

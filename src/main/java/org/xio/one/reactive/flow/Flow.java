@@ -16,6 +16,7 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
@@ -30,8 +31,6 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.domain.item.ItemIdSequence;
 import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
 import org.xio.one.reactive.flow.domain.item.VoidItem;
-import org.xio.one.reactive.flow.domain.item.logging.ItemDeserializer;
-import org.xio.one.reactive.flow.domain.item.logging.ItemLogger;
 import org.xio.one.reactive.flow.internal.Housekeeper;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.internal.BlockingSignaler;
@@ -80,8 +79,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     // streamContentsSnapShot variables
     private ItemSink<T> flowContents;
     // constants
-    private int ACCEPT_COUNTDOWN_TICKS = 10;
-    private final CountDownLatch countDownLatch = new CountDownLatch(ACCEPT_COUNTDOWN_TICKS);
+    private int acceptWaitTimeMS = 10;
     // input parameters
     private String name;
     private String indexFieldName;
@@ -89,22 +87,17 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     // Queue control
     private BlockingQueue<Item<T>> item_queue;
     private volatile boolean isEnd = false;
-    private volatile boolean flush = false;
+    private volatile boolean  flush = false;
     private ItemIdSequence itemIDSequence;
     private long slowDownNanos = 0;
     private boolean flushImmediately;
     //subscription control
     private List<Subscriber<R, T>> subscribers;
     private List<FutureSubscriber<R, T>> futureSubscribers;
-    private ItemLogger<T> itemLogger;
-    private boolean loggingEnabled = false;
     private Housekeeper housekeeper;
     private BlockingSignaler blockingSignaler;
 
-    protected Flow(String name, String indexFieldName, long ttlSeconds, ItemLogger itemLogger) {
-        if (itemLogger != null) {
-            this.loggingEnabled = true;
-        }
+    protected Flow(String name, String indexFieldName, long ttlSeconds) {
         this.housekeeper = new SimpleHousekeeper();
         this.id = UUID.randomUUID().toString();
         initialise(name, indexFieldName, ttlSeconds);
@@ -121,70 +114,63 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     protected Flow(String name, String indexFieldName, long ttlSeconds, long lastSeenIndex, BlockingSignaler blockingSignaler) {
-        this(name, indexFieldName, ttlSeconds, null);
+        this(name, indexFieldName, ttlSeconds);
         this.blockingSignaler = blockingSignaler;
         this.itemIDSequence = new ItemIdSequence(lastSeenIndex);
     }
 
     //bad use of erasure need to find a better way
     public static <T, R> ItemFlowable<T, R> anItemFlow() {
-        return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+        return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
     }
 
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name) {
-        return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+        return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
     }
 
-    public static <T, R> ItemFlowable<T, R> anItemFlow(String name, ItemLogger<T> itemLogger) {
-        return new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS, itemLogger);
-    }
 
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long maxTTLSeconds) {
-        return new Flow<>(name, null, maxTTLSeconds, null);
+        return new Flow<>(name, null, maxTTLSeconds);
     }
 
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long maxTTLSeconds, long lastSeenIndex, BlockingSignaler blockingSignaler) {
         return new Flow<>(name, null, maxTTLSeconds, lastSeenIndex, blockingSignaler);
     }
 
-    public static <T, R> ItemFlowable<T, R> anItemFlow(String name, long maxTTLSeconds,
-                                                       ItemLogger<T> itemLogger) {
-        return new Flow<>(name, null, maxTTLSeconds, itemLogger);
-    }
 
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName) {
-        return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+        return new Flow<>(name, indexFieldName, DEFAULT_TIME_TO_LIVE_SECONDS);
     }
 
     public static <T, R> ItemFlowable<T, R> anItemFlow(String name, String indexFieldName,
                                                        long maxTTLSeconds) {
-        return new Flow<>(name, indexFieldName, maxTTLSeconds, null);
+        return new Flow<>(name, indexFieldName, maxTTLSeconds);
     }
 
     public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow() {
         Flow<T, R> resultFlowable =
-                new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+                new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
         return resultFlowable;
     }
 
     public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow(
             FutureSubscriber<R, T> futureSubscriber) {
         Flow<T, R> resultFlowable =
-                new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+                new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
         resultFlowable.addAppropriateSubscriber(futureSubscriber);
         return resultFlowable;
     }
 
     public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow(String name,
                                                                   FutureSubscriber<R, T> futureSubscriber) {
-        Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+        Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
         resultFlowable.addAppropriateSubscriber(futureSubscriber);
         return resultFlowable;
     }
 
     public static <T, R> FutureItemFlowable<T, R> aFutureItemFlow(String name, long maxTTLSeconds,
                                                                   FutureSubscriber<R, T> futureSubscriber) {
-        Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds, null);
+        Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds);
         resultFlowable.addAppropriateSubscriber(futureSubscriber);
         return resultFlowable;
     }
@@ -192,21 +178,21 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(
             CompletableSubscriber<R, T> completableSubscriber) {
         Flow<T, R> resultFlowable =
-                new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+                new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
         resultFlowable.addAppropriateSubscriber(completableSubscriber);
         return resultFlowable;
     }
 
     public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name,
                                                                             CompletableSubscriber<R, T> completableSubscriber) {
-        Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS, null);
+        Flow<T, R> resultFlowable = new Flow<>(name, null, DEFAULT_TIME_TO_LIVE_SECONDS);
         resultFlowable.addAppropriateSubscriber(completableSubscriber);
         return resultFlowable;
     }
 
     public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name,
                                                                             long maxTTLSeconds, CompletableSubscriber<R, T> completableSubscriber) {
-        Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds, null);
+        Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds);
         resultFlowable.addAppropriateSubscriber(completableSubscriber);
         return resultFlowable;
     }
@@ -248,7 +234,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             }
         }
     }
-
+    public void setAcceptWaitTimeMS(int acceptWaitTimeMS) {
+        this.acceptWaitTimeMS = acceptWaitTimeMS;
+    }
     @Override
     public void resetLastSeenItem(String subscriberID, Item<T> lastSeenItem) {
         synchronized (lockSubscriberslist) {
@@ -379,9 +367,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         if (!isEnd) {
             for (int i = 0; i < values.length; i++) {
                 Item<T> item = new Item<>(values[i], itemIDSequence.getNext(), ttlSeconds);
-                if (isLoggingEnabled() && this.itemLogger != null) {
-                    this.itemLogger.logItem(item);
-                }
                 ids[i] = item.getItemId();
                 if (slowDownNanos > 0) {
                     LockSupport.parkNanos(slowDownNanos);
@@ -392,17 +377,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         return ids;
     }
 
-    @Override
-    public void addItemLogger(ItemLogger<T> logger) {
-        this.itemLogger = logger;
-        this.loggingEnabled = true;
-    }
-
-    @Override
-    public void recoverItemsFromLog(String filename, ItemDeserializer<T> deserializer) {
-        File logFile = new File(filename);
-
-    }
 
     /**
      * Submit an item to be processed by the FutureSubscriber and completionHandler to the completion
@@ -431,9 +405,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
         Item<T> item =
                 new CompletableItem<>(value, itemIDSequence.getNext(), ttlSeconds, completionHandler);
-        if (isLoggingEnabled()) {
-            this.itemLogger.logItem(item);
-        }
         addToStreamWithBlock(item, flushImmediately);
     }
 
@@ -487,9 +458,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                     Thread.sleep(100);
                 }
             }
-            if (loggingEnabled && itemLogger != null) {
-                this.itemLogger.close(waitForEnd);
-            }
         } catch (InterruptedException e) {
         }
 
@@ -536,7 +504,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     public Flowable<T, R> countDownLatch(int count_down_latch) {
-        this.ACCEPT_COUNTDOWN_TICKS = count_down_latch;
+        this.acceptWaitTimeMS = count_down_latch;
         return this;
     }
 
@@ -623,30 +591,35 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
   }*/
 
+    public AtomicBoolean processed = new AtomicBoolean(false);
+
     public boolean acceptAll() {
-        int ticks = ACCEPT_COUNTDOWN_TICKS;
-        boolean processed = false;
-        while (!hasEnded() && !processed && ticks >= 0) {
-            if (ticks == 0 || flushImmediately || flush || item_queue.size() == queue_max_size || this.isEnd) {
+        int waitMS = acceptWaitTimeMS;
+        processed.set(false);
+        while (!hasEnded() && !processed.get() && waitMS >= 0) {
+            if (waitMS == 0 || flushImmediately || flush || item_queue.size() == queue_max_size || this.isEnd) {
                 synchronized (lockFlowContents) {
                     if (!item_queue.isEmpty()) {
-                        if (blockingSignaler == null || (blockingSignaler != null && blockingSignaler.canThreadProceed())) {
+                        if (blockingSignaler == null || blockingSignaler.canThreadProceed()) {
                             this.item_queue.drainTo(this.flowContents.itemStoreContents);
                             XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
-                            processed = true;
+                            processed.set(true);
                         }
                     }
                 }
             }
-            if (!processed) {
+            if (!processed.get()) {
                 LockSupport.parkNanos(100000);
-                ticks--;
+                waitMS--;
             }
 
         }
-        return processed;
+        return processed.get();
     }
 
+    public AtomicBoolean processed() {
+        return this.processed;
+    }
 
     private void registerFutureSubscriber(FutureSubscriber<R, T> subscriber) {
         if (!futureSubscribers.contains(subscriber)) {
@@ -781,10 +754,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         return new FlowSubscriptionTask(this);
     }
 
-    public boolean isLoggingEnabled() {
-        return loggingEnabled;
-    }
-
+    
     public final class FlowSubscriptionTask implements Callable<Boolean> {
 
 
@@ -856,8 +826,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                         System.exit(-1);
                     }
                 }
-
             }
+            processed.set(false);
             return false;
         }
 

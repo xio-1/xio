@@ -5,6 +5,8 @@ import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public interface Flowable<T, R> {
 
   String name();
@@ -36,4 +38,6 @@ public interface Flowable<T, R> {
   void resetLastSeenItem(String subscriberID, Item<T> lastSeenItem);
 
   void recoverSnapshot(RecoverySnapshot<R, T> snapshot);
+
+  AtomicBoolean processed();
 }
