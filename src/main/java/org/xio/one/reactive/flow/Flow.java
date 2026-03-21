@@ -5,7 +5,6 @@
  */
 package org.xio.one.reactive.flow;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,7 +76,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private final int DEFAULT_MAX_TAKE_SIZE = Integer.MAX_VALUE;
     private Map<String, Item<T>> lastSeenItemMap;
     // streamContentsSnapShot variables
-    private ItemSink<T> flowContents;
+    private ItemSink<T> itemSink;
     // constants
     private int acceptWaitTimeMS = 10;
     // input parameters
@@ -222,7 +221,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 this.maxTTLSeconds = maxTTLSeconds;
             }
             synchronized (lockFlowContents) {
-                this.flowContents = new ItemSink<>(this);
+                this.itemSink = new ItemSink<>(this);
             }
             this.itemIDSequence = new ItemIdSequence();
             this.flushImmediately = false;
@@ -250,8 +249,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             synchronized (lockFlowContents) {
                 this.lastSeenItemMap = snapshot.getLastSeenItemMap();
                 this.itemIDSequence = new ItemIdSequence(snapshot.getItemID());
-                this.flowContents = new ItemSink<>(this);
-                this.flowContents.getItemStoreContents().addAll(snapshot.getContents());
+                this.itemSink = new ItemSink<>(this);
+                this.itemSink.getItemStoreContents().addAll(snapshot.getContents());
                 synchronized (lockSubscriberslist) {
                     //this.subscribers = snapshot.getSubscribers();
                     //this.futureSubscribers = snapshot.getFutureSubscribers();
@@ -446,7 +445,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
     @Override
     public ItemSink getSink() {
-        return flowContents;
+        return itemSink;
     }
 
     @Override
@@ -501,11 +500,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 this.initialise(this.name, this.indexFieldName, this.maxTTLSeconds);
             }
         }
-    }
-
-    public Flowable<T, R> countDownLatch(int count_down_latch) {
-        this.acceptWaitTimeMS = count_down_latch;
-        return this;
     }
 
     public Object getLockFlowContents() {
@@ -601,7 +595,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 synchronized (lockFlowContents) {
                     if (!item_queue.isEmpty()) {
                         if (blockingSignaler == null || blockingSignaler.canThreadProceed()) {
-                            this.item_queue.drainTo(this.flowContents.itemStoreContents);
+                            this.item_queue.drainTo(this.itemSink.getItemStoreContents());
                             XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
                             processed.set(true);
                         }
@@ -654,7 +648,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     private ItemSink<T> flowContents() {
-        return flowContents;
+        return itemSink;
     }
 
     @Override
@@ -691,7 +685,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         Map<String, Item> lastSeenItemMap = new ConcurrentHashMap<>();
         while (true) {
             synchronized (lockFlowContents) {
-                this.item_queue.drainTo(this.flowContents.itemStoreContents);
+                this.item_queue.drainTo(this.itemSink.getItemStoreContents());
                 if (this.size() == getSink().size()) {
                     synchronized (lockSubscriberslist) {
                         Optional<Item<T>> minItem = this.lastSeenItemMap.values().stream()
@@ -717,10 +711,14 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         }
     }
 
-    private void cyclelogs() {
-
+    public long getMinimumLastSeenId() {
+        synchronized (lockSubscriberslist) {
+            if (this.lastSeenItemMap.isEmpty()) {
+                return -1;
+            }
+            return this.lastSeenItemMap.values().stream().min(new ItemSequenceComparator<>()).get().getItemId();
+        }
     }
-
 
     public Future<R> subscribe(Subscriber<R, T> subscriber) {
         synchronized (lockSubscriberslist) {
@@ -770,6 +768,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         @Override
         public Boolean call() {
             {
+                //add ready for housekeeping logic here
                 List<Callable<Void>> callableList;
                 synchronized (lockSubscriberslist) {
                     if (subscribers.isEmpty()) {
@@ -808,7 +807,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
                         Collections.shuffle(callableList);
 
-                        InternalExecutors.microFlowInputTaskThreadPoolInstance()
+                        InternalExecutors.microFlowTaskThreadPoolInstance()
                                 .invokeAll(callableList)
                                 .stream().map(f -> {
                                     try {

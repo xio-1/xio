@@ -2,14 +2,11 @@ package org.xio.one.reactive.flow.internal;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.XIOService;
@@ -47,9 +44,9 @@ public class FlowInputMonitor implements Runnable {
             if (!callables.isEmpty()) {
 
                 List<Future<Boolean>> result =
-                        InternalExecutors.flowInputTaskThreadPoolInstance().invokeAll(callables);
+                        InternalExecutors.microFlowTaskThreadPoolInstance().invokeAll(callables);
 
-                while (result.stream().filter(r -> r.isDone()).toList().size() == 0) {
+                while (result.stream().anyMatch(r -> !r.isDone())) {
                     Thread.sleep(1);
                 }
 
@@ -60,23 +57,6 @@ public class FlowInputMonitor implements Runnable {
                         throw new RuntimeException(e);
                     }
                 }).toList();
-
-
-                if (executed.stream().noneMatch(r -> r.equals(true)))
-                    Thread.sleep(1);
-
-            /*Optional<Boolean> anyexecuted = result.stream().map(booleanFuture -> {
-                try {
-                    return booleanFuture.get();
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
-            }).filter(Boolean::booleanValue).findFirst();
-            if (anyexecuted.isEmpty()) {
-                Thread.sleep(10);
-            }
-
-        */
             } else Thread.sleep(1);
         } catch (InterruptedException | RuntimeException e) {
             handleException(e, countDown);

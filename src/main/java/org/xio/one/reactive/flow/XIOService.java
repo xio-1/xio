@@ -105,7 +105,7 @@ public class XIOService {
           Thread.sleep(2000);
           Flow.allFlows().stream().forEach(f -> {
             f.close(false);
-            f.getSink().itemStoreContents.clear();
+            f.getSink().getItemStoreContents().clear();
           });
           Flow.allFlows().clear();
           oldBoss.getFlowInputMonitorFuture().cancel(true);

@@ -8,8 +8,6 @@
  */
 package org.xio.one.reactive.flow.domain.item;
 
-import org.xio.one.reactive.flow.domain.NodeID;
-
 /**
  * Abstract Item to be extended by user defined Items
  *
@@ -20,11 +18,9 @@ public class Item<T> {
   private T itemValue;
   private long itemId;
   private long itemTimestamp;
-  private long itemNodeId;
   private long itemTTLSeconds;
 
-  public Item() {
-    this.itemNodeId = NodeID.getNodeID();
+  protected Item() {
     this.itemTimestamp = System.currentTimeMillis();
     this.itemId = 0;
     this.itemTTLSeconds = 0;
@@ -32,7 +28,6 @@ public class Item<T> {
   }
 
   public Item(long itemId) {
-    this.itemNodeId = NodeID.getNodeID();
     this.itemTimestamp = Long.MAX_VALUE;
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
@@ -42,15 +37,13 @@ public class Item<T> {
   public Item(T itemValue,  long itemId) {
     this.itemTimestamp = System.currentTimeMillis();
     this.itemValue = itemValue;
-    this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = 0;
   }
 
   public Item(T itemValue, long itemId, long itemTTLSeconds) {
     this.itemTimestamp = System.currentTimeMillis();
-    this.itemValue = itemValue;
-    this.itemNodeId = NodeID.getNodeID();
+    this.itemValue = itemValue;;
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
@@ -58,16 +51,13 @@ public class Item<T> {
   public Item(T itemValue, long itemId, long itemTTLSeconds, long itemTimestamp) {
     this.itemTimestamp = itemTimestamp;
     this.itemValue = itemValue;
-    this.itemNodeId = NodeID.getNodeID();
     this.itemId = itemId;
     this.itemTTLSeconds = itemTTLSeconds;
   }
 
-
   public long getItemTTLSeconds() {
     return itemTTLSeconds;
   }
-
 
   public long getItemTimestamp() {
     return this.itemTimestamp;
@@ -81,16 +71,14 @@ public class Item<T> {
     }
   }
 
-  public boolean isReadyForHouseKeeping(long maxTTLSeconds) {
-    return this.getItemTimestamp() + (maxTTLSeconds * 1000) > System.currentTimeMillis();
+  public boolean isReadyForHouseKeeping(Item item, long minimumLastSeenId, long maxTTLSeconds) {
+    if (item.getItemId() > minimumLastSeenId)
+      return false;
+    else return System.currentTimeMillis() < ((item.getItemTTLSeconds()*1000)+getItemTimestamp());
   }
 
   public long getItemId() {
     return this.itemId;
-  }
-
-  public long getItemNodeId() {
-    return itemNodeId;
   }
 
   public T getItemValue() {

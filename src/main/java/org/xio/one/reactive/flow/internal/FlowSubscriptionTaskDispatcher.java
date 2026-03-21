@@ -48,13 +48,16 @@ public class FlowSubscriptionTaskDispatcher implements Runnable {
                 } else {
                     try {
                         List<Future<Boolean>> result;
-                        result = InternalExecutors.microFlowInputTaskThreadPoolInstance().invokeAll(callables);
+                        result = InternalExecutors.microFlowTaskThreadPoolInstance().invokeAll(callables);
                         while (result.stream().anyMatch(p -> !p.isDone())) {
                             Thread.sleep(1);
                         }
                     } catch (InterruptedException e) {
                         logger.log(Level.WARNING,
                                 "Flow Subscription Task Dispatcher was interrupted waiting for tasks to complete " + e.getMessage());
+                    } catch (Exception e) {
+                        logger.log(Level.WARNING,
+                                "Flow Subscription Task Dispatcher threw an exception when waiting for tasks to complete " + e.getMessage());
                     }
                 }
             } catch (Exception e) {

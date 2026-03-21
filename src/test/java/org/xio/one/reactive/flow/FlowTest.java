@@ -77,7 +77,7 @@ public class FlowTest {
 
   @Test
   public void shouldHousekeepUsingSimpleHousekeeper() throws InterruptedException {
-    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow", 1);
+    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow", 2);
     asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.getItemValue())).subscribe();
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.putItem("Hello World!!!");
@@ -85,6 +85,16 @@ public class FlowTest {
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.putItem("Hello World!!!");
     asyncFlow.putItem("Hello World!!!");
+    Thread.sleep(2000);
+    assertThat(asyncFlow.size(), is(0));
+    asyncFlow.close(true);
+  }
+
+  @Test
+  public void shouldHousekeepUsingItemTTLWithSimpleHousekeeper() throws InterruptedException {
+    ItemFlowable<String, String> asyncFlow = anItemFlow("HelloWorldFlow");
+    asyncFlow.publishTo(ItemSubscriber.class).doForEach(i -> logger.info(i.getItemValue())).subscribe();
+    asyncFlow.putItemWithTTL(1, "Hello World!!!");
     Thread.sleep(1000);
     assertThat(asyncFlow.size(), is(0));
     asyncFlow.close(true);

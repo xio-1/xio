@@ -13,7 +13,7 @@ public class SimpleHousekeeper implements Housekeeper {
     public boolean housekeep(Flow flow) {
         if (flow.maxTTLSeconds() > 0) {
             long count = ((NavigableSet<Item>) flow.getSink().getItemStoreContents()).stream()
-                    .filter(i -> !i.isReadyForHouseKeeping(flow.maxTTLSeconds()))
+                    .filter(i -> !i.isReadyForHouseKeeping(i, flow.getMinimumLastSeenId(), flow.maxTTLSeconds()))
                     .map(d -> flow.getSink().getItemStoreContents().remove(d)).count();
             if (count > 0) {
                 logger.info("cleaned flow " + flow.name() + " : removed " + count + " items");

@@ -31,7 +31,7 @@ public final class ItemSink<T> {
   private final NavigableSet<Item<T>> EMPTY_ITEM_SET = new ConcurrentSkipListSet<>();
   private final Flow itemFlow;
   //protected volatile ConcurrentSkipListSet<Item<T>> itemRepositoryContents;
-  volatile NavigableSet<Item<T>> itemStoreContents = null;
+  private volatile NavigableSet<Item<T>> itemStoreContents = null;
 
   public ItemSink(Flow itemStream) {
     this.itemFlow = itemStream;

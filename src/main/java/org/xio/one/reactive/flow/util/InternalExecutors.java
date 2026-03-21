@@ -29,7 +29,7 @@ public class InternalExecutors {
      *
      * @return
      */
-    public static synchronized ExecutorService flowInputTaskThreadPoolInstance() {
+    public static synchronized ExecutorService flowTaskThreadPoolInstance() {
         if (flowInputThreadPoolexec == null) {
             flowInputThreadPoolexec = Executors
                     .newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1,
@@ -42,7 +42,7 @@ public class InternalExecutors {
         return flowInputThreadPoolexec;
     }
 
-    public static synchronized ExecutorService microFlowInputTaskThreadPoolInstance() {
+    public static synchronized ExecutorService microFlowTaskThreadPoolInstance() {
         boolean virtualThreads = true;
         try {
             Thread.class.getDeclaredMethod("startVirtualThread", Runnable.class);
@@ -57,7 +57,7 @@ public class InternalExecutors {
                 microFlowInputThreadPoolexec = Executors.newVirtualThreadPerTaskExecutor();
             }
             return microFlowInputThreadPoolexec;
-        } else return subscribersTaskThreadPoolInstance();
+        } else return flowTaskThreadPoolInstance();
     }
 
     public static synchronized ScheduledExecutorService schedulerThreadPoolInstance() {

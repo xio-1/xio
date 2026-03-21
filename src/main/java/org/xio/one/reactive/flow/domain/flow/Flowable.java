@@ -39,5 +39,5 @@ public interface Flowable<T, R> {
 
   void recoverSnapshot(RecoverySnapshot<R, T> snapshot);
 
-  AtomicBoolean processed();
+  long getMinimumLastSeenId();
 }
