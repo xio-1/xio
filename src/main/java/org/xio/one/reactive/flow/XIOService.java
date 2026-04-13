@@ -64,7 +64,7 @@ public class XIOService {
               InternalExecutors.daemonThreadPoolInstance().submit(flowInputMonitor),
               InternalExecutors.daemonThreadPoolInstance().submit(flowSubscriptionTaskDispatcher),
               InternalExecutors.schedulerThreadPoolInstance()
-                  .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1, 1,
+                  .scheduleWithFixedDelay(new FlowHousekeepingTask(), 1000, 1000,
                       TimeUnit.SECONDS),
               flowInputMonitor, flowSubscriptionTaskDispatcher);
           try {

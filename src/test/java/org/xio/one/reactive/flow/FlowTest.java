@@ -30,6 +30,7 @@ import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.CompletableItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.FutureItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.ItemSubscriber;
+import org.xio.one.reactive.flow.subscribers.MultiItemSubscriber;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.util.InternalExecutors;
 
@@ -88,6 +89,30 @@ public class FlowTest {
     Thread.sleep(2000);
     assertThat(asyncFlow.size(), is(0));
     asyncFlow.close(true);
+  }
+
+  @Test
+  public void testMultiItemSubscriber() throws InterruptedException {
+    ItemFlowable<String,Integer> asyncFlow = anItemFlow("HelloWorldFlow", 2);
+    MultiItemSubscriber<Integer, String> subscriber = new MultiItemSubscriber<Integer, String>() {
+
+      int count = 0;
+
+      @Override
+      public void onNext(Stream<? extends Item<String>> items) {
+        items.forEach(i -> count++);
+      }
+
+      @Override
+      public Map<String, Object> getContext() {
+        return Map.of("lastValue", count);
+      }
+    };
+    asyncFlow.addSubscriber(subscriber);
+    Arrays.stream(new String[] {"Hello World!!!", "Hello World!!!", "Hello World!!!", "Hello World!!!", "Hello World!!!", "Hello World!!!"}).forEach(i -> asyncFlow.putItem(i));
+    Thread.sleep(1000);
+    assertThat(subscriber.getContext().get("lastValue"), is(6));
+
   }
 
   @Test
