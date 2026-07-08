@@ -4,8 +4,7 @@ import org.xio.one.reactive.flow.ItemSink;
 import org.xio.one.reactive.flow.domain.item.Item;
 import org.xio.one.reactive.flow.internal.RecoverySnapshot;
 import org.xio.one.reactive.flow.subscribers.FunctionalSubscriber;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 public interface Flowable<T, R> {
 
@@ -40,4 +39,8 @@ public interface Flowable<T, R> {
   void recoverSnapshot(RecoverySnapshot<R, T> snapshot);
 
   long getMinimumLastSeenId();
+
+  void removeSubscriber(Subscriber<R, T> subscriber);
+
+  boolean hasSubscribers();
 }

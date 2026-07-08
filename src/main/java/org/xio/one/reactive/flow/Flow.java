@@ -117,7 +117,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         this.blockingSignaler = blockingSignaler;
         this.itemIDSequence = new ItemIdSequence(lastSeenIndex);
     }
-
+    protected Flow(String name, long ttlSeconds, BlockingSignaler blockingSignaler) {
+        this(name, null, ttlSeconds);
+        this.blockingSignaler = blockingSignaler;
+        this.itemIDSequence = new ItemIdSequence();
+    }
     //bad use of erasure need to find a better way
     public static <T, R> ItemFlowable<T, R> anItemFlow() {
         return new Flow<>(UUID.randomUUID().toString(), null, DEFAULT_TIME_TO_LIVE_SECONDS);
@@ -192,6 +196,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name,
                                                                             long maxTTLSeconds, CompletableSubscriber<R, T> completableSubscriber) {
         Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds);
+        resultFlowable.addAppropriateSubscriber(completableSubscriber);
+        return resultFlowable;
+    }
+    public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name, long maxTTLSeconds, BlockingSignaler blockingSignaler, CompletableSubscriber<R, T> completableSubscriber) {
+        Flow<T, R> resultFlowable = new Flow<>(name,  maxTTLSeconds,blockingSignaler);
         resultFlowable.addAppropriateSubscriber(completableSubscriber);
         return resultFlowable;
     }
@@ -279,6 +288,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     @Override
     public void removeSubscriber(Subscriber<R, T> subscriber) {
         unsubscribe(subscriber);
+    }
+
+    @Override
+    public boolean hasSubscribers() {
+        return !subscribers.isEmpty();
+
     }
 
     private void addAppropriateSubscriber(Subscriber<R, T> subscriber) {

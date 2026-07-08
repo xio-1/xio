@@ -531,7 +531,9 @@ public class FlowTest {
     {
       assertThat(longList.get(i), equalTo(((Item) itemList.toArray()[i]).getItemId()));
     }
+    asyncFlow.removeSubscriber(subscriber);
 
+    assertThat(asyncFlow.hasSubscribers(), equalTo(false));
   }
 
   @Test
