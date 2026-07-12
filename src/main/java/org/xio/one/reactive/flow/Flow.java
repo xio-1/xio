@@ -205,6 +205,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         return resultFlowable;
     }
 
+    public static <T, R> CompletableItemFlowable<T, R> aCompletableItemFlow(String name, long maxTTLSeconds, long lastSeenIndex, BlockingSignaler blockingSignaler, CompletableSubscriber<R, T> completableSubscriber) {
+        Flow<T, R> resultFlowable = new Flow<>(name, null, maxTTLSeconds, lastSeenIndex, blockingSignaler);;
+        resultFlowable.addAppropriateSubscriber(completableSubscriber);
+        return resultFlowable;
+    }
+
     public static Collection<Flow> allFlows() {
         synchronized (flowControlLock) {
             return Collections.synchronizedMap(flowMap).values();
