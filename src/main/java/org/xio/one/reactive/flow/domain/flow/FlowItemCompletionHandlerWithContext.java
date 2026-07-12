@@ -1,6 +1,6 @@
 package org.xio.one.reactive.flow.domain.flow;
 
-public class FlowItemCompletionHandlerWithContext<C> implements FlowItemCompletionHandler {
+public class FlowItemCompletionHandlerWithContext<R, A, C> implements FlowItemCompletionHandler<R,A> {
 
     C context;
 
@@ -8,17 +8,17 @@ public class FlowItemCompletionHandlerWithContext<C> implements FlowItemCompleti
         this.context=context;
     }
 
-    @Override
-    public void completed(Object result, Object attachment) {
-
-    }
-
-    @Override
-    public void failed(Throwable exc, Object attachment) {
-
-    }
-
     public C getContext() {
         return context;
+    }
+
+    @Override
+    public void completed(R result, A attachment) {
+
+    }
+
+    @Override
+    public void failed(Throwable exc, A attachment) {
+
     }
 }
