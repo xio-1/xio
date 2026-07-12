@@ -20,7 +20,7 @@ public abstract class CompletableSubscriber<R, T> implements Subscriber<R, T> {
 
   public CompletableSubscriber() {
     this.completableFuture = new CompletableFuture<>();
-    initialise();
+    //initialise();
   }
 
   @Override

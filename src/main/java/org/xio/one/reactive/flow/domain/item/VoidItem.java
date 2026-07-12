@@ -22,4 +22,6 @@ public final class VoidItem<T> extends Item<T> {
   public String toString() {
     return "{\"domain\":\"VoidItem\"}";
   }
+
+
 }

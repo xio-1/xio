@@ -8,6 +8,8 @@
  */
 package org.xio.one.reactive.flow.domain.item;
 
+import java.util.Objects;
+
 /**
  * Abstract Item to be extended by user defined Items
  *
@@ -112,5 +114,15 @@ public class Item<T> {
 
     return toreturn;
   }*/
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    Item<?> item = (Item<?>) o;
+    return itemId == item.itemId && itemTimestamp == item.itemTimestamp && itemTTLSeconds == item.itemTTLSeconds && Objects.equals(itemValue, item.itemValue);
+  }
 
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(itemId);
+  }
 }

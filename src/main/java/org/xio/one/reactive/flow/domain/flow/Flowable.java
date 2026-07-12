@@ -40,6 +40,8 @@ public interface Flowable<T, R> {
 
   long getMinimumLastSeenId();
 
+  Subscriber<R, T> addSubscriber(Subscriber<R, T> subscriber);
+
   void removeSubscriber(Subscriber<R, T> subscriber);
 
   boolean hasSubscribers();

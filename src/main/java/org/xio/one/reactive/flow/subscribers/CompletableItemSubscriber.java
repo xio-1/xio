@@ -30,7 +30,7 @@ public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscri
 
   public abstract void onNext(CompletableItem<T, R> itemValue) throws Throwable;
 
-  public abstract void onError(Throwable error, Item<T> itemValue);
+  public abstract void onError(Throwable error, CompletableItem<T,R> itemValue);
 
   @Override
   public void initialise() {
@@ -47,7 +47,7 @@ public abstract class CompletableItemSubscriber<R, T> extends CompletableSubscri
         onNext((CompletableItem<T, R>) item);
       }
     } catch (Throwable e) {
-      onError(e, item);
+      onError(e, (CompletableItem<T, R>) item);
     }
   }
 }

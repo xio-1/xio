@@ -496,14 +496,14 @@ public class FlowTest {
       public void onNext(CompletableItem item) throws Throwable {
         itemList.add(item);
         //add jitter
-        long waitMS = (int) Math.abs(Math.round(Math.random())) % 2;
-        Thread.sleep(waitMS);
+        //long waitMS = (int) Math.abs(Math.round(Math.random())) % 2;
+        //Thread.sleep(waitMS);
         item.flowItemCompletionHandler().completed(item.getItemId(), 0L);
       }
 
       @Override
-      public void onError(Throwable error, Item itemValue) {
-
+      public void onError(Throwable error, CompletableItem itemValue) {
+          itemValue.flowItemCompletionHandler().completed(error,null);
       }
     };
 
@@ -523,7 +523,7 @@ public class FlowTest {
         }
       });
     }
-    Thread.sleep(12000);
+    Thread.sleep(1000);
 
     assertThat(longList.size(),equalTo(itemList.size()));
 
@@ -654,8 +654,8 @@ public class FlowTest {
           }
 
           @Override
-          public void onError(Throwable error, Item<String> itemValue) {
-
+          public void onError(Throwable error, CompletableItem<String, String> itemValue) {
+            itemValue.flowItemCompletionHandler().completed(error.getMessage(),null);
           }
         });
 
@@ -678,6 +678,46 @@ public class FlowTest {
     }
     asyncFlow.close(true);
   }
+  @Test
+  public void testErroredCallbackOnCompletion() throws InterruptedException {
+    CompletableItemFlowable<String, String> asyncFlow =
+            Flow.aCompletableItemFlow(HELLO_WORLD_FLOW, new CompletableItemSubscriber<>() {
+
+              @Override
+              public void onNext(CompletableItem<String, String> itemValue) throws Throwable {
+                logger.info(Thread.currentThread() + ":OnNext" + itemValue.getItemValue());
+                InternalExecutors.subscribersTaskThreadPoolInstance()
+                        .submit(new FutureTask<Void>(() -> {
+                          throw new RuntimeException();
+                        }));
+              }
+
+              @Override
+              public void onError(Throwable error, CompletableItem<String, String> itemValue) {
+                itemValue.flowItemCompletionHandler().completed(error.getMessage(),null);
+              }
+            });
+
+    FlowItemCompletionHandler<String, String> myHandler = new FlowItemCompletionHandler<>() {
+      @Override
+      public void completed(String result, String attachment) {
+        logger.info(Thread.currentThread() + ":OnCallbackCompletion:" + result);
+      }
+
+      @Override
+      public void failed(Throwable exc, String attachment) {
+        exc.printStackTrace();
+      }
+
+    };
+
+    logger.info(Thread.currentThread() + ":OnSubmit");
+    for (int i = 0; i < 10; i++) {
+      asyncFlow.submitItem("Hello" + i, myHandler);
+    }
+    asyncFlow.close(true);
+  }
+
 
   @Test
   public void shouldReprocessAfterResettingTheLastSeenItem() throws InterruptedException {

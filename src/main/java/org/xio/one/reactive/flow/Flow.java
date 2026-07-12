@@ -84,7 +84,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private String indexFieldName;
     private long maxTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
     // Queue control
-    private BlockingQueue<Item<T>> item_queue;
+    private LinkedBlockingDeque<Item<T>> item_queue;
     private volatile boolean isEnd = false;
     private volatile boolean  flush = false;
     private ItemIdSequence itemIDSequence;
@@ -223,7 +223,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
     private void initialise(String name, String indexFieldName, long maxTTLSeconds) {
         synchronized (flowControlLock) {
-            this.item_queue = new ArrayBlockingQueue<>(queue_max_size, true);
+            this.item_queue =  new LinkedBlockingDeque<>(queue_max_size);
             this.name = name;
             this.indexFieldName = indexFieldName;
             if (maxTTLSeconds >= 0) {

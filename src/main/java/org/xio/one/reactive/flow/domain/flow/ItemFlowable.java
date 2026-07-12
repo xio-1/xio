@@ -8,8 +8,6 @@ import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 
 public interface ItemFlowable<T, R> extends Flowable<T, R> {
 
-  Subscriber<R, T> addSubscriber(Subscriber<R, T> subscriber);
-
   void restoreAllSubscribers(Map<String, Map<String, Object>> subscriberContext, RestorableSubscriber<R, T> restorableSubscriber);
 
   Subscriber<R, T> getSubscriber(String id);
