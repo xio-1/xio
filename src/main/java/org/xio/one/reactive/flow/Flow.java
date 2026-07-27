@@ -745,7 +745,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
         synchronized (lockSubscriberslist) {
             subscriber.initialise();
             this.subscribers.add(subscriber);
-            this.lastSeenItemMap.put(subscriber.getId(), VoidItem.VOID_ITEM);
+            this.lastSeenItemMap.put(subscriber.getId(), subscriber.getLastSeenItem());
             logger.info("Added subscriber " + subscriber.getId() + " flow " + name());
         }
         return subscriber.getFutureResult();

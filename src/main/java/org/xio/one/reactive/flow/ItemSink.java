@@ -10,10 +10,8 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.LockSupport;
-import org.xio.one.reactive.flow.domain.item.EmptyItem;
-import org.xio.one.reactive.flow.domain.item.Item;
-import org.xio.one.reactive.flow.domain.item.ItemComparator;
-import org.xio.one.reactive.flow.domain.item.ItemSequenceComparator;
+
+import org.xio.one.reactive.flow.domain.item.*;
 
 /**
  * ItemSink (in memory Sink item store for flowable itmes)
@@ -70,48 +68,43 @@ public final class ItemSink<T> {
   //ToDo refactor to used generic T
   public NavigableSet<Item<T>> allAfter(Item lastItem, int maxSize) {
     try {
-      NavigableSet<Item<T>> querystorecontents =
-          Collections.unmodifiableNavigableSet(this.itemStoreContents);
+      NavigableSet<Item<T>> querystorecontents = Collections.unmodifiableNavigableSet(this.itemStoreContents);
       if (!querystorecontents.isEmpty()) {
-        if (!EmptyItem.EMPTY_ITEM.equals(lastItem) && lastItem != null) {
-          Item newLastItem = querystorecontents.last();
-          NavigableSet<Item<T>> items = Collections.unmodifiableNavigableSet(
-              querystorecontents.subSet(lastItem, false, newLastItem, true));
-          if (!items.isEmpty()) {
-            Item newFirstItem = items.first();
-            if (newFirstItem.getItemId() == (lastItem.getItemId() + 1)) {
-              // if lastItem domain is in correct sequence then
-              final int size = items.size();
-              if (newLastItem.getItemId() == newFirstItem.getItemId() + size - 1)
-              // if the size anItemFlow the domain to return is correct i.e. allItems in sequence
-              {
-                if (size == (newLastItem.getItemId() + 1 - newFirstItem.getItemId())) {
-                  if (size <= maxSize) {
-                    return items;
-                  } else {
-                    Item e = new Item(newFirstItem.getItemId() + maxSize);
-                    return items.subSet(lastItem, false, e, false);
-                  }
-                }
+        if (EmptyItem.EMPTY_ITEM.equals(lastItem) || VoidItem.VOID_ITEM.equals(lastItem) || lastItem == null) {
+          return this.extractItemsThatAreInSequence((Item)querystorecontents.last(), querystorecontents, (Item)querystorecontents.first(), maxSize);
+        }
+
+        Item newLastItem = (Item)querystorecontents.last();
+        NavigableSet<Item<T>> items = Collections.unmodifiableNavigableSet(querystorecontents.subSet(lastItem, false, newLastItem, true));
+        if (!items.isEmpty()) {
+          Item newFirstItem = (Item)items.first();
+          if (newFirstItem.getItemId() == lastItem.getItemId() + 1L) {
+            int size = items.size();
+            if (newLastItem.getItemId() == newFirstItem.getItemId() + (long)size - 1L && (long)size == newLastItem.getItemId() + 1L - newFirstItem.getItemId()) {
+              if (size <= maxSize) {
+                return items;
               }
-              return extractItemsThatAreInSequence(lastItem, items, newFirstItem, maxSize);
-            } else {
-              LockSupport.parkNanos(100000);
+
+              Item e = new Item(newFirstItem.getItemId() + (long)maxSize);
+              return items.subSet(lastItem, false, e, false);
             }
-          } else {
-            LockSupport.parkNanos(100000);
+
+            return this.extractItemsThatAreInSequence(lastItem, items, newFirstItem, maxSize);
           }
+
+          LockSupport.parkNanos(100000L);
         } else {
-          return extractItemsThatAreInSequence(querystorecontents.last(), querystorecontents,
-              querystorecontents.first(), maxSize);
+          LockSupport.parkNanos(100000L);
         }
       } else {
-        LockSupport.parkNanos(100000);
+        LockSupport.parkNanos(100000L);
       }
-    } catch (NoSuchElementException | IllegalArgumentException e) {
+    } catch (IllegalArgumentException | NoSuchElementException var9) {
     }
-    return EMPTY_ITEM_SET;
+
+    return this.EMPTY_ITEM_SET;
   }
+
 
   public NavigableSet<Item<T>> allAfter(long index, int maxSize) {
     Item item = this.getItem(index-1);

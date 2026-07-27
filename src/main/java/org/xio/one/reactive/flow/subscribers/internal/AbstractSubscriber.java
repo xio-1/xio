@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.item.VoidItem;
 
 /**
  * Subscriber
@@ -134,5 +135,11 @@ public abstract class AbstractSubscriber<R, T> implements Subscriber<R, T> {
   @Override
   public void restoreContext(Map<String, Object> context) {
     this.context = context;
+  }
+
+  @Override
+  public Item<T> getLastSeenItem() {
+    //override
+    return VoidItem.VOID_ITEM;
   }
 }

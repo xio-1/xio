@@ -3,6 +3,7 @@ package org.xio.one.reactive.flow.subscribers;
 import java.util.function.Predicate;
 import org.xio.one.reactive.flow.Flow;
 import org.xio.one.reactive.flow.domain.item.Item;
+import org.xio.one.reactive.flow.domain.item.VoidItem;
 import org.xio.one.reactive.flow.subscribers.internal.Subscriber;
 import org.xio.one.reactive.flow.subscribers.internal.functional.OnEndFunction;
 import org.xio.one.reactive.flow.subscribers.internal.functional.OnEndReturnFunction;
@@ -167,6 +168,11 @@ public class FunctionalSubscriber<R, T> {
         onEnd.onEnd();
       }
       return super.finalise();
+    }
+
+    @Override
+    public Item<T> getLastSeenItem() {
+      return VoidItem.VOID_ITEM;
     }
   }
 }

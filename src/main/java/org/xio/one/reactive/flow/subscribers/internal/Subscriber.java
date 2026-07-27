@@ -43,4 +43,6 @@ public interface Subscriber<R, T> {
 
   void restoreContext(Map<String, Object> context);
 
+  Item<T> getLastSeenItem();
+
 }
