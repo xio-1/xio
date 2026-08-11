@@ -248,9 +248,12 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             }
         }
     }
+
+    @Override
     public void setAcceptWaitTimeMS(int acceptWaitTimeMS) {
         this.acceptWaitTimeMS = acceptWaitTimeMS;
     }
+
     @Override
     public void resetLastSeenItem(String subscriberID, Item<T> lastSeenItem) {
         synchronized (lockSubscriberslist) {
@@ -805,7 +808,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                                 Item last = processResults(subscriber, lastSeenItem);
                                 lastSeenItemMap.replace(subscriber.getId(), lastSeenItem, last);
                             } else {
-                                processFinalResults(subscriber, lastSeenItem);
+                                if (lastSeenItem!=null)
+                                    processFinalResults(subscriber, lastSeenItem);
                                 unsubscribe(subscriber);
                                 logger.log(Level.INFO,
                                         "Subscriber " + subscriber.getId() + " stopped for stream : "

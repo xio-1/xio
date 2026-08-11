@@ -45,4 +45,6 @@ public interface Flowable<T, R> {
   void removeSubscriber(Subscriber<R, T> subscriber);
 
   boolean hasSubscribers();
+
+  void setAcceptWaitTimeMS(int acceptWaitTimeMS);
 }
