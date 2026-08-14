@@ -212,15 +212,11 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     }
 
     public static Collection<Flow> allFlows() {
-        synchronized (flowControlLock) {
-            return Collections.synchronizedMap(flowMap).values();
-        }
+        return flowMap.values();
     }
 
     public static Flow forID(String id) {
-        synchronized (flowControlLock) {
-            return Collections.synchronizedMap(flowMap).get(id);
-        }
+        return flowMap.get(id);
     }
 
     public static int numActiveFlows() {
@@ -244,7 +240,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 this.subscribers = Collections.synchronizedList(new ArrayList<>());
 
                 this.futureSubscribers = Collections.synchronizedList(new ArrayList<>());
-                this.lastSeenItemMap = Collections.synchronizedMap(new ConcurrentHashMap<>());
+                this.lastSeenItemMap = new ConcurrentHashMap<>();
             }
         }
     }
@@ -652,7 +648,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 this.flush = immediately;
                 this.item_queue.put(item);
             }
-            //countDownLatch.countDown();
         } catch (InterruptedException e) {
             return false;
         }
@@ -751,6 +746,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             this.lastSeenItemMap.put(subscriber.getId(), subscriber.getLastSeenItem());
             logger.info("Added subscriber " + subscriber.getId() + " flow " + name());
         }
+        processed.set(true);
+        XIOService.getXioBoss().getFlowSubscriptionMonitor().unpark();
         return subscriber.getFutureResult();
     }
 
@@ -787,8 +784,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
             this.itemStream = itemStream;
         }
 
-        private CountDownLatch latch;
-
         @Override
         public Boolean call() {
             {
@@ -798,7 +793,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                     if (subscribers.isEmpty()) {
                         return true;
                     }
-                    latch = new CountDownLatch(subscribers.size());
                     callableList = subscribers.stream().map(subscriber -> (Callable<Void>) () -> {
                         try {
                             Item lastSeenItem = lastSeenItemMap.get(subscriber.getId());
@@ -818,8 +812,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                         } catch (FlowException e) {
                             logger.log(Level.WARNING, "subscriber execution error unsubscribing" + subscriber.getId() + " ", e);
                             unsubscribe(subscriber);
-                        } finally {
-                            latch.countDown();
                         }
                         return null;
                     }).collect(Collectors.toList());
@@ -828,21 +820,16 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
                 if (!callableList.isEmpty()) {
                     try {
-
-
-                        Collections.shuffle(callableList);
-
-                        InternalExecutors.microFlowTaskThreadPoolInstance()
-                                .invokeAll(callableList)
-                                .stream().map(f -> {
-                                    try {
-                                        latch.await();
-                                    } catch (InterruptedException e) {
-                                        logger.log(Level.WARNING, "A subscriber latch was interrupted unexpectedly but can continue: " + f.state().name(), e.getMessage());
-                                    }
-                                    return true;
-                                });
-
+                        List<Future<Void>> result = InternalExecutors.microFlowTaskThreadPoolInstance()
+                                .invokeAll(callableList);
+                        for (Future<Void> f : result) {
+                            try {
+                                f.get();
+                            } catch (Exception e) {
+                                logger.log(Level.WARNING,
+                                        "Subscriber task failed unexpectedly: " + e.getMessage());
+                            }
+                        }
                         return true;
 
                     } catch (RuntimeException | InterruptedException e) {
@@ -851,7 +838,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                     }
                 }
             }
-            processed.set(false);
             return false;
         }
 

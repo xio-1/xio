@@ -38,19 +38,24 @@ public class FlowSubscriptionTaskDispatcher implements Runnable {
             //publishTo to any dirty flow
             try {
                 ArrayList<Callable<Boolean>> callables = new ArrayList<>();
-                //ToDo iron out why using f.getProcessed hangs when flow is ending
-                Flow.allFlows().stream().filter(f -> !f.hasEnded() && f.hasActiveSubscribers())
+                Flow.allFlows().stream().filter(f -> f.hasActiveSubscribers()
+                                && (f.isAtEnd() || f.processed().getAndSet(false)))
                         .map(Flow::newSubscriptionTask).forEach(callables::add);
 
                 if (callables.isEmpty()) {
-                    //sleep if nothing to do
-                    LockSupport.parkNanos(100000);
+                    //sleep until woken by an item drain or new subscriber
+                    LockSupport.parkNanos(10_000_000);
                 } else {
                     try {
                         List<Future<Boolean>> result;
                         result = InternalExecutors.microFlowTaskThreadPoolInstance().invokeAll(callables);
-                        while (result.stream().anyMatch(p -> !p.isDone())) {
-                            Thread.sleep(1);
+                        for (Future<Boolean> f : result) {
+                            try {
+                                f.get();
+                            } catch (Exception e) {
+                                logger.log(Level.WARNING,
+                                        "Flow Subscription Task failed unexpectedly " + e.getMessage());
+                            }
                         }
                     } catch (InterruptedException e) {
                         logger.log(Level.WARNING,
