@@ -44,14 +44,14 @@ public class FlowSubscriptionTaskDispatcher implements Runnable {
 
                 if (callables.isEmpty()) {
                     //sleep until woken by an item drain or new subscriber
-                    LockSupport.parkNanos(10_000_000);
+                    LockSupport.parkUntil(System.currentTimeMillis()+10);
                 } else {
                     try {
                         List<Future<Boolean>> result;
                         result = InternalExecutors.microFlowTaskThreadPoolInstance().invokeAll(callables);
                         for (Future<Boolean> f : result) {
                             try {
-                                f.get();
+                                //f.get();
                             } catch (Exception e) {
                                 logger.log(Level.WARNING,
                                         "Flow Subscription Task failed unexpectedly " + e.getMessage());

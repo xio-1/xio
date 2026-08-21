@@ -68,7 +68,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private static final Map<String, Flow> flowMap = new ConcurrentHashMap<>();
     private static final AtomicInteger flowCount = new AtomicInteger();
 
-    private final int queue_max_size = 16384;
+    private final int queue_max_size = 32768;
     private final Object lockSubscriberslist = new Object();
     private final Object lockFlowContents = new Object();
     private final String id;
@@ -84,9 +84,9 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private String indexFieldName;
     private long maxTTLSeconds = DEFAULT_TIME_TO_LIVE_SECONDS;
     // Queue control
-    private LinkedBlockingDeque<Item<T>> item_queue;
+    private ArrayBlockingQueue<Item<T>> item_queue;
     private volatile boolean isEnd = false;
-    private volatile boolean  flush = false;
+    //private volatile boolean  flush = false;
     private ItemIdSequence itemIDSequence;
     private long slowDownNanos = 0;
     private boolean flushImmediately;
@@ -225,7 +225,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
 
     private void initialise(String name, String indexFieldName, long maxTTLSeconds) {
         synchronized (flowControlLock) {
-            this.item_queue =  new LinkedBlockingDeque<>(queue_max_size);
+            this.item_queue =  new ArrayBlockingQueue<>(queue_max_size);
             this.name = name;
             this.indexFieldName = indexFieldName;
             if (maxTTLSeconds >= 0) {
@@ -608,10 +608,10 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     public AtomicBoolean processed = new AtomicBoolean(false);
 
     public boolean acceptAll() {
-        int waitMS = acceptWaitTimeMS;
         processed.set(false);
-        while (!hasEnded() && !processed.get() && waitMS >= 0) {
-            if (waitMS == 0 || flushImmediately || flush || item_queue.size() == queue_max_size || this.isEnd) {
+        boolean flush=false;
+        while (!hasEnded() && !processed.get()) {
+            if (flushImmediately || flush || item_queue.size() == queue_max_size || this.isEnd) {
                 synchronized (lockFlowContents) {
                     if (!item_queue.isEmpty()) {
                         if (blockingSignaler == null || blockingSignaler.canThreadProceed()) {
@@ -623,8 +623,8 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                 }
             }
             if (!processed.get()) {
-                LockSupport.parkNanos(100000);
-                waitMS--;
+                LockSupport.parkUntil(System.currentTimeMillis()+acceptWaitTimeMS);
+                flush=true;
             }
 
         }
@@ -645,7 +645,6 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
     private boolean addToStreamWithBlock(Item<T> item, boolean immediately) {
         try {
             if (!this.item_queue.offer(item)) {
-                this.flush = immediately;
                 this.item_queue.put(item);
             }
         } catch (InterruptedException e) {
@@ -824,7 +823,7 @@ public class Flow<T, R> implements Flowable<T, R>, ItemFlowable<T, R>, FutureIte
                                 .invokeAll(callableList);
                         for (Future<Void> f : result) {
                             try {
-                                f.get();
+                                //f.get();
                             } catch (Exception e) {
                                 logger.log(Level.WARNING,
                                         "Subscriber task failed unexpectedly: " + e.getMessage());
